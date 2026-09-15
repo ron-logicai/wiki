@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: wiki
+
+  datasource:
+    url: ${WIKI_DB_URL:jdbc:postgresql://localhost:5432/wiki}
+    username: ${WIKI_DB_USERNAME:wiki}
+    password: ${WIKI_DB_PASSWORD:wiki}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway owns the schema; Hibernate only validates it (spec section 6).
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  thymeleaf:
+    cache: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+wiki:
+  limits:
+    title-max-length: 200
+    document-max-bytes: 2097152
+
+---
+# Local development: no HTTPS, template hot reload.
+spring:
+  config:
+    activate:
+      on-profile: local
+  thymeleaf:
+    cache: false
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+---
+# Company login through Microsoft Entra ID (OpenID Connect).
+# Activate with SPRING_PROFILES_ACTIVE=entra and provide the three WIKI_ENTRA_* variables.
+# The client secret is never committed; see .env.example.
+spring:
+  config:
+    activate:
+      on-profile: entra
+  security:
+    oauth2:
+      client:
+        registration:
+          entra:
+            provider: entra
+            client-id: ${WIKI_ENTRA_CLIENT_ID}
+            client-secret: ${WIKI_ENTRA_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope: openid,profile,email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          entra:
+            issuer-uri: https://login.microsoftonline.com/${WIKI_ENTRA_TENANT_ID}/v2.0

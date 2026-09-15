@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="'Versie ' + ${revisie.revisionNumber} + ': ' + ${revisie.title} + ' · LogicAI Wiki'">Versie · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud">
+        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+
+        <p class="melding melding--info">
+            Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
+            <time th:datetime="${revisie.createdAt}" th:text="${#temporals.format(revisie.createdAt, 'd MMMM yyyy HH:mm')}">datum</time>
+            door <span th:text="${revisie.author}">auteur</span>.
+            <a th:href="@{/pages/{id}(id=${pagina.id})}">Naar de actuele pagina</a> ·
+            <a th:href="@{/pages/{id}/history(id=${pagina.id})}">Alle versies</a>
+        </p>
+
+        <h1 th:text="${revisie.title}">Titel</h1>
+        <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
+        <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze versie is leeg.</p>
+    </main>
+</div>
+
+</body>
+</html>

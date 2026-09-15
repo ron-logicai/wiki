@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Nieuwe pagina · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud">
+        <h1>Nieuwe pagina</h1>
+        <p th:if="${ouder != null}">
+            Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>.
+        </p>
+
+        <form th:action="@{/pages}" th:object="${form}" method="post" class="formulier">
+            <input type="hidden" th:field="*{parentId}">
+            <div class="veld">
+                <label for="title">Titel</label>
+                <input id="title" type="text" th:field="*{title}" maxlength="200" required autofocus
+                       th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
+                <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
+            </div>
+            <div class="acties">
+                <button type="submit" class="knop">Aanmaken</button>
+                <a th:href="${ouder != null} ? @{/pages/{id}(id=${ouder.id})} : @{/pages}">Annuleren</a>
+            </div>
+        </form>
+    </main>
+</div>
+
+</body>
+</html>

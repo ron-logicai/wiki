@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Gedeelde <head>-onderdelen: CSRF-token voor de editor en de stylesheet. -->
+<th:block th:fragment="head">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</th:block>
+
+<header th:fragment="kop" class="kop">
+    <a class="merk" th:href="@{/}">LogicAI Wiki</a>
+    <nav class="kop__links" aria-label="Hoofdmenu">
+        <a th:href="@{/}">Start</a>
+        <a th:href="@{/pages}">Alle pagina's</a>
+        <a th:href="@{/pages/new}">Nieuwe pagina</a>
+    </nav>
+    <form class="kop__gebruiker" th:action="@{/logout}" method="post">
+        <span th:text="${gebruiker}">gebruiker</span>
+        <button type="submit" class="knop knop--licht">Uitloggen</button>
+    </form>
+</header>
+
+<!-- Zijbalk met hoofdpagina's (spec F-05). -->
+<nav th:fragment="zijbalk" class="zijbalk" aria-label="Pagina's">
+    <h2 class="zijbalk__titel">Pagina's</h2>
+    <ul class="boom">
+        <li th:each="p : ${hoofdpaginas}">
+            <a th:href="@{/pages/{id}(id=${p.id})}" th:text="${p.title}">Pagina</a>
+        </li>
+    </ul>
+    <p class="leeg" th:if="${#lists.isEmpty(hoofdpaginas)}">Nog geen pagina's.</p>
+</nav>
+
+<!-- Kruimelpad: van hoofdpagina tot huidige pagina (spec F-05). -->
+<nav th:fragment="kruimelpad(ouders, pagina)" class="kruimelpad" aria-label="Locatie">
+    <ol>
+        <li><a th:href="@{/}">Start</a></li>
+        <li th:each="o : ${ouders}"><a th:href="@{/pages/{id}(id=${o.id})}" th:text="${o.title}">Ouder</a></li>
+        <li aria-current="page" th:text="${pagina.title}">Huidige pagina</li>
+    </ol>
+</nav>
+
+</body>
+</html>

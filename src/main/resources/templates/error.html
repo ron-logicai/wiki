@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <title th:text="${status} + ' · LogicAI Wiki'">Fout · LogicAI Wiki</title>
+</head>
+<body>
+
+<header class="kop">
+    <a class="merk" th:href="@{/}">LogicAI Wiki</a>
+</header>
+
+<main class="inhoud inhoud--smal">
+    <h1 th:switch="${status}">
+        <span th:case="404">Pagina niet gevonden</span>
+        <span th:case="403">Geen toegang</span>
+        <span th:case="*" th:text="'Fout ' + ${status}">Fout</span>
+    </h1>
+    <p th:switch="${status}">
+        <span th:case="404">Deze link verwijst naar een pagina die niet bestaat of is verwijderd.</span>
+        <span th:case="403">Je hebt geen rechten voor deze actie.</span>
+        <span th:case="*">Er ging iets mis. Probeer het opnieuw of neem contact op met de beheerder.</span>
+    </p>
+    <p><a class="knop" th:href="@{/}">Naar de startpagina</a></p>
+</main>
+
+</body>
+</html>

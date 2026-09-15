@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Alle pagina's · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud">
+        <h1>Alle pagina's</h1>
+        <p class="leeg" th:if="${paginas.isEmpty()}">Er zijn nog geen pagina's.</p>
+        <table class="tabel" th:unless="${paginas.isEmpty()}">
+            <tr>
+                <th>Titel</th>
+                <th>Laatst gewijzigd</th>
+                <th>Door</th>
+            </tr>
+            <tr th:each="p : ${paginas}">
+                <td><a th:href="@{/pages/{id}(id=${p.id})}" th:text="${p.title}">Titel</a></td>
+                <td><time th:datetime="${p.updatedAt}" th:text="${#temporals.format(p.updatedAt, 'd MMM yyyy HH:mm')}">datum</time></td>
+                <td th:text="${p.updatedBy}">iemand</td>
+            </tr>
+        </table>
+    </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="'Geschiedenis: ' + ${pagina.title} + ' · LogicAI Wiki'">Geschiedenis · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud">
+        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+
+        <h1>Geschiedenis van <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a></h1>
+
+        <table class="tabel">
+            <tr>
+                <th>Versie</th>
+                <th>Titel</th>
+                <th>Auteur</th>
+                <th>Tijdstip</th>
+            </tr>
+            <tr th:each="r : ${revisies}">
+                <td><a th:href="@{/pages/{id}/history/{rev}(id=${pagina.id}, rev=${r.id})}" th:text="${r.revisionNumber}">1</a></td>
+                <td th:text="${r.title}">Titel</td>
+                <td th:text="${r.author}">auteur</td>
+                <td><time th:datetime="${r.createdAt}" th:text="${#temporals.format(r.createdAt, 'd MMM yyyy HH:mm:ss')}">datum</time></td>
+            </tr>
+        </table>
+    </main>
+</div>
+
+</body>
+</html>

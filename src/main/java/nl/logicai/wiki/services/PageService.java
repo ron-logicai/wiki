@@ -1,0 +1,143 @@
+package nl.logicai.wiki.services;
+
+import nl.logicai.wiki.models.Page;
+import nl.logicai.wiki.exceptions.PageConflictException;
+import nl.logicai.wiki.exceptions.PageNotFoundException;
+import nl.logicai.wiki.repositories.PageRepository;
+import nl.logicai.wiki.models.PageRevision;
+import nl.logicai.wiki.repositories.PageRevisionRepository;
+import nl.logicai.wiki.models.WikiDocument;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+/**
+ * Business rules for pages. Controllers handle HTTP; this class owns transactions and
+ * the save path from spec section 8: validate, then store page, search text and revision
+ * in one transaction.
+ */
+@Service
+@Transactional
+public class PageService {
+
+	private final PageRepository pages;
+	private final PageRevisionRepository revisions;
+	private final DocumentValidator validator;
+	private final ObjectMapper mapper;
+	private final Clock clock;
+
+	public PageService(PageRepository pages, PageRevisionRepository revisions,
+			DocumentValidator validator, ObjectMapper mapper, Clock clock) {
+		this.pages = pages;
+		this.revisions = revisions;
+		this.validator = validator;
+		this.mapper = mapper;
+		this.clock = clock;
+	}
+
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page create(String title, UUID parentId, String actor) {
+		String cleanTitle = validator.normalizeTitle(title);
+		if (parentId != null) {
+			getActive(parentId);
+		}
+		WikiDocument document = validator.validate(mapper.readTree(WikiDocument.EMPTY_JSON));
+		Instant now = clock.instant();
+		Page page = pages.save(Page.create(cleanTitle, parentId, document, actor, now));
+		revisions.save(page.nextRevision(actor, now));
+		pages.flush();
+		return page;
+	}
+
+	/**
+	 * Saves title and document when the client's base version matches the stored version.
+	 * An unchanged save creates no new revision.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page saveContent(UUID id, long baseVersion, String title, JsonNode document, String actor) {
+		Page page = getActive(id);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		String cleanTitle = validator.normalizeTitle(title);
+		WikiDocument validated = validator.validate(document);
+
+		boolean unchanged = cleanTitle.equals(page.getTitle())
+			&& mapper.readTree(page.getDocument()).equals(document);
+		if (unchanged) {
+			return page;
+		}
+		PageRevision revision = page.update(cleanTitle, validated, actor, clock.instant());
+		revisions.save(revision);
+		return pages.saveAndFlush(page);
+	}
+
+	@Transactional(readOnly = true)
+	public Page getActive(UUID id) {
+		return pages.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new PageNotFoundException(id));
+	}
+
+	/** Ancestors from root to direct parent, for breadcrumbs (spec F-05). */
+	@Transactional(readOnly = true)
+	public List<Page> ancestors(Page page) {
+		List<Page> chain = new ArrayList<>();
+		UUID parentId = page.getParentId();
+		int guard = 0;
+		while (parentId != null && guard++ < 100) {
+			Page parent = pages.findById(parentId).orElse(null);
+			if (parent == null) {
+				break;
+			}
+			chain.addFirst(parent);
+			parentId = parent.getParentId();
+		}
+		return chain;
+	}
+
+	@Transactional(readOnly = true)
+	public List<Page> children(UUID parentId) {
+		return pages.findByParentIdAndDeletedAtIsNullOrderByTitleAsc(parentId);
+	}
+
+	@Transactional(readOnly = true)
+	public List<Page> rootPages() {
+		return pages.findByParentIdIsNullAndDeletedAtIsNullOrderByTitleAsc();
+	}
+
+	@Transactional(readOnly = true)
+	public List<Page> allActive() {
+		return pages.findByDeletedAtIsNullOrderByTitleAsc();
+	}
+
+	@Transactional(readOnly = true)
+	public List<Page> recentlyChanged() {
+		return pages.findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
+	}
+
+	@Transactional(readOnly = true)
+	public List<PageRevision> history(UUID pageId) {
+		getActive(pageId);
+		return revisions.findByPageIdOrderByRevisionNumberDesc(pageId);
+	}
+
+	@Transactional(readOnly = true)
+	public PageRevision revision(UUID pageId, UUID revisionId) {
+		getActive(pageId);
+		return revisions.findByIdAndPageId(revisionId, pageId)
+			.orElseThrow(() -> new PageNotFoundException(revisionId));
+	}
+
+	/** Makes the document JSON safe to embed inside a &lt;script type="application/json"&gt; tag. */
+	public static String embeddableJson(String json) {
+		return json.replace("<", "\\u003c");
+	}
+
+}

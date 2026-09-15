@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="${pagina.title} + ' · LogicAI Wiki'">Pagina · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud" th:attr="data-page-id=${pagina.id}">
+        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+
+        <h1 th:text="${pagina.title}">Titel</h1>
+        <p class="acties">
+            <a class="knop" th:href="@{/pages/{id}/edit(id=${pagina.id})}">Bewerken</a>
+            <a th:href="@{/pages/new(parentId=${pagina.id})}">Subpagina toevoegen</a>
+            <a th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
+        </p>
+        <p class="meta">
+            Laatst gewijzigd door <span th:text="${pagina.updatedBy}">iemand</span> op
+            <time th:datetime="${pagina.updatedAt}" th:text="${#temporals.format(pagina.updatedAt, 'd MMMM yyyy HH:mm')}">datum</time>
+            · versie <span th:text="${pagina.currentRevision}">1</span>
+        </p>
+
+        <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
+        <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze pagina is nog leeg.</p>
+
+        <section th:unless="${subpaginas.isEmpty()}">
+            <h2>Subpagina's</h2>
+            <ul class="paginalijst">
+                <li th:each="s : ${subpaginas}">
+                    <a th:href="@{/pages/{id}(id=${s.id})}" th:text="${s.title}">Subpagina</a>
+                </li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+</body>
+</html>

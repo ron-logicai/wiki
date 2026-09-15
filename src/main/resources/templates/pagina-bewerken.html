@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/editor/editor.css}">
+    <title th:text="'Bewerken: ' + ${pagina.title} + ' · LogicAI Wiki'">Bewerken · LogicAI Wiki</title>
+</head>
+<body>
+
+<header th:replace="~{fragments :: kop}"></header>
+
+<div class="schil">
+    <nav th:replace="~{fragments :: zijbalk}"></nav>
+
+    <main class="inhoud inhoud--bewerken">
+        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+
+        <div class="veld">
+            <label for="page-title">Titel</label>
+            <input id="page-title" type="text" th:value="${pagina.title}" maxlength="200" required>
+        </div>
+
+        <noscript>
+            <p class="melding" role="alert">
+                De editor heeft JavaScript nodig. De bestaande inhoud is niet gewijzigd.
+                <a th:href="@{/pages/{id}(id=${pagina.id})}">Terug naar de pagina</a>.
+            </p>
+        </noscript>
+
+        <!-- De BlockNote-editor (React) wordt hier gemount; zie frontend/src/main.tsx. -->
+        <div id="editor-root"
+             th:attr="data-page-id=${pagina.id},data-base-version=${pagina.lockVersion}">
+            <p class="leeg">Editor wordt geladen…</p>
+        </div>
+        <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>
+
+        <p class="acties">
+            <a th:href="@{/pages/{id}(id=${pagina.id})}">Terug naar de pagina</a>
+        </p>
+    </main>
+</div>
+
+<script type="module" th:src="@{/editor/editor.js}"></script>
+
+</body>
+</html>
