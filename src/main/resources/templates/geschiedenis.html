@@ -6,31 +6,42 @@
 </head>
 <body>
 
-<header th:replace="~{fragments :: kop}"></header>
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
 
-<div class="schil">
-    <nav th:replace="~{fragments :: zijbalk}"></nav>
+    <div class="hoofd">
+        <div class="top">
+            <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
+            <span class="sep">/</span>
+            <span class="gedempt">Geschiedenis</span>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Naar de pagina</a>
+        </div>
 
-    <main class="inhoud">
-        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Geschiedenis</h1>
+                <p class="intro">
+                    Alle versies van <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a>, nieuwste bovenaan.
+                </p>
 
-        <h1>Geschiedenis van <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a></h1>
-
-        <table class="tabel">
-            <tr>
-                <th>Versie</th>
-                <th>Titel</th>
-                <th>Auteur</th>
-                <th>Tijdstip</th>
-            </tr>
-            <tr th:each="r : ${revisies}">
-                <td><a th:href="@{/pages/{id}/history/{rev}(id=${pagina.id}, rev=${r.id})}" th:text="${r.revisionNumber}">1</a></td>
-                <td th:text="${r.title}">Titel</td>
-                <td th:text="${r.author}">auteur</td>
-                <td><time th:datetime="${r.createdAt}" th:text="${#temporals.format(r.createdAt, 'd MMM yyyy HH:mm:ss')}">datum</time></td>
-            </tr>
-        </table>
-    </main>
+                <table class="tabel">
+                    <tr>
+                        <th>Versie</th>
+                        <th>Titel</th>
+                        <th>Auteur</th>
+                        <th>Tijdstip</th>
+                    </tr>
+                    <tr th:each="r : ${revisies}">
+                        <td><a th:href="@{/pages/{id}/history/{rev}(id=${pagina.id}, rev=${r.id})}" th:text="${r.revisionNumber}">1</a></td>
+                        <td th:text="${r.title}">Titel</td>
+                        <td th:text="${r.author}">auteur</td>
+                        <td><time th:datetime="${r.createdAt}" th:text="${@datums.volledig(r.createdAt)}">datum</time></td>
+                    </tr>
+                </table>
+            </div>
+        </main>
+    </div>
 </div>
 
 </body>

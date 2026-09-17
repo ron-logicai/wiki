@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
 @WebMvcTest({WebController.class, PageController.class})
-@Import({BlockRenderer.class, GlobalModelAdvice.class})
+@Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
 
@@ -50,7 +50,7 @@ class PageControllerTemplateTest {
 
 		mvc.perform(get("/"))
 			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("Recent gewijzigd")))
+			.andExpect(content().string(containsString("Recent bijgewerkt")))
 			.andExpect(content().string(containsString("/pages/" + page.getId())));
 	}
 

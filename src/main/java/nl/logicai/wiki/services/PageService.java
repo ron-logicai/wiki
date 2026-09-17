@@ -10,7 +10,9 @@ import nl.logicai.wiki.models.WikiDocument;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -51,8 +53,11 @@ public class PageService {
 		}
 		WikiDocument document = validator.validate(mapper.readTree(WikiDocument.EMPTY_JSON));
 		Instant now = clock.instant();
-		Page page = pages.save(Page.create(cleanTitle, parentId, document, actor, now));
-		revisions.save(page.nextRevision(actor, now));
+		// Create revision 1 before persisting, so the fresh page keeps lock version 0.
+		Page page = Page.create(cleanTitle, parentId, document, actor, now);
+		PageRevision first = page.nextRevision(actor, now);
+		page = pages.save(page);
+		revisions.save(first);
 		pages.flush();
 		return page;
 	}
@@ -115,6 +120,41 @@ public class PageService {
 	@Transactional(readOnly = true)
 	public List<Page> allActive() {
 		return pages.findByDeletedAtIsNullOrderByTitleAsc();
+	}
+
+	/** A page with its (active) subpages, for the sidebar tree and the spaces on the home page. */
+	public record PageNode(Page page, List<PageNode> children) {
+
+		/** Number of pages below this one, at any depth. */
+		public int aantalNakomelingen() {
+			int totaal = 0;
+			for (PageNode kind : children) {
+				totaal += 1 + kind.aantalNakomelingen();
+			}
+			return totaal;
+		}
+
+	}
+
+	/** All active pages as a tree, one query; siblings ordered by title. */
+	@Transactional(readOnly = true)
+	public List<PageNode> tree() {
+		Map<UUID, List<Page>> perOuder = new HashMap<>();
+		for (Page page : allActive()) {
+			perOuder.computeIfAbsent(page.getParentId(), k -> new ArrayList<>()).add(page);
+		}
+		return takken(null, perOuder, 0);
+	}
+
+	private List<PageNode> takken(UUID parentId, Map<UUID, List<Page>> perOuder, int diepte) {
+		if (diepte > 100) {
+			return List.of();
+		}
+		List<PageNode> knopen = new ArrayList<>();
+		for (Page page : perOuder.getOrDefault(parentId, List.of())) {
+			knopen.add(new PageNode(page, takken(page.getId(), perOuder, diepte + 1)));
+		}
+		return knopen;
 	}
 
 	@Transactional(readOnly = true)

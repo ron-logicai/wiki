@@ -11,34 +11,94 @@
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </th:block>
 
-<header th:fragment="kop" class="kop">
-    <a class="merk" th:href="@{/}">LogicAI Wiki</a>
-    <nav class="kop__links" aria-label="Hoofdmenu">
-        <a th:href="@{/}">Start</a>
-        <a th:href="@{/pages}">Alle pagina's</a>
-        <a th:href="@{/pages/new}">Nieuwe pagina</a>
-    </nav>
-    <form class="kop__gebruiker" th:action="@{/logout}" method="post">
-        <span th:text="${gebruiker}">gebruiker</span>
-        <button type="submit" class="knop knop--licht">Uitloggen</button>
-    </form>
-</header>
+<!-- Lijnicoon in Lucide-stijl, inline zodat er geen extra request of script nodig is. -->
+<svg th:fragment="icoon(naam)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
+     stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+     aria-hidden="true" focusable="false" th:switch="${naam}">
+    <th:block th:case="'home'"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></th:block>
+    <th:block th:case="'lijst'"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></th:block>
+    <th:block th:case="'map'"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></th:block>
+    <th:block th:case="'bestand'"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h6"/><path d="M16 13H8"/><path d="M16 17H8"/></th:block>
+    <th:block th:case="'plus'"><path d="M5 12h14"/><path d="M12 5v14"/></th:block>
+    <th:block th:case="'chevron'"><path d="m9 18 6-6-6-6"/></th:block>
+    <th:block th:case="'klok'"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></th:block>
+    <th:block th:case="'gebruiker'"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></th:block>
+    <th:block th:case="'uitloggen'"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></th:block>
+    <th:block th:case="'geschiedenis'"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></th:block>
+</svg>
 
-<!-- Zijbalk met hoofdpagina's (spec F-05). -->
-<nav th:fragment="zijbalk" class="zijbalk" aria-label="Pagina's">
-    <h2 class="zijbalk__titel">Pagina's</h2>
-    <ul class="boom">
-        <li th:each="p : ${hoofdpaginas}">
-            <a th:href="@{/pages/{id}(id=${p.id})}" th:text="${p.title}">Pagina</a>
-        </li>
-    </ul>
-    <p class="leeg" th:if="${#lists.isEmpty(hoofdpaginas)}">Nog geen pagina's.</p>
+<!--
+  Zijbalk (spec F-05): merk, vaste ingangen, de paginaboom onder "Ruimtes" en de gebruiker.
+  'actief' markeert de vaste ingang ('home' of 'paginas'); een geopende pagina wordt via ${pagina} gemarkeerd.
+  De boom gebruikt <details>, dus in- en uitklappen werkt zonder JavaScript.
+-->
+<nav th:fragment="zijbalk(actief)" class="zij" aria-label="Navigatie"
+     th:with="huidigeId=${pagina != null ? pagina.id : null}">
+    <div class="zij__kop">
+        <a class="zij__merk" th:href="@{/}">LogicAI Wiki</a>
+    </div>
+
+    <a class="zij__rij" th:classappend="${actief == 'home'} ? 'zij__rij--aan'" th:href="@{/}">
+        <span class="icoon" th:insert="~{fragments :: icoon('home')}"></span>
+        <span class="zij__label">Home</span>
+    </a>
+    <a class="zij__rij" th:classappend="${actief == 'paginas'} ? 'zij__rij--aan'" th:href="@{/pages}">
+        <span class="icoon" th:insert="~{fragments :: icoon('lijst')}"></span>
+        <span class="zij__label">Alle pagina's</span>
+    </a>
+
+    <div class="zij__sectie">Ruimtes</div>
+    <p class="zij__rij zij__rij--gedempt" th:if="${#lists.isEmpty(boom)}">Nog geen pagina's</p>
+    <th:block th:replace="~{fragments :: takken(${boom}, 0)}"></th:block>
+    <a class="zij__rij zij__rij--gedempt" th:href="@{/pages/new}">
+        <span class="icoon" th:insert="~{fragments :: icoon('plus')}"></span>
+        <span class="zij__label">Nieuwe pagina</span>
+    </a>
+
+    <div class="zij__voet">
+        <div class="zij__rij" th:if="${gebruiker != null}">
+            <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+            <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="zij__rij">
+                <span class="icoon" th:insert="~{fragments :: icoon('uitloggen')}"></span>
+                <span class="zij__label">Uitloggen</span>
+            </button>
+        </form>
+    </div>
 </nav>
 
-<!-- Kruimelpad: van hoofdpagina tot huidige pagina (spec F-05). -->
-<nav th:fragment="kruimelpad(ouders, pagina)" class="kruimelpad" aria-label="Locatie">
-    <ol>
-        <li><a th:href="@{/}">Start</a></li>
+<!--
+  Eén niveau van de paginaboom; roept zichzelf aan voor subpagina's.
+  Open: hoofdniveau, de huidige pagina en haar voorouders (${ouders}, gezet door de paginaroutes).
+-->
+<th:block th:fragment="takken(knopen, diepte)">
+    <th:block th:each="k : ${knopen}"
+              th:with="inspringing=${6 + diepte * 14},
+                       aan=${huidigeId != null and huidigeId == k.page.id},
+                       open=${diepte == 0 or aan or (ouders != null and #lists.contains(ouders.![id], k.page.id))}">
+        <details class="boom" th:if="${!k.children.isEmpty()}" th:open="${open}">
+            <summary class="zij__rij" th:classappend="${aan} ? 'zij__rij--aan'" th:style="'padding-left:' + ${inspringing} + 'px'">
+                <span class="boom__chevron" th:insert="~{fragments :: icoon('chevron')}"></span>
+                <span class="icoon" th:insert="~{fragments :: icoon('map')}"></span>
+                <a class="boom__link" th:href="@{/pages/{id}(id=${k.page.id})}" th:text="${k.page.title}"
+                   th:attr="aria-current=${aan} ? 'page' : null">Pagina</a>
+            </summary>
+            <th:block th:replace="~{fragments :: takken(${k.children}, ${diepte + 1})}"></th:block>
+        </details>
+        <a class="zij__rij" th:if="${k.children.isEmpty()}" th:classappend="${aan} ? 'zij__rij--aan'"
+           th:style="'padding-left:' + ${inspringing + 16} + 'px'" th:href="@{/pages/{id}(id=${k.page.id})}"
+           th:attr="aria-current=${aan} ? 'page' : null">
+            <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+            <span class="zij__label" th:text="${k.page.title}">Pagina</span>
+        </a>
+    </th:block>
+</th:block>
+
+<!-- Kruimelpad in de bovenbalk: van ruimte tot huidige pagina (spec F-05). -->
+<nav th:fragment="kruimels(ouders, pagina)" aria-label="Locatie">
+    <ol class="kruimels">
         <li th:each="o : ${ouders}"><a th:href="@{/pages/{id}(id=${o.id})}" th:text="${o.title}">Ouder</a></li>
         <li aria-current="page" th:text="${pagina.title}">Huidige pagina</li>
     </ol>

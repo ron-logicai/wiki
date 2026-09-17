@@ -7,37 +7,40 @@
 </head>
 <body>
 
-<header th:replace="~{fragments :: kop}"></header>
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
 
-<div class="schil">
-    <nav th:replace="~{fragments :: zijbalk}"></nav>
-
-    <main class="inhoud inhoud--bewerken">
-        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
-
-        <div class="veld">
-            <label for="page-title">Titel</label>
-            <input id="page-title" type="text" th:value="${pagina.title}" maxlength="200" required>
+    <div class="hoofd">
+        <div class="top">
+            <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
+            <span class="sep">/</span>
+            <span class="gedempt">Bewerken</span>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Annuleren</a>
         </div>
 
-        <noscript>
-            <p class="melding" role="alert">
-                De editor heeft JavaScript nodig. De bestaande inhoud is niet gewijzigd.
-                <a th:href="@{/pages/{id}(id=${pagina.id})}">Terug naar de pagina</a>.
-            </p>
-        </noscript>
+        <main class="pagina">
+            <div class="kolom">
+                <label class="verborgen" for="page-title">Titel</label>
+                <input id="page-title" class="titel-invoer" type="text" th:value="${pagina.title}"
+                       maxlength="200" required placeholder="Titel">
 
-        <!-- De BlockNote-editor (React) wordt hier gemount; zie frontend/src/main.tsx. -->
-        <div id="editor-root"
-             th:attr="data-page-id=${pagina.id},data-base-version=${pagina.lockVersion}">
-            <p class="leeg">Editor wordt geladen…</p>
-        </div>
-        <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>
+                <noscript>
+                    <p class="melding" role="alert">
+                        De editor heeft JavaScript nodig. De bestaande inhoud is niet gewijzigd.
+                        <a th:href="@{/pages/{id}(id=${pagina.id})}">Terug naar de pagina</a>.
+                    </p>
+                </noscript>
 
-        <p class="acties">
-            <a th:href="@{/pages/{id}(id=${pagina.id})}">Terug naar de pagina</a>
-        </p>
-    </main>
+                <!-- De BlockNote-editor (React) wordt hier gemount; zie frontend/src/main.tsx. -->
+                <div id="editor-root"
+                     th:attr="data-page-id=${pagina.id},data-base-version=${pagina.lockVersion}">
+                    <p class="leeg">Editor wordt geladen…</p>
+                </div>
+                <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>
+            </div>
+        </main>
+    </div>
 </div>
 
 <script type="module" th:src="@{/editor/editor.js}"></script>

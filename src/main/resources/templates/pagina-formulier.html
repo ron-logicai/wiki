@@ -6,31 +6,41 @@
 </head>
 <body>
 
-<header th:replace="~{fragments :: kop}"></header>
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
 
-<div class="schil">
-    <nav th:replace="~{fragments :: zijbalk}"></nav>
+    <div class="hoofd">
+        <div class="top">
+            <span th:if="${ouder != null}" class="gedempt" th:text="${ouder.title}">Ouder</span>
+            <span th:if="${ouder != null}" class="sep">/</span>
+            <span>Nieuwe pagina</span>
+            <span class="top__ruimte"></span>
+        </div>
 
-    <main class="inhoud">
-        <h1>Nieuwe pagina</h1>
-        <p th:if="${ouder != null}">
-            Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>.
-        </p>
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Nieuwe pagina</h1>
+                <p class="intro" th:if="${ouder != null}">
+                    Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>.
+                </p>
+                <p class="intro" th:if="${ouder == null}">Wordt een nieuwe ruimte op het hoogste niveau.</p>
 
-        <form th:action="@{/pages}" th:object="${form}" method="post" class="formulier">
-            <input type="hidden" th:field="*{parentId}">
-            <div class="veld">
-                <label for="title">Titel</label>
-                <input id="title" type="text" th:field="*{title}" maxlength="200" required autofocus
-                       th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
-                <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
+                <form th:action="@{/pages}" th:object="${form}" method="post" class="formulier">
+                    <input type="hidden" th:field="*{parentId}">
+                    <div class="veld">
+                        <label for="title">Titel</label>
+                        <input id="title" type="text" th:field="*{title}" maxlength="200" required autofocus
+                               th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
+                        <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
+                    </div>
+                    <div class="acties">
+                        <button type="submit" class="knop knop--primair">Aanmaken</button>
+                        <a class="knop" th:href="${ouder != null} ? @{/pages/{id}(id=${ouder.id})} : @{/pages}">Annuleren</a>
+                    </div>
+                </form>
             </div>
-            <div class="acties">
-                <button type="submit" class="knop">Aanmaken</button>
-                <a th:href="${ouder != null} ? @{/pages/{id}(id=${ouder.id})} : @{/pages}">Annuleren</a>
-            </div>
-        </form>
-    </main>
+        </main>
+    </div>
 </div>
 
 </body>

@@ -6,26 +6,33 @@
 </head>
 <body>
 
-<header th:replace="~{fragments :: kop}"></header>
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
 
-<div class="schil">
-    <nav th:replace="~{fragments :: zijbalk}"></nav>
+    <div class="hoofd">
+        <div class="top">
+            <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
+            <span class="sep">/</span>
+            <span class="gedempt">Versie <span th:text="${revisie.revisionNumber}">1</span></span>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Alle versies</a>
+            <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Actuele pagina</a>
+        </div>
 
-    <main class="inhoud">
-        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
+        <main class="pagina">
+            <div class="kolom">
+                <p class="melding melding--info">
+                    Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
+                    <time th:datetime="${revisie.createdAt}" th:text="${@datums.volledig(revisie.createdAt)}">datum</time>
+                    door <span th:text="${revisie.author}">auteur</span>.
+                </p>
 
-        <p class="melding melding--info">
-            Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
-            <time th:datetime="${revisie.createdAt}" th:text="${#temporals.format(revisie.createdAt, 'd MMMM yyyy HH:mm')}">datum</time>
-            door <span th:text="${revisie.author}">auteur</span>.
-            <a th:href="@{/pages/{id}(id=${pagina.id})}">Naar de actuele pagina</a> ·
-            <a th:href="@{/pages/{id}/history(id=${pagina.id})}">Alle versies</a>
-        </p>
-
-        <h1 th:text="${revisie.title}">Titel</h1>
-        <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
-        <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze versie is leeg.</p>
-    </main>
+                <h1 th:text="${revisie.title}">Titel</h1>
+                <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
+                <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze versie is leeg.</p>
+            </div>
+        </main>
+    </div>
 </div>
 
 </body>

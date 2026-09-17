@@ -6,38 +6,45 @@
 </head>
 <body>
 
-<header th:replace="~{fragments :: kop}"></header>
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
 
-<div class="schil">
-    <nav th:replace="~{fragments :: zijbalk}"></nav>
-
-    <main class="inhoud" th:attr="data-page-id=${pagina.id}">
-        <nav th:replace="~{fragments :: kruimelpad(${ouders}, ${pagina})}"></nav>
-
-        <h1 th:text="${pagina.title}">Titel</h1>
-        <p class="acties">
+    <div class="hoofd">
+        <div class="top">
+            <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/pages/new(parentId=${pagina.id})}">Subpagina</a>
+            <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
             <a class="knop" th:href="@{/pages/{id}/edit(id=${pagina.id})}">Bewerken</a>
-            <a th:href="@{/pages/new(parentId=${pagina.id})}">Subpagina toevoegen</a>
-            <a th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
-        </p>
-        <p class="meta">
-            Laatst gewijzigd door <span th:text="${pagina.updatedBy}">iemand</span> op
-            <time th:datetime="${pagina.updatedAt}" th:text="${#temporals.format(pagina.updatedAt, 'd MMMM yyyy HH:mm')}">datum</time>
-            · versie <span th:text="${pagina.currentRevision}">1</span>
-        </p>
+        </div>
 
-        <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
-        <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze pagina is nog leeg.</p>
+        <main class="pagina" th:attr="data-page-id=${pagina.id}">
+            <div class="kolom">
+                <h1 th:text="${pagina.title}">Titel</h1>
+                <div class="labels">
+                    <span class="label">Versie <span th:text="${pagina.currentRevision}">1</span></span>
+                    <span class="label" th:text="${pagina.updatedBy}">iemand</span>
+                    <time class="label" th:datetime="${pagina.updatedAt}" th:text="${@datums.relatief(pagina.updatedAt)}">datum</time>
+                </div>
 
-        <section th:unless="${subpaginas.isEmpty()}">
-            <h2>Subpagina's</h2>
-            <ul class="paginalijst">
-                <li th:each="s : ${subpaginas}">
-                    <a th:href="@{/pages/{id}(id=${s.id})}" th:text="${s.title}">Subpagina</a>
-                </li>
-            </ul>
-        </section>
-    </main>
+                <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
+                <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">
+                    Deze pagina is nog leeg. <a th:href="@{/pages/{id}/edit(id=${pagina.id})}">Begin met schrijven</a>.
+                </p>
+
+                <section th:unless="${subpaginas.isEmpty()}">
+                    <h2>Subpagina's</h2>
+                    <ul class="rijen">
+                        <li class="rij" th:each="s : ${subpaginas}">
+                            <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+                            <span class="rij__titel"><a th:href="@{/pages/{id}(id=${s.id})}" th:text="${s.title}">Subpagina</a></span>
+                            <time class="rij__tijd" th:datetime="${s.updatedAt}" th:text="${@datums.relatief(s.updatedAt)}">datum</time>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </main>
+    </div>
 </div>
 
 </body>

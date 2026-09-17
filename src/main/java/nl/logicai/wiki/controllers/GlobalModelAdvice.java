@@ -2,13 +2,13 @@ package nl.logicai.wiki.controllers;
 
 import java.util.List;
 
-import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.services.PageService;
+import nl.logicai.wiki.services.PageService.PageNode;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-/** Model attributes every server-rendered page needs: sidebar navigation and current user. */
+/** Model attributes every server-rendered page needs: the sidebar page tree and the current user. */
 @ControllerAdvice(assignableTypes = {WebController.class, PageController.class})
 class GlobalModelAdvice {
 
@@ -18,9 +18,9 @@ class GlobalModelAdvice {
 		this.pageService = pageService;
 	}
 
-	@ModelAttribute("hoofdpaginas")
-	List<Page> hoofdpaginas() {
-		return pageService.rootPages();
+	@ModelAttribute("boom")
+	List<PageNode> boom() {
+		return pageService.tree();
 	}
 
 	@ModelAttribute("gebruiker")

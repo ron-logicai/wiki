@@ -8,22 +8,19 @@
 </head>
 <body>
 
-<header class="kop">
-    <a class="merk" th:href="@{/}">LogicAI Wiki</a>
-</header>
-
-<main class="inhoud inhoud--smal">
+<main class="los">
+    <p class="gedempt klein">LogicAI Wiki</p>
     <h1 th:switch="${status}">
         <span th:case="404">Pagina niet gevonden</span>
         <span th:case="403">Geen toegang</span>
         <span th:case="*" th:text="'Fout ' + ${status}">Fout</span>
     </h1>
-    <p th:switch="${status}">
+    <p class="intro" th:switch="${status}">
         <span th:case="404">Deze link verwijst naar een pagina die niet bestaat of is verwijderd.</span>
         <span th:case="403">Je hebt geen rechten voor deze actie.</span>
         <span th:case="*">Er ging iets mis. Probeer het opnieuw of neem contact op met de beheerder.</span>
     </p>
-    <p><a class="knop" th:href="@{/}">Naar de startpagina</a></p>
+    <p><a class="knop knop--primair" th:href="@{/}">Naar de startpagina</a></p>
 </main>
 
 </body>

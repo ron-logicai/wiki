@@ -15,7 +15,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 /**
  * Server-side authorization for every route (spec N-01, N-02).
@@ -43,9 +46,12 @@ public class SecurityConfig {
 				.anyRequest().authenticated())
 			.formLogin(Customizer.withDefaults())
 			.logout(logout -> logout.logoutSuccessUrl("/login?logout"))
-			.exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
-				new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-				PathPatternRequestMatcher.withDefaults().matcher("/api/**")));
+			.exceptionHandling(ex -> {
+				RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
+				// Pages go to the login form (also without an Accept header); the JSON API gets 401.
+				ex.defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"), new NegatedRequestMatcher(api));
+				ex.defaultAuthenticationEntryPointFor(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED), api);
+			});
 
 		if (clientRegistrations.getIfAvailable() != null) {
 			http.oauth2Login(Customizer.withDefaults());
