@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
-@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class})
+@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class})
 @Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
@@ -80,7 +80,7 @@ class PageControllerTemplateTest {
 
 	@Test
 	void viewRendersTitleEscapedContentAndBreadcrumbs() throws Exception {
-		when(pageService.getActive(page.getId())).thenReturn(page);
+		when(pageService.getAny(page.getId())).thenReturn(page);
 		when(pageService.ancestors(any())).thenReturn(List.of());
 		when(pageService.children(page.getId())).thenReturn(List.of());
 
@@ -153,7 +153,7 @@ class PageControllerTemplateTest {
 	@Test
 	void pageRendersTagsAndAddFormForEditor() throws Exception {
 		Tag tag = Tag.create("Onboarding", "editor", Instant.parse("2026-09-17T09:00:00Z"));
-		when(pageService.getActive(page.getId())).thenReturn(page);
+		when(pageService.getAny(page.getId())).thenReturn(page);
 		when(pageService.ancestors(any())).thenReturn(List.of());
 		when(pageService.children(page.getId())).thenReturn(List.of());
 		when(tagService.tagsOf(page.getId())).thenReturn(List.of(tag));
@@ -182,9 +182,34 @@ class PageControllerTemplateTest {
 	}
 
 	@Test
+	void deletedPageRendersTrashMessageWith410() throws Exception {
+		Page weg = Page.create("Oude notitie", null, new WikiDocument("[]", "", 1), "editor", Instant.parse("2026-09-15T10:00:00Z"));
+		weg.moveToTrash("editor", Instant.parse("2026-09-17T12:00:00Z"));
+		when(pageService.getAny(weg.getId())).thenReturn(weg);
+
+		mvc.perform(get("/pages/{id}", weg.getId()))
+			.andExpect(status().isGone())
+			.andExpect(content().string(containsString("staat in de prullenbak")))
+			.andExpect(content().string(containsString("/trash")));
+	}
+
+	@Test
+	void trashPageRendersItemsAndRestoreForms() throws Exception {
+		Page weg = Page.create("Oude notitie", null, new WikiDocument("[]", "", 1), "editor", Instant.parse("2026-09-15T10:00:00Z"));
+		weg.moveToTrash("editor", Instant.parse("2026-09-17T12:00:00Z"));
+		when(pageService.trash()).thenReturn(List.of(new PageService.TrashItem(weg, null, false)));
+
+		mvc.perform(get("/trash"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Oude notitie")))
+			.andExpect(content().string(containsString("/trash/" + weg.getId() + "/restore")))
+			.andExpect(content().string(containsString("stond op het hoofdniveau")));
+	}
+
+	@Test
 	void unknownPageRenders404() throws Exception {
 		UUID missing = UUID.randomUUID();
-		when(pageService.getActive(missing)).thenThrow(new PageNotFoundException(missing));
+		when(pageService.getAny(missing)).thenThrow(new PageNotFoundException(missing));
 
 		mvc.perform(get("/pages/{id}", missing))
 			.andExpect(status().isNotFound());

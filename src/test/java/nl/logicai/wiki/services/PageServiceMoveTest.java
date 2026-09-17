@@ -11,6 +11,7 @@ import nl.logicai.wiki.exceptions.InvalidMoveException;
 import nl.logicai.wiki.exceptions.PageConflictException;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
+import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.repositories.PageRevisionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ class PageServiceMoveTest {
 	private final PageRepository pages = mock(PageRepository.class);
 	private final PageRevisionRepository revisions = mock(PageRevisionRepository.class);
 	private final PageService service = new PageService(pages, revisions,
-		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class));
+		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class), mock(AuditEventRepository.class));
 
 	/** Tree: root > child > grandchild, plus an unrelated top-level page. */
 	private final Page root = page("Projecten", null);
@@ -52,7 +53,7 @@ class PageServiceMoveTest {
 
 	@Test
 	void movingUnderItselfIsRefused() {
-		assertThatThrownBy(() -> service.move(root.getId(), root.getId(), 0))
+		assertThatThrownBy(() -> service.move(root.getId(), root.getId(), 0, "editor"))
 			.isInstanceOf(InvalidMoveException.class)
 			.hasMessageContaining("zichzelf");
 		assertThat(root.getParentId()).isNull();
@@ -60,7 +61,7 @@ class PageServiceMoveTest {
 
 	@Test
 	void movingUnderOwnDescendantIsRefused() {
-		assertThatThrownBy(() -> service.move(root.getId(), grandchild.getId(), 0))
+		assertThatThrownBy(() -> service.move(root.getId(), grandchild.getId(), 0, "editor"))
 			.isInstanceOf(InvalidMoveException.class)
 			.hasMessageContaining("eigen subpagina");
 		assertThat(root.getParentId()).isNull();
@@ -68,16 +69,16 @@ class PageServiceMoveTest {
 
 	@Test
 	void movingToAnotherBranchOrTopLevelWorks() {
-		service.move(grandchild.getId(), other.getId(), 0);
+		service.move(grandchild.getId(), other.getId(), 0, "editor");
 		assertThat(grandchild.getParentId()).isEqualTo(other.getId());
 
-		service.move(child.getId(), null, 0);
+		service.move(child.getId(), null, 0, "editor");
 		assertThat(child.getParentId()).isNull();
 	}
 
 	@Test
 	void staleVersionIsRejected() {
-		assertThatThrownBy(() -> service.move(child.getId(), other.getId(), 7))
+		assertThatThrownBy(() -> service.move(child.getId(), other.getId(), 7, "editor"))
 			.isInstanceOf(PageConflictException.class);
 		assertThat(child.getParentId()).isEqualTo(root.getId());
 	}

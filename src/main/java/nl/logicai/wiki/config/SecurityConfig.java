@@ -43,6 +43,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/error").permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
+				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())
 			.formLogin(Customizer.withDefaults())
 			.logout(logout -> logout.logoutSuccessUrl("/login?logout"))

@@ -53,6 +53,9 @@ public class Page {
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
 
+	@Column(name = "deleted_by", length = 200)
+	private String deletedBy;
+
 	/** Optimistic lock for concurrent edits (spec F-10). Not the revision number. */
 	@Version
 	@Column(name = "lock_version", nullable = false)
@@ -90,6 +93,19 @@ public class Page {
 		this.updatedBy = actor;
 		this.updatedAt = now;
 		return nextRevision(actor, now);
+	}
+
+	/** Soft delete (spec F-12): the row stays, the page leaves navigation and search. */
+	public void moveToTrash(String actor, Instant now) {
+		this.deletedAt = now;
+		this.deletedBy = actor;
+	}
+
+	/** Restore from the trash under the given parent (null = top level); identity and history stay. */
+	public void restore(UUID newParentId) {
+		this.deletedAt = null;
+		this.deletedBy = null;
+		this.parentId = newParentId;
 	}
 
 	/** Moves the page (and, implicitly, its subtree) under a new parent; null means top level (spec F-04). */
@@ -149,6 +165,10 @@ public class Page {
 
 	public Instant getDeletedAt() {
 		return deletedAt;
+	}
+
+	public String getDeletedBy() {
+		return deletedBy;
 	}
 
 	public Long getLockVersion() {

@@ -17,6 +17,11 @@
             <a class="knop" th:href="@{/pages/{id}/move(id=${pagina.id})}">Verplaatsen</a>
             <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
             <a class="knop" th:href="@{/pages/{id}/edit(id=${pagina.id})}">Bewerken</a>
+            <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
+                  onsubmit="return confirm('Deze pagina naar de prullenbak verplaatsen? Je kunt haar daar herstellen.')">
+                <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                <button type="submit" class="knop">Verwijderen</button>
+            </form>
         </div>
 
         <main class="pagina" th:attr="data-page-id=${pagina.id}">
@@ -28,6 +33,7 @@
                     <time class="label" th:datetime="${pagina.updatedAt}" th:text="${@datums.relatief(pagina.updatedAt)}">datum</time>
                 </div>
 
+                <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
                 <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
                 <div class="tags">
                     <span class="label label--tag" th:each="t : ${tags}">

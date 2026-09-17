@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import nl.logicai.wiki.exceptions.InvalidMoveException;
 import nl.logicai.wiki.exceptions.PageConflictException;
+import nl.logicai.wiki.exceptions.PageStateException;
 import nl.logicai.wiki.models.MovePageForm;
 import nl.logicai.wiki.models.NewPageForm;
 import nl.logicai.wiki.models.Page;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Server-rendered page routes from the URL contract (spec section 5). Every visible page is a
@@ -73,8 +75,14 @@ public class PageController {
 	}
 
 	@GetMapping("/{id}")
-	public String bekijken(@PathVariable UUID id, Model model) {
-		Page page = pageService.getActive(id);
+	public String bekijken(@PathVariable UUID id, Model model, HttpServletResponse response) {
+		Page page = pageService.getAny(id);
+		if (page.isDeleted()) {
+			// A link to a page in the trash shows a clear message, never another page (spec F-12, F-16).
+			model.addAttribute("pagina", page);
+			response.setStatus(HttpServletResponse.SC_GONE);
+			return "pagina-verwijderd";
+		}
 		model.addAttribute("pagina", page);
 		model.addAttribute("ouders", pageService.ancestors(page));
 		model.addAttribute("subpaginas", pageService.children(id));
@@ -125,10 +133,10 @@ public class PageController {
 
 	@PostMapping("/{id}/move")
 	public String verplaatsen(@PathVariable UUID id, @Valid @ModelAttribute("form") MovePageForm form,
-			BindingResult binding, Model model, HttpServletResponse response) {
+			BindingResult binding, Authentication auth, Model model, HttpServletResponse response) {
 		if (!binding.hasErrors()) {
 			try {
-				pageService.move(id, form.getParentId(), form.getBaseVersion());
+				pageService.move(id, form.getParentId(), form.getBaseVersion(), auth.getName());
 				return "redirect:/pages/" + id;
 			}
 			catch (InvalidMoveException ex) {
@@ -144,6 +152,20 @@ public class PageController {
 		form.setBaseVersion(page.getLockVersion());
 		voegVerplaatsContextToe(page, model);
 		return "pagina-verplaatsen";
+	}
+
+	@PostMapping("/{id}/delete")
+	public String naarPrullenbak(@PathVariable UUID id, @RequestParam long baseVersion, Authentication auth,
+			RedirectAttributes redirect) {
+		try {
+			Page page = pageService.moveToTrash(id, baseVersion, auth.getName());
+			redirect.addFlashAttribute("melding", "201c" + page.getTitle() + "201d staat in de prullenbak. Je kunt de pagina daar herstellen.");
+			return page.getParentId() == null ? "redirect:/" : "redirect:/pages/" + page.getParentId();
+		}
+		catch (PageStateException | PageConflictException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+			return "redirect:/pages/" + id;
+		}
 	}
 
 	private void voegVerplaatsContextToe(Page page, Model model) {

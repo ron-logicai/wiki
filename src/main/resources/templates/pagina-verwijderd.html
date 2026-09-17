@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="${pagina.title} + ' (prullenbak) · LogicAI Wiki'">Prullenbak · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <span class="gedempt">Prullenbak</span>
+            <span class="sep">/</span>
+            <span th:text="${pagina.title}">Titel</span>
+            <span class="top__ruimte"></span>
+            <a class="knop" sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:href="@{/trash}">Naar de prullenbak</a>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <h1 th:text="${pagina.title}">Titel</h1>
+                <p class="melding melding--info">
+                    Deze pagina staat in de prullenbak sinds
+                    <time th:datetime="${pagina.deletedAt}" th:text="${@datums.volledig(pagina.deletedAt)}">datum</time>,
+                    verwijderd door <span th:text="${pagina.deletedBy}">iemand</span>.
+                    De link blijft geldig: na herstel verschijnt hier weer dezelfde pagina.
+                </p>
+                <p sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">
+                    <a class="knop knop--primair" th:href="@{/trash}">Herstellen via de prullenbak</a>
+                </p>
+                <p class="leeg" sec:authorize="!hasAnyRole('EDITOR', 'ADMIN')">
+                    Vraag een editor om de pagina te herstellen als je haar nog nodig hebt.
+                </p>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

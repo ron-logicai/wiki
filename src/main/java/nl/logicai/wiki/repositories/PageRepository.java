@@ -22,6 +22,10 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 
 	List<Page> findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
 
+	List<Page> findByDeletedAtIsNotNullOrderByDeletedAtDesc();
+
+	boolean existsByParentIdAndDeletedAtIsNull(UUID parentId);
+
 	/**
 	 * Full-text search on title and content (spec F-13). The 'simple' configuration matches whole
 	 * words without stemming, so technical terms such as "Spring Boot" and "PostgreSQL" are found

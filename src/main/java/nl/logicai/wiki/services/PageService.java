@@ -4,6 +4,9 @@ import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.exceptions.InvalidMoveException;
 import nl.logicai.wiki.exceptions.PageConflictException;
 import nl.logicai.wiki.exceptions.PageNotFoundException;
+import nl.logicai.wiki.exceptions.PageStateException;
+import nl.logicai.wiki.models.AuditEvent;
+import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.models.PageRevision;
 import nl.logicai.wiki.repositories.PageRevisionRepository;
@@ -38,15 +41,18 @@ public class PageService {
 	private final ObjectMapper mapper;
 	private final Clock clock;
 	private final TemplateService templates;
+	private final AuditEventRepository audit;
 
 	public PageService(PageRepository pages, PageRevisionRepository revisions,
-			DocumentValidator validator, ObjectMapper mapper, Clock clock, TemplateService templates) {
+			DocumentValidator validator, ObjectMapper mapper, Clock clock, TemplateService templates,
+			AuditEventRepository audit) {
 		this.pages = pages;
 		this.revisions = revisions;
 		this.validator = validator;
 		this.mapper = mapper;
 		this.clock = clock;
 		this.templates = templates;
+		this.audit = audit;
 	}
 
 	@PreAuthorize("hasRole('EDITOR')")
@@ -145,7 +151,7 @@ public class PageService {
 	 */
 	@PreAuthorize("hasRole('EDITOR')")
 	@Transactional(isolation = Isolation.SERIALIZABLE)
-	public Page move(UUID id, UUID newParentId, long baseVersion) {
+	public Page move(UUID id, UUID newParentId, long baseVersion, String actor) {
 		Page page = getActive(id);
 		if (page.getLockVersion() != baseVersion) {
 			throw new PageConflictException(page.getLockVersion());
@@ -161,6 +167,75 @@ public class PageService {
 			}
 		}
 		page.moveTo(newParentId);
+		audit.save(AuditEvent.of(AuditEvent.MOVE, id, actor, clock.instant(),
+			"naar " + (newParentId == null ? "hoofdniveau" : newParentId)));
+		return pages.saveAndFlush(page);
+	}
+
+	/** Any page, also one in the trash; for the "this page is in the trash" message (spec F-12, F-16). */
+	@Transactional(readOnly = true)
+	public Page getAny(UUID id) {
+		return pages.findById(id).orElseThrow(() -> new PageNotFoundException(id));
+	}
+
+	/** A page in the trash with the state of its former parent, for the trash overview. */
+	public record TrashItem(Page page, Page parent, boolean parentActive) {
+	}
+
+	@Transactional(readOnly = true)
+	public List<TrashItem> trash() {
+		List<TrashItem> items = new ArrayList<>();
+		for (Page page : pages.findByDeletedAtIsNotNullOrderByDeletedAtDesc()) {
+			Page parent = page.getParentId() == null ? null : pages.findById(page.getParentId()).orElse(null);
+			items.add(new TrashItem(page, parent, parent != null && !parent.isDeleted()));
+		}
+		return items;
+	}
+
+	/**
+	 * Soft delete (spec F-12). Refused while active subpages exist: move or delete those first.
+	 * The version the user saw must match, like every other change.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page moveToTrash(UUID id, long baseVersion, String actor) {
+		Page page = getActive(id);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		if (pages.existsByParentIdAndDeletedAtIsNull(id)) {
+			throw new PageStateException("Deze pagina heeft nog subpagina's. Verplaats of verwijder die eerst.");
+		}
+		Instant now = clock.instant();
+		page.moveToTrash(actor, now);
+		audit.save(AuditEvent.of(AuditEvent.DELETE, id, actor, now, ""));
+		return pages.saveAndFlush(page);
+	}
+
+	/**
+	 * Restore from the trash (spec F-12). Keeps the old parent when it is still active; otherwise the
+	 * caller chooses an active parent or the top level (null). Identity, history and tags stay.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page restore(UUID id, UUID chosenParentId, boolean parentChosen, String actor) {
+		Page page = getAny(id);
+		if (!page.isDeleted()) {
+			throw new PageStateException("Deze pagina staat niet in de prullenbak.");
+		}
+		UUID parentId;
+		if (parentChosen) {
+			parentId = chosenParentId == null ? null : getActive(chosenParentId).getId();
+		}
+		else {
+			UUID oldParent = page.getParentId();
+			boolean oldParentActive = oldParent != null && pages.findByIdAndDeletedAtIsNull(oldParent).isPresent();
+			if (oldParent != null && !oldParentActive) {
+				throw new PageStateException("De oorspronkelijke bovenliggende pagina is verwijderd. Kies een andere plek.");
+			}
+			parentId = oldParent;
+		}
+		page.restore(parentId);
+		audit.save(AuditEvent.of(AuditEvent.RESTORE, id, actor, clock.instant(),
+			"onder " + (parentId == null ? "hoofdniveau" : parentId)));
 		return pages.saveAndFlush(page);
 	}
 

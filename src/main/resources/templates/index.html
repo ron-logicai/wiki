@@ -20,6 +20,7 @@
             <div class="kolom">
                 <h1>LogicAI</h1>
                 <p class="intro">Alle interne kennis op één plek.</p>
+                <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
 
                 <h2>Ruimtes</h2>
                 <p class="leeg" th:if="${#lists.isEmpty(boom)}">

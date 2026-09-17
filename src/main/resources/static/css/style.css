@@ -908,3 +908,19 @@ h3 {
         width: auto;
     }
 }
+
+/* Bovenbalk: formulierknoppen (Verwijderen) naast links */
+.top form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.tagformulier select {
+    max-width: 240px;
+    padding: 2px 6px;
+    border: 1px solid var(--rand);
+    border-radius: 3px;
+    background: #fff;
+    font: inherit;
+    font-size: 12px;
+}
