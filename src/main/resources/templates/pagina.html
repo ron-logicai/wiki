@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
 <head>
     <th:block th:replace="~{fragments :: head}"></th:block>
     <title th:text="${pagina.title} + ' · LogicAI Wiki'">Pagina · LogicAI Wiki</title>
@@ -26,6 +26,21 @@
                     <span class="label">Versie <span th:text="${pagina.currentRevision}">1</span></span>
                     <span class="label" th:text="${pagina.updatedBy}">iemand</span>
                     <time class="label" th:datetime="${pagina.updatedAt}" th:text="${@datums.relatief(pagina.updatedAt)}">datum</time>
+                </div>
+
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+                <div class="tags">
+                    <span class="label label--tag" th:each="t : ${tags}">
+                        <span th:text="${t.name}">tag</span>
+                        <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/tags/{tagId}/remove(id=${pagina.id}, tagId=${t.id})}" method="post">
+                            <button type="submit" class="label__verwijder" th:attr="aria-label='Tag ' + ${t.name} + ' verwijderen'">&times;</button>
+                        </form>
+                    </span>
+                    <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" class="tagformulier" th:action="@{/pages/{id}/tags(id=${pagina.id})}" method="post">
+                        <label class="verborgen" for="tagnaam">Tag toevoegen</label>
+                        <input id="tagnaam" name="name" maxlength="50" placeholder="Tag toevoegen" required>
+                        <button type="submit" class="knop">Toevoegen</button>
+                    </form>
                 </div>
 
                 <article class="paginainhoud" th:utext="${inhoudHtml}"></article>

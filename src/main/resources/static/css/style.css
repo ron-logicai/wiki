@@ -342,7 +342,66 @@ h3 {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin: 8px 0 18px;
+    margin: 8px 0 8px;
+}
+
+/* Tags op een pagina (spec F-14) */
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 18px;
+}
+
+.label--tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.label--tag form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.label__verwijder {
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: var(--tekst-licht);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.label__verwijder:hover {
+    color: var(--fout);
+}
+
+.tagformulier {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.tagformulier input {
+    width: 150px;
+    padding: 2px 8px;
+    border: 1px solid var(--rand);
+    border-radius: 3px;
+    font: inherit;
+    font-size: 12px;
+}
+
+.tagformulier input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.rij form {
+    margin: 0;
 }
 
 .label {

@@ -12,6 +12,7 @@ import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.PageRevision;
 import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.PageService;
+import nl.logicai.wiki.services.TagService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,10 +34,12 @@ public class PageController {
 
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
+	private final TagService tagService;
 
-	public PageController(PageService pageService, BlockRenderer blockRenderer) {
+	public PageController(PageService pageService, BlockRenderer blockRenderer, TagService tagService) {
 		this.pageService = pageService;
 		this.blockRenderer = blockRenderer;
+		this.tagService = tagService;
 	}
 
 	@GetMapping
@@ -71,6 +74,7 @@ public class PageController {
 		model.addAttribute("pagina", page);
 		model.addAttribute("ouders", pageService.ancestors(page));
 		model.addAttribute("subpaginas", pageService.children(id));
+		model.addAttribute("tags", tagService.tagsOf(id));
 		model.addAttribute("inhoudHtml", blockRenderer.render(page.getDocument()));
 		return "pagina";
 	}

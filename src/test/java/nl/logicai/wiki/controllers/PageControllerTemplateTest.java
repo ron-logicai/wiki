@@ -8,7 +8,9 @@ import nl.logicai.wiki.exceptions.PageNotFoundException;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.services.BlockRenderer;
+import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
+import nl.logicai.wiki.services.TagService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -25,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
-@WebMvcTest({WebController.class, PageController.class})
+@WebMvcTest({WebController.class, PageController.class, TagController.class})
 @Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
@@ -35,6 +37,9 @@ class PageControllerTemplateTest {
 
 	@MockitoBean
 	private PageService pageService;
+
+	@MockitoBean
+	private TagService tagService;
 
 	private final Page page = Page.create("Onboarding",
 		null,
@@ -115,6 +120,33 @@ class PageControllerTemplateTest {
 			.andExpect(content().string(containsString("name=\"parentId\"")))
 			.andExpect(content().string(containsString("value=\"" + other.getId() + "\"")))
 			.andExpect(content().string(containsString("/pages/" + page.getId() + "/move")));
+	}
+
+	@Test
+	void tagOverviewRendersCountsWithoutAdminForms() throws Exception {
+		Tag tag = Tag.create("Shopify", "editor", Instant.parse("2026-09-17T09:00:00Z"));
+		when(tagService.overview()).thenReturn(List.of(new TagService.TagCount(tag, 2)));
+
+		mvc.perform(get("/tags"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Shopify")))
+			.andExpect(content().string(containsString(">2</span> pagina's")))
+			.andExpect(content().string(org.hamcrest.Matchers.not(containsString("/rename"))));
+	}
+
+	@Test
+	void pageRendersTagsAndAddFormForEditor() throws Exception {
+		Tag tag = Tag.create("Onboarding", "editor", Instant.parse("2026-09-17T09:00:00Z"));
+		when(pageService.getActive(page.getId())).thenReturn(page);
+		when(pageService.ancestors(any())).thenReturn(List.of());
+		when(pageService.children(page.getId())).thenReturn(List.of());
+		when(tagService.tagsOf(page.getId())).thenReturn(List.of(tag));
+
+		mvc.perform(get("/pages/{id}", page.getId()))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("class=\"label label--tag\"")))
+			.andExpect(content().string(containsString("/tags/" + tag.getId() + "/remove")))
+			.andExpect(content().string(containsString("name=\"name\"")));
 	}
 
 	@Test
