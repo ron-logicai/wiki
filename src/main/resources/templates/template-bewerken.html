@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <link rel="stylesheet" th:href="@{/editor/editor.css}">
+    <title th:text="'Template bewerken: ' + ${template.title} + ' · LogicAI Wiki'">Template bewerken · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('templates')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <a class="gedempt" th:href="@{/templates}" style="text-decoration:none">Templates</a>
+            <span class="sep">/</span>
+            <span th:text="${template.title}">Template</span>
+            <span class="sep">/</span>
+            <span class="gedempt">Bewerken</span>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/templates}">Annuleren</a>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <label class="verborgen" for="page-title">Titel</label>
+                <input id="page-title" class="titel-invoer" type="text" th:value="${template.title}"
+                       maxlength="200" required placeholder="Titel">
+                <p class="intro" th:if="${!#strings.isEmpty(template.description)}" th:text="${template.description}">omschrijving</p>
+
+                <noscript>
+                    <p class="melding" role="alert">
+                        De editor heeft JavaScript nodig. De bestaande inhoud is niet gewijzigd.
+                        <a th:href="@{/templates}">Terug naar de templates</a>.
+                    </p>
+                </noscript>
+
+                <!-- Dezelfde BlockNote-editor als voor pagina's; bewaart via /api/templates/{id}/content. -->
+                <div id="editor-root"
+                     th:attr="data-page-id=${template.id},data-base-version=${template.lockVersion},data-save-url=@{/api/templates/{id}/content(id=${template.id})},data-view-url=@{/templates/{id}/edit(id=${template.id})}">
+                    <p class="leeg">Editor wordt geladen…</p>
+                </div>
+                <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script type="module" th:src="@{/editor/editor.js}"></script>
+
+</body>
+</html>

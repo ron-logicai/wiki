@@ -37,23 +37,36 @@ public class PageService {
 	private final DocumentValidator validator;
 	private final ObjectMapper mapper;
 	private final Clock clock;
+	private final TemplateService templates;
 
 	public PageService(PageRepository pages, PageRevisionRepository revisions,
-			DocumentValidator validator, ObjectMapper mapper, Clock clock) {
+			DocumentValidator validator, ObjectMapper mapper, Clock clock, TemplateService templates) {
 		this.pages = pages;
 		this.revisions = revisions;
 		this.validator = validator;
 		this.mapper = mapper;
 		this.clock = clock;
+		this.templates = templates;
 	}
 
 	@PreAuthorize("hasRole('EDITOR')")
 	public Page create(String title, UUID parentId, String actor) {
+		return create(title, parentId, actor, null);
+	}
+
+	/**
+	 * Creates a page, optionally starting from a template (spec F-15): the page gets its own UUID and
+	 * an independent copy of the template document; no reference to the template is kept.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page create(String title, UUID parentId, String actor, UUID templateId) {
 		String cleanTitle = validator.normalizeTitle(title);
 		if (parentId != null) {
 			getActive(parentId);
 		}
-		WikiDocument document = validator.validate(mapper.readTree(WikiDocument.EMPTY_JSON));
+		WikiDocument document = templateId == null
+			? validator.validate(mapper.readTree(WikiDocument.EMPTY_JSON))
+			: templates.documentOf(templateId);
 		Instant now = clock.instant();
 		// Create revision 1 before persisting, so the fresh page keeps lock version 0.
 		Page page = Page.create(cleanTitle, parentId, document, actor, now);
@@ -155,7 +168,10 @@ public class PageService {
 	public record MoveTarget(Page page, int depth) {
 	}
 
-	/** All active pages except the page itself and its descendants, in tree order (spec F-04). */
+	/**
+	 * All active pages except the page itself and its descendants, in tree order (spec F-04).
+	 * With null nothing is excluded: every page can be the parent of a new page.
+	 */
 	@Transactional(readOnly = true)
 	public List<MoveTarget> moveTargets(UUID id) {
 		List<MoveTarget> targets = new ArrayList<>();

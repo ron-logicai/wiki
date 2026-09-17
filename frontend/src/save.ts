@@ -18,9 +18,10 @@ export interface SaveRequest {
   document: unknown;
 }
 
-export async function savePage(pageId: string, request: SaveRequest): Promise<SaveState> {
+/** Saves to the page endpoint by default; templates pass their own endpoint (spec F-15). */
+export async function savePage(pageId: string, request: SaveRequest, saveUrl?: string): Promise<SaveState> {
   try {
-    const response = await fetch(`/api/pages/${encodeURIComponent(pageId)}/content`, {
+    const response = await fetch(saveUrl ?? `/api/pages/${encodeURIComponent(pageId)}/content`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

@@ -33,7 +33,7 @@ class PageServiceMoveTest {
 	private final PageRepository pages = mock(PageRepository.class);
 	private final PageRevisionRepository revisions = mock(PageRevisionRepository.class);
 	private final PageService service = new PageService(pages, revisions,
-		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC));
+		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class));
 
 	/** Tree: root > child > grandchild, plus an unrelated top-level page. */
 	private final Page root = page("Projecten", null);

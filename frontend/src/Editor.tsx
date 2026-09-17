@@ -8,6 +8,10 @@ interface EditorProps {
   pageId: string;
   baseVersion: number;
   initialDocument: unknown;
+  /** Endpoint for PUT; defaults to the page endpoint. Templates use /api/templates/{id}/content. */
+  saveUrl?: string;
+  /** Where "open the newest version" points after a conflict. */
+  viewUrl?: string;
 }
 
 const TITLE_INPUT_ID = "page-title";
@@ -21,7 +25,7 @@ const STATUS_LABEL: Record<SaveState["status"], string> = {
   conflict: "Conflict: de pagina is intussen door iemand anders gewijzigd. Kopieer je tekst en open de nieuwste versie.",
 };
 
-export function Editor({ pageId, baseVersion, initialDocument }: EditorProps) {
+export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl }: EditorProps) {
   const [version, setVersion] = useState(baseVersion);
   const [state, setState] = useState<SaveState>({ status: "clean" });
 
@@ -59,7 +63,7 @@ export function Editor({ pageId, baseVersion, initialDocument }: EditorProps) {
       baseVersion: version,
       title: titleInput()?.value ?? "",
       document: editor.document,
-    });
+    }, saveUrl);
     if (result.status === "saved") {
       setVersion(result.version);
     }
@@ -78,7 +82,7 @@ export function Editor({ pageId, baseVersion, initialDocument }: EditorProps) {
           {state.status === "saved" ? ` om ${formatTime(state.savedAt)}` : null}
         </span>
         {state.status === "conflict" ? (
-          <a href={`/pages/${encodeURIComponent(pageId)}`} target="_blank" rel="noopener">
+          <a href={viewUrl ?? `/pages/${encodeURIComponent(pageId)}`} target="_blank" rel="noopener">
             Nieuwste versie openen
           </a>
         ) : null}

@@ -14,6 +14,9 @@ public class NewPageForm {
 
 	private UUID parentId;
 
+	/** Optional template to copy the starting content from (spec F-15). */
+	private UUID templateId;
+
 	public String getTitle() {
 		return title;
 	}
@@ -28,6 +31,14 @@ public class NewPageForm {
 
 	public void setParentId(UUID parentId) {
 		this.parentId = parentId;
+	}
+
+	public UUID getTemplateId() {
+		return templateId;
+	}
+
+	public void setTemplateId(UUID templateId) {
+		this.templateId = templateId;
 	}
 
 }

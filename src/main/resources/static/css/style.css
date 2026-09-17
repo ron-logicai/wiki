@@ -430,6 +430,14 @@ h3 {
     border-bottom: 0;
 }
 
+.rij--hoog {
+    flex-wrap: wrap;
+}
+
+.rij--hoog .rij__titel {
+    flex-basis: 100%;
+}
+
 .rij__titel {
     flex: 1;
     min-width: 0;

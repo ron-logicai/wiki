@@ -13,6 +13,7 @@ import nl.logicai.wiki.models.PageRevision;
 import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
+import nl.logicai.wiki.services.TemplateService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -35,11 +36,14 @@ public class PageController {
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
 	private final TagService tagService;
+	private final TemplateService templateService;
 
-	public PageController(PageService pageService, BlockRenderer blockRenderer, TagService tagService) {
+	public PageController(PageService pageService, BlockRenderer blockRenderer, TagService tagService,
+			TemplateService templateService) {
 		this.pageService = pageService;
 		this.blockRenderer = blockRenderer;
 		this.tagService = tagService;
+		this.templateService = templateService;
 	}
 
 	@GetMapping
@@ -64,7 +68,7 @@ public class PageController {
 			voegOuderToe(form.getParentId(), model);
 			return "pagina-formulier";
 		}
-		Page page = pageService.create(form.getTitle(), form.getParentId(), auth.getName());
+		Page page = pageService.create(form.getTitle(), form.getParentId(), auth.getName(), form.getTemplateId());
 		return "redirect:/pages/" + page.getId();
 	}
 
@@ -150,6 +154,8 @@ public class PageController {
 
 	private void voegOuderToe(UUID parentId, Model model) {
 		model.addAttribute("ouder", parentId == null ? null : pageService.getActive(parentId));
+		model.addAttribute("plekken", pageService.moveTargets(null));
+		model.addAttribute("templates", templateService.all());
 	}
 
 }

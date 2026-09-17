@@ -21,17 +21,32 @@
             <div class="kolom">
                 <h1>Nieuwe pagina</h1>
                 <p class="intro" th:if="${ouder != null}">
-                    Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>.
+                    Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>; je kunt hieronder een andere plek kiezen.
                 </p>
-                <p class="intro" th:if="${ouder == null}">Wordt een nieuwe ruimte op het hoogste niveau.</p>
+                <p class="intro" th:if="${ouder == null}">Kies een titel, de plek in de boom en eventueel een template.</p>
 
                 <form th:action="@{/pages}" th:object="${form}" method="post" class="formulier">
-                    <input type="hidden" th:field="*{parentId}">
+                    <div class="veld">
+                        <label for="parentId">Plek</label>
+                        <select id="parentId" th:field="*{parentId}">
+                            <option value="">Hoofdniveau (nieuwe ruimte)</option>
+                            <option th:each="p : ${plekken}" th:value="${p.page.id}"
+                                    th:text="${#strings.repeat('— ', p.depth)} + ${p.page.title}">Pagina</option>
+                        </select>
+                    </div>
                     <div class="veld">
                         <label for="title">Titel</label>
                         <input id="title" type="text" th:field="*{title}" maxlength="200" required autofocus
                                th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
                         <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
+                    </div>
+                    <div class="veld">
+                        <label for="templateId">Template</label>
+                        <select id="templateId" th:field="*{templateId}">
+                            <option value="">Leeg</option>
+                            <option th:each="t : ${templates}" th:value="${t.id}" th:text="${t.title}">Template</option>
+                        </select>
+                        <p class="gedempt klein" th:unless="${#lists.isEmpty(templates)}">De pagina begint met de opzet van het template en krijgt een eigen kopie.</p>
                     </div>
                     <div class="acties">
                         <button type="submit" class="knop knop--primair">Aanmaken</button>

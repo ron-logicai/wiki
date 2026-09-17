@@ -38,7 +38,13 @@ function mount() {
 
   createRoot(root).render(
     <StrictMode>
-      <Editor pageId={pageId} baseVersion={baseVersion} initialDocument={initialDocument} />
+      <Editor
+        pageId={pageId}
+        baseVersion={baseVersion}
+        initialDocument={initialDocument}
+        saveUrl={root.dataset.saveUrl}
+        viewUrl={root.dataset.viewUrl}
+      />
     </StrictMode>,
   );
 }

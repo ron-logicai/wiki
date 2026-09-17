@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Templates · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('templates')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <span>Templates</span>
+            <span class="top__ruimte"></span>
+            <a class="knop knop--primair" th:href="@{/pages/new}">+ Nieuwe pagina</a>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Templates</h1>
+                <p class="intro">
+                    Een template is een startdocument. Kies het bij "Nieuwe pagina"; de pagina krijgt een eigen kopie.
+                    Een template later wijzigen verandert bestaande pagina's niet.
+                </p>
+
+                <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <p class="leeg" th:if="${templates.isEmpty()}">Er zijn nog geen templates.</p>
+                <ul class="rijen" th:unless="${templates.isEmpty()}">
+                    <li class="rij rij--hoog" th:each="t : ${templates}">
+                        <span class="icoon" th:insert="~{fragments :: icoon('sjabloon')}"></span>
+                        <span class="rij__titel">
+                            <span th:text="${t.title}">Template</span>
+                            <span class="gedempt klein" th:if="${!#strings.isEmpty(t.description)}" th:text="' · ' + ${t.description}">omschrijving</span>
+                        </span>
+                        <time class="rij__tijd" th:datetime="${t.updatedAt}" th:text="${@datums.relatief(t.updatedAt)}">datum</time>
+                        <th:block sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">
+                            <a class="knop" th:href="@{/templates/{id}/edit(id=${t.id})}">Bewerken</a>
+                            <form th:action="@{/templates/{id}/delete(id=${t.id})}" method="post"
+                                  onsubmit="return confirm('Dit template verwijderen? Bestaande pagina&#39;s blijven ongewijzigd.')">
+                                <button type="submit" class="knop">Verwijderen</button>
+                            </form>
+                        </th:block>
+                    </li>
+                </ul>
+
+                <section sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">
+                    <h2>Nieuw template</h2>
+                    <form th:action="@{/templates}" method="post" class="formulier">
+                        <div class="veld">
+                            <label for="template-title">Titel</label>
+                            <input id="template-title" name="title" type="text" maxlength="200" required>
+                        </div>
+                        <div class="veld">
+                            <label for="template-description">Omschrijving (optioneel)</label>
+                            <input id="template-description" name="description" type="text" maxlength="300">
+                        </div>
+                        <div class="acties">
+                            <button type="submit" class="knop knop--primair">Aanmaken en bewerken</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

@@ -11,6 +11,8 @@ import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
+import nl.logicai.wiki.services.TemplateService;
+import nl.logicai.wiki.models.PageTemplate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -27,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
-@WebMvcTest({WebController.class, PageController.class, TagController.class})
+@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class})
 @Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
@@ -40,6 +42,9 @@ class PageControllerTemplateTest {
 
 	@MockitoBean
 	private TagService tagService;
+
+	@MockitoBean
+	private TemplateService templateService;
 
 	private final Page page = Page.create("Onboarding",
 		null,
@@ -100,11 +105,18 @@ class PageControllerTemplateTest {
 	@Test
 	void newPageFormRendersParentLink() throws Exception {
 		when(pageService.getActive(page.getId())).thenReturn(page);
+		PageTemplate template = PageTemplate.create("Werkinstructie", "Stappenplan", new WikiDocument("[]", "", 1), "editor", Instant.parse("2026-09-17T09:00:00Z"));
+		when(templateService.all()).thenReturn(List.of(template));
 
 		mvc.perform(get("/pages/new").param("parentId", page.getId().toString()))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("subpagina van")))
 			.andExpect(content().string(containsString("name=\"parentId\"")));
+		mvc.perform(get("/pages/new"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Leeg")))
+			.andExpect(content().string(containsString("name=\"templateId\"")))
+			.andExpect(content().string(containsString("value=\"" + template.getId() + "\"")));
 	}
 
 	@Test
