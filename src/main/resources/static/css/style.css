@@ -766,3 +766,145 @@ h3 {
         width: auto;
     }
 }
+
+/* Zoeken (spec F-13, wireframe scherm 6) */
+.pagina--zoeken {
+    padding-top: 40px;
+}
+
+.zoek {
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.zoek__balk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 8px 14px;
+    border: 1px solid var(--rand);
+    border-radius: 4px;
+}
+
+.zoek__balk input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 0;
+    border: 0;
+    font: inherit;
+    font-size: 16px;
+}
+
+.zoek__balk input[type="search"]:focus {
+    outline: none;
+}
+
+.zoek__indeling {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+}
+
+.zoek__filters {
+    flex: none;
+    width: 180px;
+}
+
+.zoek__filterkop {
+    margin: 0 0 6px;
+    color: var(--tekst-gedempt);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.zoek__taglijst {
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+}
+
+.zoek__tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    color: var(--tekst);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.zoek__tag:hover .zoek__tagnaam {
+    text-decoration: underline;
+}
+
+.zoek__tagnaam {
+    flex: 1;
+}
+
+.zoek__vinkje {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    border: 1.5px solid var(--tekst-zwak);
+    border-radius: 3px;
+}
+
+.zoek__tag--aan .zoek__vinkje {
+    border-color: var(--primair);
+    background: var(--primair);
+}
+
+.zoek__resultaten {
+    flex: 1;
+    min-width: 0;
+}
+
+.zoek__hit {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rand);
+}
+
+.zoek__hitkop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoek__titel {
+    font-weight: 600;
+}
+
+.zoek__pad {
+    margin: 2px 0 4px 24px;
+}
+
+.zoek__fragment {
+    margin: 0 0 0 24px;
+}
+
+.zoek__fragment mark,
+.paginainhoud mark {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: rgba(120, 198, 206, 0.35);
+    color: var(--tekst);
+}
+
+.zoek__paginering {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 0;
+}
+
+@media (max-width: 48rem) {
+    .zoek__indeling {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .zoek__filters {
+        width: auto;
+    }
+}

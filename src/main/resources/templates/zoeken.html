@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="${#strings.isEmpty(resultaat.query)} ? 'Zoeken · LogicAI Wiki' : ${resultaat.query} + ' · Zoeken · LogicAI Wiki'">Zoeken · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('zoeken')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <span>Zoeken</span>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina pagina--zoeken">
+            <div class="zoek">
+                <form class="zoek__balk" th:action="@{/search}" method="get" role="search">
+                    <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
+                    <label class="verborgen" for="q">Zoek pagina's en werkinstructies</label>
+                    <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Zoek pagina's en werkinstructies" autofocus>
+                    <input type="hidden" name="tag" th:if="${resultaat.tag != null}" th:value="${resultaat.tag}">
+                    <span class="gedempt klein zoek__aantal" th:unless="${#strings.isEmpty(resultaat.query)}"
+                          th:text="${resultaat.total} + (${resultaat.total == 1} ? ' resultaat' : ' resultaten')">0 resultaten</span>
+                    <button type="submit" class="knop">Zoeken</button>
+                </form>
+
+                <p class="leeg" th:if="${#strings.isEmpty(resultaat.query)}">
+                    Typ een woord uit een titel of tekst. Hele woorden worden gevonden, ook technische termen zoals "Spring Boot".
+                </p>
+
+                <div class="zoek__indeling" th:unless="${#strings.isEmpty(resultaat.query)}">
+                    <aside class="zoek__filters" aria-label="Filters">
+                        <div class="zoek__filterkop">Filter op tag</div>
+                        <p class="gedempt klein" th:if="${resultaat.tags.isEmpty()}">Geen tags in deze resultaten.</p>
+                        <ul class="zoek__taglijst">
+                            <li th:each="t : ${resultaat.tags}">
+                                <a th:href="@{/search(q=${resultaat.query}, tag=${t.name})}"
+                                   th:classappend="${resultaat.tag != null and #strings.equalsIgnoreCase(resultaat.tag, t.name)} ? 'zoek__tag--aan'"
+                                   class="zoek__tag">
+                                    <span class="zoek__vinkje" aria-hidden="true"></span>
+                                    <span class="zoek__tagnaam" th:text="${t.name}">tag</span>
+                                    <span class="gedempt klein" th:text="${t.count}">0</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <a class="klein" th:if="${resultaat.tag != null}" th:href="@{/search(q=${resultaat.query})}">Filters wissen</a>
+                    </aside>
+
+                    <section class="zoek__resultaten" aria-label="Resultaten">
+                        <p class="leeg" th:if="${resultaat.hits.isEmpty()}">
+                            Niets gevonden voor "<span th:text="${resultaat.query}">zoekterm</span>"<span th:if="${resultaat.tag != null}"> met tag "<span th:text="${resultaat.tag}">tag</span>"</span>.
+                        </p>
+                        <article class="zoek__hit" th:each="h : ${resultaat.hits}">
+                            <div class="zoek__hitkop">
+                                <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+                                <a class="zoek__titel" th:href="@{/pages/{id}(id=${h.page.id})}" th:text="${h.page.title}">Titel</a>
+                            </div>
+                            <div class="zoek__pad gedempt klein" th:text="${#strings.isEmpty(h.path)} ? ${h.page.title} : ${h.path} + ' / ' + ${h.page.title}">pad</div>
+                            <p class="zoek__fragment klein" th:unless="${h.snippet.isEmpty()}">
+                                <th:block th:each="s : ${h.snippet}">
+                                    <mark th:if="${s.hit}" th:text="${s.text}">hit</mark>
+                                    <span th:unless="${s.hit}" th:text="${s.text}">tekst</span>
+                                </th:block>
+                            </p>
+                        </article>
+
+                        <nav class="zoek__paginering" aria-label="Paginering" th:if="${resultaat.totalPages > 1}">
+                            <a class="knop" th:if="${resultaat.hasPrevious()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag}, page=${resultaat.page - 1})}">Vorige</a>
+                            <span class="gedempt klein">Pagina <span th:text="${resultaat.page}">1</span> van <span th:text="${resultaat.totalPages}">1</span></span>
+                            <a class="knop" th:if="${resultaat.hasNext()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag}, page=${resultaat.page + 1})}">Volgende</a>
+                        </nav>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

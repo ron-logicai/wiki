@@ -11,6 +11,7 @@ import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
+import nl.logicai.wiki.services.SearchService;
 import nl.logicai.wiki.services.TemplateService;
 import nl.logicai.wiki.models.PageTemplate;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
-@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class})
+@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class})
 @Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
@@ -45,6 +46,9 @@ class PageControllerTemplateTest {
 
 	@MockitoBean
 	private TemplateService templateService;
+
+	@MockitoBean
+	private SearchService searchService;
 
 	private final Page page = Page.create("Onboarding",
 		null,
@@ -159,6 +163,22 @@ class PageControllerTemplateTest {
 			.andExpect(content().string(containsString("class=\"label label--tag\"")))
 			.andExpect(content().string(containsString("/tags/" + tag.getId() + "/remove")))
 			.andExpect(content().string(containsString("name=\"name\"")));
+	}
+
+	@Test
+	void searchPageRendersHitsFiltersAndPaging() throws Exception {
+		SearchService.Hit hit = new SearchService.Hit(page, "Werkinstructies",
+			List.of(new SearchService.Segment("Log in bij ", false), new SearchService.Segment("Shopify", true)));
+		when(searchService.search("shopify", null, 1)).thenReturn(new SearchService.Result("shopify", null, 1, 2, 21,
+			List.of(hit), List.of(new SearchService.TagCount("Werkinstructie", 3))));
+
+		mvc.perform(get("/search").param("q", "shopify"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("/pages/" + page.getId())))
+			.andExpect(content().string(containsString("Werkinstructies / Onboarding")))
+			.andExpect(content().string(containsString("<mark>Shopify</mark>")))
+			.andExpect(content().string(containsString("tag=Werkinstructie")))
+			.andExpect(content().string(containsString("Volgende")));
 	}
 
 	@Test
