@@ -526,21 +526,26 @@ h3 {
     font-weight: 500;
 }
 
-.veld input {
+.veld input,
+.veld select {
     width: 100%;
     max-width: 480px;
     padding: 6px 10px;
     border: 1px solid var(--rand);
     border-radius: 4px;
+    background: #fff;
+    color: var(--tekst);
     font: inherit;
 }
 
-.veld input:focus {
+.veld input:focus,
+.veld select:focus {
     border-color: var(--accent);
     outline: none;
 }
 
-.veld input[aria-invalid="true"] {
+.veld input[aria-invalid="true"],
+.veld select[aria-invalid="true"] {
     border-color: var(--fout);
 }
 

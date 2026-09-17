@@ -103,6 +103,21 @@ class PageControllerTemplateTest {
 	}
 
 	@Test
+	void moveFormRendersTopLevelAndTargets() throws Exception {
+		Page other = Page.create("Projecten", null, new WikiDocument("[]", "", 1), "editor", Instant.parse("2026-09-15T10:00:00Z"));
+		when(pageService.getActive(page.getId())).thenReturn(page);
+		when(pageService.ancestors(any())).thenReturn(List.of());
+		when(pageService.moveTargets(page.getId())).thenReturn(List.of(new PageService.MoveTarget(other, 0)));
+
+		mvc.perform(get("/pages/{id}/move", page.getId()))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Hoofdniveau")))
+			.andExpect(content().string(containsString("name=\"parentId\"")))
+			.andExpect(content().string(containsString("value=\"" + other.getId() + "\"")))
+			.andExpect(content().string(containsString("/pages/" + page.getId() + "/move")));
+	}
+
+	@Test
 	void unknownPageRenders404() throws Exception {
 		UUID missing = UUID.randomUUID();
 		when(pageService.getActive(missing)).thenThrow(new PageNotFoundException(missing));

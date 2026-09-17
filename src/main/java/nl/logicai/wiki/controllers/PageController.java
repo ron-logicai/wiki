@@ -2,7 +2,11 @@ package nl.logicai.wiki.controllers;
 
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import nl.logicai.wiki.exceptions.InvalidMoveException;
+import nl.logicai.wiki.exceptions.PageConflictException;
+import nl.logicai.wiki.models.MovePageForm;
 import nl.logicai.wiki.models.NewPageForm;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.PageRevision;
@@ -98,6 +102,46 @@ public class PageController {
 		model.addAttribute("revisie", revision);
 		model.addAttribute("inhoudHtml", blockRenderer.render(revision.getDocument()));
 		return "revisie";
+	}
+
+	@GetMapping("/{id}/move")
+	public String verplaatsFormulier(@PathVariable UUID id, Model model) {
+		Page page = pageService.getActive(id);
+		MovePageForm form = new MovePageForm();
+		form.setParentId(page.getParentId());
+		form.setBaseVersion(page.getLockVersion());
+		model.addAttribute("form", form);
+		voegVerplaatsContextToe(page, model);
+		return "pagina-verplaatsen";
+	}
+
+	@PostMapping("/{id}/move")
+	public String verplaatsen(@PathVariable UUID id, @Valid @ModelAttribute("form") MovePageForm form,
+			BindingResult binding, Model model, HttpServletResponse response) {
+		if (!binding.hasErrors()) {
+			try {
+				pageService.move(id, form.getParentId(), form.getBaseVersion());
+				return "redirect:/pages/" + id;
+			}
+			catch (InvalidMoveException ex) {
+				binding.rejectValue("parentId", "ongeldig", ex.getMessage());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			}
+			catch (PageConflictException ex) {
+				binding.reject("conflict", ex.getMessage() + " Controleer de nieuwe plek en probeer opnieuw.");
+				response.setStatus(HttpServletResponse.SC_CONFLICT);
+			}
+		}
+		Page page = pageService.getActive(id);
+		form.setBaseVersion(page.getLockVersion());
+		voegVerplaatsContextToe(page, model);
+		return "pagina-verplaatsen";
+	}
+
+	private void voegVerplaatsContextToe(Page page, Model model) {
+		model.addAttribute("pagina", page);
+		model.addAttribute("ouders", pageService.ancestors(page));
+		model.addAttribute("doelen", pageService.moveTargets(page.getId()));
 	}
 
 	private void voegOuderToe(UUID parentId, Model model) {

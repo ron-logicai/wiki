@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title th:text="'Verplaatsen: ' + ${pagina.title} + ' · LogicAI Wiki'">Verplaatsen · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk(null)}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
+            <span class="sep">/</span>
+            <span class="gedempt">Verplaatsen</span>
+            <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Annuleren</a>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Verplaatsen</h1>
+                <p class="intro">
+                    Kies een nieuwe plek voor <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a>.
+                    Subpagina's verhuizen mee en de link van de pagina blijft hetzelfde.
+                </p>
+
+                <form th:action="@{/pages/{id}/move(id=${pagina.id})}" th:object="${form}" method="post" class="formulier">
+                    <input type="hidden" th:field="*{baseVersion}">
+                    <p class="melding" role="alert" th:each="e : ${#fields.globalErrors()}" th:text="${e}">Fout</p>
+                    <div class="veld">
+                        <label for="parentId">Nieuwe plek</label>
+                        <select id="parentId" th:field="*{parentId}"
+                                th:attr="aria-invalid=${#fields.hasErrors('parentId')} ? 'true' : null">
+                            <option value="">Hoofdniveau</option>
+                            <option th:each="d : ${doelen}" th:value="${d.page.id}"
+                                    th:text="${#strings.repeat('— ', d.depth)} + ${d.page.title}">Pagina</option>
+                        </select>
+                        <p class="veld__fout" th:each="e : ${#fields.errors('parentId')}" th:text="${e}">Fout</p>
+                    </div>
+                    <div class="acties">
+                        <button type="submit" class="knop knop--primair">Verplaatsen</button>
+                        <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Annuleren</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

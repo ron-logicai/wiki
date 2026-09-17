@@ -1,6 +1,7 @@
 package nl.logicai.wiki.services;
 
 import nl.logicai.wiki.models.Page;
+import nl.logicai.wiki.exceptions.InvalidMoveException;
 import nl.logicai.wiki.exceptions.PageConflictException;
 import nl.logicai.wiki.exceptions.PageNotFoundException;
 import nl.logicai.wiki.repositories.PageRepository;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -120,6 +122,55 @@ public class PageService {
 	@Transactional(readOnly = true)
 	public List<Page> allActive() {
 		return pages.findByDeletedAtIsNullOrderByTitleAsc();
+	}
+
+	/**
+	 * Moves a page (with its subtree) under a new parent, or to the top level when newParentId is null
+	 * (spec F-04). The URL never changes. Refuses the page itself and its descendants as target, and
+	 * checks the version the user saw. SERIALIZABLE so two concurrent moves cannot form a cycle:
+	 * PostgreSQL aborts one of them instead.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	@Transactional(isolation = Isolation.SERIALIZABLE)
+	public Page move(UUID id, UUID newParentId, long baseVersion) {
+		Page page = getActive(id);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		if (newParentId != null) {
+			if (newParentId.equals(id)) {
+				throw new InvalidMoveException("Een pagina kan niet onder zichzelf staan.");
+			}
+			Page parent = getActive(newParentId);
+			boolean underItself = ancestors(parent).stream().anyMatch(a -> a.getId().equals(id));
+			if (underItself) {
+				throw new InvalidMoveException("Een pagina kan niet onder een eigen subpagina staan.");
+			}
+		}
+		page.moveTo(newParentId);
+		return pages.saveAndFlush(page);
+	}
+
+	/** A possible new parent for the move form, with its depth in the tree for indentation. */
+	public record MoveTarget(Page page, int depth) {
+	}
+
+	/** All active pages except the page itself and its descendants, in tree order (spec F-04). */
+	@Transactional(readOnly = true)
+	public List<MoveTarget> moveTargets(UUID id) {
+		List<MoveTarget> targets = new ArrayList<>();
+		verzamelDoelen(tree(), id, 0, targets);
+		return targets;
+	}
+
+	private void verzamelDoelen(List<PageNode> knopen, UUID uitgesloten, int diepte, List<MoveTarget> targets) {
+		for (PageNode knoop : knopen) {
+			if (knoop.page().getId().equals(uitgesloten)) {
+				continue; // skips the page and, with it, its whole subtree
+			}
+			targets.add(new MoveTarget(knoop.page(), diepte));
+			verzamelDoelen(knoop.children(), uitgesloten, diepte + 1, targets);
+		}
 	}
 
 	/** A page with its (active) subpages, for the sidebar tree and the spaces on the home page. */

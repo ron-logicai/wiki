@@ -125,6 +125,61 @@ class PageFlowIntegrationTest {
 			.andExpect(status().isNotFound());
 	}
 
+	@Test
+	@WithMockUser(username = "editor", roles = "EDITOR")
+	void editorMovesPageAndCyclesAreRefused() throws Exception {
+		UUID ouder = createPage("Ouder");
+		UUID kind = createPage("Kind", ouder);
+		UUID nieuweOuder = createPage("Nieuwe ouder");
+
+		mvc.perform(get("/pages/{id}/move", kind))
+			.andExpect(status().isOk())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("Hoofdniveau")))
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"" + nieuweOuder + "\"")))
+			.andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("value=\"" + kind + "\""))));
+
+		// Move under another page: the URL stays the same, the breadcrumb follows.
+		mvc.perform(post("/pages/{id}/move", kind).with(csrf())
+				.param("parentId", nieuweOuder.toString()).param("baseVersion", "0"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/pages/" + kind));
+		mvc.perform(get("/pages/{id}", kind))
+			.andExpect(status().isOk())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("<li><a href=\"/pages/" + nieuweOuder + "\">Nieuwe ouder</a></li>")));
+
+		// A parent cannot go under its own (former or current) descendant, nor under itself.
+		mvc.perform(post("/pages/{id}/move", nieuweOuder).with(csrf())
+				.param("parentId", kind.toString()).param("baseVersion", "0"))
+			.andExpect(status().isBadRequest())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("eigen subpagina")));
+		mvc.perform(post("/pages/{id}/move", ouder).with(csrf())
+				.param("parentId", ouder.toString()).param("baseVersion", "0"))
+			.andExpect(status().isBadRequest())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("zichzelf")));
+
+		// The version the user saw is checked: the child is at version 1 after its move.
+		mvc.perform(post("/pages/{id}/move", kind).with(csrf())
+				.param("parentId", "").param("baseVersion", "0"))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
+	@WithMockUser(username = "viewer", roles = "VIEWER")
+	void viewerCannotMove() throws Exception {
+		mvc.perform(post("/pages/{id}/move", UUID.randomUUID()).with(csrf())
+				.param("parentId", "").param("baseVersion", "0"))
+			.andExpect(status().isForbidden());
+	}
+
+	private UUID createPage(String title, UUID parentId) throws Exception {
+		MvcResult result = mvc.perform(post("/pages").with(csrf()).param("title", title)
+				.param("parentId", parentId.toString()))
+			.andExpect(status().is3xxRedirection())
+			.andReturn();
+		String location = result.getResponse().getRedirectedUrl();
+		return UUID.fromString(location.substring("/pages/".length()));
+	}
+
 	private UUID createPage(String title) throws Exception {
 		MvcResult result = mvc.perform(post("/pages").with(csrf()).param("title", title))
 			.andExpect(status().is3xxRedirection())

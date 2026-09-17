@@ -92,6 +92,11 @@ public class Page {
 		return nextRevision(actor, now);
 	}
 
+	/** Moves the page (and, implicitly, its subtree) under a new parent; null means top level (spec F-04). */
+	public void moveTo(UUID newParentId) {
+		this.parentId = newParentId;
+	}
+
 	/** Creates the next immutable revision from the current state (spec F-11). */
 	public PageRevision nextRevision(String actor, Instant now) {
 		this.currentRevision++;
