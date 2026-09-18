@@ -8,6 +8,7 @@ import nl.logicai.wiki.exceptions.PageNotFoundException;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.services.BlockRenderer;
+import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
 @WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class})
-@Import({BlockRenderer.class, GlobalModelAdvice.class, Datums.class})
+@Import({BlockRenderer.class, MarkdownExporter.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
 

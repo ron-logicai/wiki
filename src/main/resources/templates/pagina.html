@@ -16,6 +16,7 @@
             <a class="knop" th:href="@{/pages/new(parentId=${pagina.id})}">Subpagina</a>
             <a class="knop" th:href="@{/pages/{id}/move(id=${pagina.id})}">Verplaatsen</a>
             <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
+            <a class="knop" th:href="@{/pages/{id}/export.md(id=${pagina.id})}" download title="Deze pagina downloaden als Markdown (.md)">Exporteren</a>
             <a class="knop" th:href="@{/pages/{id}/edit(id=${pagina.id})}">Bewerken</a>
             <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
                   onsubmit="return confirm('Deze pagina naar de prullenbak verplaatsen? Je kunt haar daar herstellen.')">

@@ -1,7 +1,12 @@
 package nl.logicai.wiki.controllers;
 
+import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import nl.logicai.wiki.exceptions.InvalidContentException;
@@ -12,10 +17,16 @@ import nl.logicai.wiki.models.MovePageForm;
 import nl.logicai.wiki.models.NewPageForm;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.PageRevision;
+import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.BlockRenderer;
+import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
 import nl.logicai.wiki.services.TemplateService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,6 +38,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * Server-rendered page routes from the URL contract (spec section 5). Every visible page is a
@@ -38,13 +50,15 @@ public class PageController {
 
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
+	private final MarkdownExporter markdownExporter;
 	private final TagService tagService;
 	private final TemplateService templateService;
 
-	public PageController(PageService pageService, BlockRenderer blockRenderer, TagService tagService,
-			TemplateService templateService) {
+	public PageController(PageService pageService, BlockRenderer blockRenderer, MarkdownExporter markdownExporter,
+			TagService tagService, TemplateService templateService) {
 		this.pageService = pageService;
 		this.blockRenderer = blockRenderer;
+		this.markdownExporter = markdownExporter;
 		this.tagService = tagService;
 		this.templateService = templateService;
 	}
@@ -90,6 +104,39 @@ public class PageController {
 		model.addAttribute("tags", tagService.tagsOf(id));
 		model.addAttribute("inhoudHtml", blockRenderer.render(page.getDocument()));
 		return "pagina";
+	}
+
+	/**
+	 * Markdown export of one active page (spec F-17, route from section 5). Readable for every logged-in
+	 * role (section 1: a Viewer may export); a page in the trash is not active and gives 404.
+	 */
+	@GetMapping("/{id}/export.md")
+	public ResponseEntity<String> exporteren(@PathVariable UUID id, HttpServletRequest request) {
+		Page page = pageService.getActive(id);
+		List<String> tags = tagService.tagsOf(id).stream().map(Tag::getName).toList();
+		String baseUrl = ServletUriComponentsBuilder.fromContextPath(request).build().toUriString();
+		var meta = new MarkdownExporter.PageMeta(page.getTitle(), tags, baseUrl + "/pages/" + page.getId(),
+			page.getCurrentRevision(), page.getUpdatedAt());
+		String markdown = markdownExporter.exportPage(meta, page.getDocument(), baseUrl);
+		return ResponseEntity.ok()
+			.contentType(new MediaType("text", "markdown", StandardCharsets.UTF_8))
+			.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+				.filename(exportFileName(page), StandardCharsets.UTF_8).build().toString())
+			.header(HttpHeaders.CACHE_CONTROL, "no-store")
+			.body(markdown);
+	}
+
+	/** A file name from the title, safe for every file system; the id is the fallback for titles without letters. */
+	static String exportFileName(Page page) {
+		String slug = Normalizer.normalize(page.getTitle(), Normalizer.Form.NFKD)
+			.replaceAll("\\p{M}+", "")
+			.toLowerCase(Locale.ROOT)
+			.replaceAll("[^a-z0-9]+", "-")
+			.replaceAll("(^-+|-+$)", "");
+		if (slug.length() > 80) {
+			slug = slug.substring(0, 80).replaceAll("-+$", "");
+		}
+		return (slug.isEmpty() ? "pagina-" + page.getId() : slug) + ".md";
 	}
 
 	@GetMapping("/{id}/edit")
