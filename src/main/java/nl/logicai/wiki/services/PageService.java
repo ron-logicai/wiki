@@ -317,6 +317,39 @@ public class PageService {
 			.orElseThrow(() -> new PageNotFoundException(revisionId));
 	}
 
+	/** Result of restoring a revision: the page, the revision it came from, and whether anything changed. */
+	public record RevisionRestore(Page page, PageRevision source, boolean changed) {
+	}
+
+	/**
+	 * Restores an earlier revision as a new revision (spec F-11): the page takes over the title and
+	 * document of that revision and gets the next revision number; existing revisions stay untouched.
+	 * The document is validated again against today's rules. Restoring the current state changes nothing.
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public RevisionRestore restoreRevision(UUID pageId, UUID revisionId, long baseVersion, String actor) {
+		Page page = getActive(pageId);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		PageRevision source = revisions.findByIdAndPageId(revisionId, pageId)
+			.orElseThrow(() -> new PageNotFoundException(revisionId));
+		JsonNode document = mapper.readTree(source.getDocument());
+		boolean unchanged = source.getTitle().equals(page.getTitle())
+			&& mapper.readTree(page.getDocument()).equals(document);
+		if (unchanged) {
+			return new RevisionRestore(page, source, false);
+		}
+		String cleanTitle = validator.normalizeTitle(source.getTitle());
+		WikiDocument validated = validator.validate(document);
+		Instant now = clock.instant();
+		PageRevision revision = page.update(cleanTitle, validated, actor, now);
+		revisions.save(revision);
+		audit.save(AuditEvent.of(AuditEvent.RESTORE_REVISION, pageId, actor, now,
+			"versie " + source.getRevisionNumber() + " teruggezet als versie " + revision.getRevisionNumber()));
+		return new RevisionRestore(pages.saveAndFlush(page), source, true);
+	}
+
 	/** Makes the document JSON safe to embed inside a &lt;script type="application/json"&gt; tag. */
 	public static String embeddableJson(String json) {
 		return json.replace("<", "\\u003c");

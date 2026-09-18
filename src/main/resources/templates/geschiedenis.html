@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
 <head>
     <th:block th:replace="~{fragments :: head}"></th:block>
     <title th:text="'Geschiedenis: ' + ${pagina.title} + ' · LogicAI Wiki'">Geschiedenis · LogicAI Wiki</title>
@@ -23,6 +23,7 @@
                 <h1>Geschiedenis</h1>
                 <p class="intro">
                     Alle versies van <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a>, nieuwste bovenaan.
+                    Een eerdere versie terugzetten maakt een nieuwe versie; er verdwijnt niets.
                 </p>
 
                 <table class="tabel">
@@ -31,12 +32,22 @@
                         <th>Titel</th>
                         <th>Auteur</th>
                         <th>Tijdstip</th>
+                        <th sec:authorize="hasAnyRole('EDITOR', 'ADMIN')"></th>
                     </tr>
                     <tr th:each="r : ${revisies}">
                         <td><a th:href="@{/pages/{id}/history/{rev}(id=${pagina.id}, rev=${r.id})}" th:text="${r.revisionNumber}">1</a></td>
                         <td th:text="${r.title}">Titel</td>
                         <td th:text="${r.author}">auteur</td>
                         <td><time th:datetime="${r.createdAt}" th:text="${@datums.volledig(r.createdAt)}">datum</time></td>
+                        <td sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">
+                            <span class="gedempt" th:if="${r.revisionNumber == pagina.currentRevision}">actueel</span>
+                            <form th:if="${r.revisionNumber != pagina.currentRevision}"
+                                  th:action="@{/pages/{id}/history/{rev}/restore(id=${pagina.id}, rev=${r.id})}" method="post"
+                                  onsubmit="return confirm('Versie terugzetten als nieuwe versie? De huidige inhoud blijft in de geschiedenis.')">
+                                <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                                <button type="submit" class="knop">Terugzetten</button>
+                            </form>
+                        </td>
                     </tr>
                 </table>
             </div>

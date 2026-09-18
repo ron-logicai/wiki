@@ -16,6 +16,7 @@ public class AuditEvent {
 	public static final String MOVE = "page.move";
 	public static final String DELETE = "page.delete";
 	public static final String RESTORE = "page.restore";
+	public static final String RESTORE_REVISION = "page.restore-revision";
 
 	@Id
 	private UUID id;

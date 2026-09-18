@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import nl.logicai.wiki.exceptions.InvalidContentException;
 import nl.logicai.wiki.exceptions.InvalidMoveException;
 import nl.logicai.wiki.exceptions.PageConflictException;
 import nl.logicai.wiki.exceptions.PageStateException;
@@ -118,6 +119,24 @@ public class PageController {
 		model.addAttribute("revisie", revision);
 		model.addAttribute("inhoudHtml", blockRenderer.render(revision.getDocument()));
 		return "revisie";
+	}
+
+	/** Restores an earlier revision as a new one (spec F-11). Every existing revision stays in the history. */
+	@PostMapping("/{id}/history/{revisionId}/restore")
+	public String revisieHerstellen(@PathVariable UUID id, @PathVariable UUID revisionId,
+			@RequestParam long baseVersion, Authentication auth, RedirectAttributes redirect) {
+		try {
+			PageService.RevisionRestore result = pageService.restoreRevision(id, revisionId, baseVersion, auth.getName());
+			int bron = result.source().getRevisionNumber();
+			redirect.addFlashAttribute("melding", result.changed()
+				? "Versie " + bron + " is teruggezet als versie " + result.page().getCurrentRevision() + "."
+				: "Versie " + bron + " is al gelijk aan de actuele pagina; er is niets gewijzigd.");
+			return "redirect:/pages/" + id;
+		}
+		catch (PageConflictException | InvalidContentException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+			return "redirect:/pages/" + id + "/history/" + revisionId;
+		}
 	}
 
 	@GetMapping("/{id}/move")

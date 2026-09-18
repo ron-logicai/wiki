@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
 <head>
     <th:block th:replace="~{fragments :: head}"></th:block>
     <title th:text="'Versie ' + ${revisie.revisionNumber} + ': ' + ${revisie.title} + ' · LogicAI Wiki'">Versie · LogicAI Wiki</title>
@@ -17,14 +17,23 @@
             <span class="top__ruimte"></span>
             <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Alle versies</a>
             <a class="knop" th:href="@{/pages/{id}(id=${pagina.id})}">Actuele pagina</a>
+            <!-- Terugzetten maakt een nieuwe versie; de geschiedenis blijft compleet (F-11). -->
+            <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:if="${revisie.revisionNumber != pagina.currentRevision}"
+                  th:action="@{/pages/{id}/history/{rev}/restore(id=${pagina.id}, rev=${revisie.id})}" method="post"
+                  onsubmit="return confirm('Deze versie terugzetten als nieuwe versie? De huidige inhoud blijft in de geschiedenis.')">
+                <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                <button type="submit" class="knop knop--primair">Deze versie terugzetten</button>
+            </form>
         </div>
 
         <main class="pagina">
             <div class="kolom">
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
                 <p class="melding melding--info">
                     Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
                     <time th:datetime="${revisie.createdAt}" th:text="${@datums.volledig(revisie.createdAt)}">datum</time>
                     door <span th:text="${revisie.author}">auteur</span>.
+                    <span th:if="${revisie.revisionNumber == pagina.currentRevision}">Dit is de actuele versie.</span>
                 </p>
 
                 <h1 th:text="${revisie.title}">Titel</h1>

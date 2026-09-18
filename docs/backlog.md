@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 17 september 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 18 september 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -14,10 +14,11 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 ( M3 )   Tags: koppelen op een pagina, overzicht met aantallen, hernoemen en verwijderen door admin ( F-14 )
 ( M3 )   Templates met drie voorbeeldtemplates (Projectinformatie, Developer-onboarding, Werkinstructie) ( F-15 )
 ( M3 )   Nieuwe pagina: titel, plek in de boom en template kiezen ( F-03, F-04 )
+( M4 )   Zoeken op titel en inhoud, filter op tag, paginering via queryparameters (`/search?q=&tag=&page=`) ( F-13 )
+( M4 )   Prullenbak: soft delete, herstellen, weigeren zolang er actieve subpagina's zijn (`/trash`) ( F-12 )
+( M4 )   Revisie terugzetten als nieuwe revisie; bestaande historie blijft intact ( F-11 (herstel) )
 
-## Volgende drie stappen
+## Volgende stappen
 
 
-( 1 )   Zoeken op titel en inhoud, filter op tag, paginering via queryparameters (`/search?q=&tag=&page=`) ( F-13 | M4 )
-( 2 )   Prullenbak: soft delete, herstellen, weigeren zolang er actieve subpagina's zijn (`/trash`) ( F-12 | M4 )
-( 3 )   Revisie herstellen als nieuwe revisie; bestaande historie blijft intact ( F-11 (herstel) | M4 )
+(nog te bepalen met de begeleider)
