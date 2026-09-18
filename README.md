@@ -60,6 +60,11 @@ Alle instellingen komen uit omgevingsvariabelen; zie `.env.example`. Er staan ge
 | `WIKI_DB_URL`, `WIKI_DB_USERNAME`, `WIKI_DB_PASSWORD` | PostgreSQL-verbinding |
 | `SPRING_PROFILES_ACTIVE` | `local` (ontwikkeling) en/of `entra` (bedrijfslogin) |
 | `WIKI_ENTRA_TENANT_ID`, `WIKI_ENTRA_CLIENT_ID`, `WIKI_ENTRA_CLIENT_SECRET` | Microsoft Entra ID app-registratie |
+| `WIKI_ATTACHMENTS_DIR` | Map voor geüploade video's (standaard `./data/attachments`; in Compose het volume `wiki-attachments`) |
+| `WIKI_UPLOAD_MAX_FILE_SIZE` | Maximale grootte per upload (standaard `100MB`) |
+
+Geüploade bestanden staan niet in de database. Een back-up bestaat daarom uit de database **en** de
+map `WIKI_ATTACHMENTS_DIR`; herstel beide samen.
 
 ## Volledige uitrol met Docker Compose
 

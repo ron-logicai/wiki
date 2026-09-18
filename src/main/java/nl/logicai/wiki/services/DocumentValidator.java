@@ -19,9 +19,12 @@ public class DocumentValidator {
 
 	public static final int SCHEMA_VERSION = 1;
 
+	/** The documented subset (spec section 7) plus "video": an uploaded file of this wiki, see AttachmentService. */
 	static final Set<String> BLOCK_TYPES = Set.of(
 		"paragraph", "heading", "bulletListItem", "numberedListItem",
-		"checkListItem", "codeBlock", "quote", "divider");
+		"checkListItem", "codeBlock", "quote", "divider", "video");
+
+	private static final int MAX_CAPTION_LENGTH = 500;
 
 	static final Set<String> STYLE_KEYS = Set.of(
 		"bold", "italic", "underline", "strike", "code", "textColor", "backgroundColor");
@@ -96,10 +99,14 @@ public class DocumentValidator {
 			}
 		}
 
+		if ("video".equals(type)) {
+			validateVideo(props, text);
+		}
+
 		JsonNode content = block.path("content");
-		if ("divider".equals(type)) {
+		if ("divider".equals(type) || "video".equals(type)) {
 			if (!content.isMissingNode() && !(content.isArray() && content.isEmpty())) {
-				throw new InvalidContentException("Een scheidingslijn heeft geen inhoud.");
+				throw new InvalidContentException("Een scheidingslijn of video heeft geen tekstinhoud.");
 			}
 		}
 		else if (!content.isMissingNode()) {
@@ -119,6 +126,25 @@ public class DocumentValidator {
 				validateBlock(child, depth + 1, text, blockCount);
 			}
 		}
+	}
+
+	/** A video points at a file uploaded to this wiki; name and caption are searchable text. */
+	private void validateVideo(JsonNode props, StringBuilder text) {
+		JsonNode url = props.path("url");
+		if (!url.isString() || !AttachmentService.isInternalUrl(url.stringValue())) {
+			throw new InvalidContentException("Een video moet een bestand zijn dat in deze wiki is geüpload.");
+		}
+		for (String key : new String[] {"name", "caption"}) {
+			JsonNode value = props.path(key);
+			if (value.isMissingNode()) {
+				continue;
+			}
+			if (!value.isString() || value.stringValue().length() > MAX_CAPTION_LENGTH) {
+				throw new InvalidContentException("De naam of het bijschrift van een video is te lang.");
+			}
+			text.append(value.stringValue()).append(' ');
+		}
+		text.append('\n');
 	}
 
 	private void validateInline(JsonNode content, boolean plainOnly, StringBuilder text) {

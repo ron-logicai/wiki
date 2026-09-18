@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import type { PartialBlock } from "@blocknote/core";
+import { BlockNoteSchema, defaultBlockSpecs, type PartialBlock } from "@blocknote/core";
 import { savePage, type SaveState } from "./save";
+import { uploadFile } from "./upload";
 
 interface EditorProps {
   pageId: string;
@@ -12,9 +13,31 @@ interface EditorProps {
   saveUrl?: string;
   /** Where "open the newest version" points after a conflict. */
   viewUrl?: string;
+  /** Endpoint for file uploads (video blocks). Without it the editor offers no upload. */
+  uploadUrl?: string;
 }
 
 const TITLE_INPUT_ID = "page-title";
+
+/**
+ * Exactly the blocks the server accepts (DocumentValidator.BLOCK_TYPES), so the block menu never
+ * offers something that would be refused on save. "video" is an uploaded MP4/WebM file.
+ */
+const schema = BlockNoteSchema.create({
+  blockSpecs: {
+    paragraph: defaultBlockSpecs.paragraph,
+    heading: defaultBlockSpecs.heading,
+    bulletListItem: defaultBlockSpecs.bulletListItem,
+    numberedListItem: defaultBlockSpecs.numberedListItem,
+    checkListItem: defaultBlockSpecs.checkListItem,
+    codeBlock: defaultBlockSpecs.codeBlock,
+    quote: defaultBlockSpecs.quote,
+    divider: defaultBlockSpecs.divider,
+    video: defaultBlockSpecs.video,
+  },
+});
+
+type EditorBlock = PartialBlock<(typeof schema)["blockSchema"]>;
 
 const STATUS_LABEL: Record<SaveState["status"], string> = {
   clean: "Geen wijzigingen",
@@ -25,12 +48,14 @@ const STATUS_LABEL: Record<SaveState["status"], string> = {
   conflict: "Conflict: de pagina is intussen door iemand anders gewijzigd. Kopieer je tekst en open de nieuwste versie.",
 };
 
-export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl }: EditorProps) {
+export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, uploadUrl }: EditorProps) {
   const [version, setVersion] = useState(baseVersion);
   const [state, setState] = useState<SaveState>({ status: "clean" });
 
   const editor = useCreateBlockNote({
+    schema,
     initialContent: toInitialContent(initialDocument),
+    uploadFile: uploadUrl ? (file: File) => uploadFile(uploadUrl, file) : undefined,
   });
 
   // The title lives in a plain input rendered by Thymeleaf; typing there also marks the page dirty.
@@ -97,8 +122,8 @@ function titleInput(): HTMLInputElement | null {
 }
 
 /** Only a non-empty array of blocks is a valid initial document; otherwise start empty. */
-function toInitialContent(value: unknown): PartialBlock[] | undefined {
-  return Array.isArray(value) && value.length > 0 ? (value as PartialBlock[]) : undefined;
+function toInitialContent(value: unknown): EditorBlock[] | undefined {
+  return Array.isArray(value) && value.length > 0 ? (value as EditorBlock[]) : undefined;
 }
 
 function formatTime(iso: string): string {

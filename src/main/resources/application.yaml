@@ -22,8 +22,11 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
+      # Video uploads; the same limit is checked again in AttachmentService.
+      max-file-size: ${WIKI_UPLOAD_MAX_FILE_SIZE:100MB}
+      max-request-size: ${WIKI_UPLOAD_MAX_REQUEST_SIZE:101MB}
+      # Parse on first access, so a too-large upload reaches the JSON error handler of the API.
+      resolve-lazily: true
 
 server:
   servlet:
@@ -48,6 +51,10 @@ wiki:
   limits:
     title-max-length: 200
     document-max-bytes: 2097152
+  attachments:
+    # Outside the static files and on a persistent volume; see docker-compose.yml.
+    dir: ${WIKI_ATTACHMENTS_DIR:./data/attachments}
+    max-size: ${WIKI_UPLOAD_MAX_FILE_SIZE:100MB}
 
 ---
 # Local development: no HTTPS, template hot reload.

@@ -34,7 +34,7 @@
 
                 <!-- De BlockNote-editor (React) wordt hier gemount; zie frontend/src/main.tsx. -->
                 <div id="editor-root"
-                     th:attr="data-page-id=${pagina.id},data-base-version=${pagina.lockVersion}">
+                     th:attr="data-page-id=${pagina.id},data-base-version=${pagina.lockVersion},data-upload-url=@{/api/attachments(pageId=${pagina.id})}">
                     <p class="leeg">Editor wordt geladen…</p>
                 </div>
                 <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>

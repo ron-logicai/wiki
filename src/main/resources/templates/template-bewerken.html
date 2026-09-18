@@ -37,7 +37,7 @@
 
                 <!-- Dezelfde BlockNote-editor als voor pagina's; bewaart via /api/templates/{id}/content. -->
                 <div id="editor-root"
-                     th:attr="data-page-id=${template.id},data-base-version=${template.lockVersion},data-save-url=@{/api/templates/{id}/content(id=${template.id})},data-view-url=@{/templates/{id}/edit(id=${template.id})}">
+                     th:attr="data-page-id=${template.id},data-base-version=${template.lockVersion},data-save-url=@{/api/templates/{id}/content(id=${template.id})},data-view-url=@{/templates/{id}/edit(id=${template.id})},data-upload-url=@{/api/attachments}">
                     <p class="leeg">Editor wordt geladen…</p>
                 </div>
                 <script id="editor-document" type="application/json" th:utext="${documentJson}">[]</script>

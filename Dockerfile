@@ -20,7 +20,8 @@ RUN ./mvnw -q -DskipTests package
 # --- Stage 3: runtime --------------------------------------------------------
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* && useradd --system --uid 1001 wiki
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
+  && useradd --system --uid 1001 wiki && mkdir -p /app/data && chown wiki /app/data
 COPY --from=backend /build/target/*.jar app.jar
 USER wiki
 EXPOSE 8080

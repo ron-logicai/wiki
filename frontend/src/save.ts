@@ -55,7 +55,7 @@ export async function savePage(pageId: string, request: SaveRequest, saveUrl?: s
 }
 
 /** Spring Security CSRF token rendered by Thymeleaf as <meta name="_csrf" ...>. */
-function csrfHeader(): Record<string, string> {
+export function csrfHeader(): Record<string, string> {
   const token = document.querySelector<HTMLMetaElement>('meta[name="_csrf"]')?.content;
   const header = document.querySelector<HTMLMetaElement>('meta[name="_csrf_header"]')?.content;
   return token && header ? { [header]: token } : {};

@@ -86,13 +86,71 @@ public class BlockRenderer {
 				html.append("</p></blockquote>");
 			}
 			case "divider" -> html.append("<hr>");
+			case "video" -> renderVideoFile(block.path("props"), html);
 			default -> {
 				html.append("<p>");
 				renderInline(content, html);
 				html.append("</p>");
+				renderVideoEmbed(content, html);
 			}
 		}
 		renderChildren(block, html);
+	}
+
+	/** An uploaded video (block type "video"): only an internal attachment URL is ever emitted as source. */
+	private void renderVideoFile(JsonNode props, StringBuilder html) {
+		String url = props.path("url").asString("");
+		if (!AttachmentService.isInternalUrl(url)) {
+			return;
+		}
+		html.append("<figure class=\"video-bestand\"><video controls preload=\"metadata\" src=\"")
+			.append(escape(url)).append("\"></video>");
+		String caption = props.path("caption").asString("");
+		if (!caption.isBlank()) {
+			html.append("<figcaption>").append(escape(caption)).append("</figcaption>");
+		}
+		html.append("</figure>");
+	}
+
+	/**
+	 * A paragraph that consists of a single YouTube link (surrounding whitespace allowed) also shows the
+	 * video itself. The link stays above the player, so the page still works without the embed.
+	 */
+	private void renderVideoEmbed(JsonNode content, StringBuilder html) {
+		JsonNode link = singleLink(content);
+		if (link == null) {
+			return;
+		}
+		String href = LinkPolicy.sanitize(link.path("href").asString(""));
+		VideoEmbed.embedUrl(href).ifPresent(src -> {
+			StringBuilder title = new StringBuilder();
+			renderPlainText(link.path("content"), title);
+			html.append("<div class=\"video\"><iframe src=\"").append(escape(src)).append('"')
+				.append(" title=\"").append(title.isEmpty() ? "YouTube-video" : title).append('"')
+				.append(" loading=\"lazy\" allow=\"fullscreen; picture-in-picture\" allowfullscreen")
+				.append(" referrerpolicy=\"strict-origin-when-cross-origin\"></iframe></div>");
+		});
+	}
+
+	/** The only link in the content, or null when there is none or there is other visible text. */
+	private static JsonNode singleLink(JsonNode content) {
+		if (!content.isArray()) {
+			return null;
+		}
+		JsonNode link = null;
+		for (JsonNode item : content.values()) {
+			String type = item.path("type").asString("");
+			if ("link".equals(type)) {
+				if (link != null) {
+					return null;
+				}
+				link = item;
+			}
+			else if (!item.path("text").asString("").isBlank()) {
+				return null;
+			}
+		}
+		return link;
 	}
 
 	private void renderListItem(JsonNode block, StringBuilder html) {

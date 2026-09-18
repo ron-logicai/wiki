@@ -10,10 +10,17 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-/** JSON error bodies for the editor endpoints: 409 on a stale version, 400 on invalid content. */
-@RestControllerAdvice(assignableTypes = {PageApiController.class, TemplateApiController.class})
+/** JSON error bodies for the editor endpoints: 409 on a stale version, 400 on invalid content, 413 when too large. */
+@RestControllerAdvice(assignableTypes = {PageApiController.class, TemplateApiController.class, AttachmentApiController.class})
 class ApiExceptionAdvice {
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	ResponseEntity<Map<String, Object>> tooLarge() {
+		return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+			.body(Map.of("error", "Het bestand is te groot voor deze wiki."));
+	}
 
 	@ExceptionHandler(PageConflictException.class)
 	ResponseEntity<Map<String, Object>> conflict(PageConflictException ex) {

@@ -30,8 +30,12 @@ services:
       WIKI_ENTRA_TENANT_ID: ${WIKI_ENTRA_TENANT_ID:-}
       WIKI_ENTRA_CLIENT_ID: ${WIKI_ENTRA_CLIENT_ID:-}
       WIKI_ENTRA_CLIENT_SECRET: ${WIKI_ENTRA_CLIENT_SECRET:-}
+      WIKI_ATTACHMENTS_DIR: /app/data/attachments
+    volumes:
+      - wiki-attachments:/app/data
     ports:
       - "8080:8080"
 
 volumes:
   wiki-db-data:
+  wiki-attachments:

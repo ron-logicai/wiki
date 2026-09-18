@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 25 / PostgreSQL 18 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional) and `section N`. `docs/backlog.md` tracks which spec items are done and what comes next.
+LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 25 / PostgreSQL 18 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional), `A-xx` (acceptance scenario) and `section N`. The spec is in `docs/stageopdracht.md` (converted from the Word original; read the relevant F/N/A rows and section before working on a feature). `docs/backlog.md` tracks which spec items are done and what comes next.
 
 UI text, template names, Thymeleaf model attributes and some Java identifiers are **Dutch** (`paginas`, `ouders`, `boom`, `prullenbak`, `verplaatsen`). Java class names, packages and most method names are English. Keep to that split when adding code; user-facing strings and error messages are Dutch.
 
