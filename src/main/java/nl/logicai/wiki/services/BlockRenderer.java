@@ -86,6 +86,8 @@ public class BlockRenderer {
 				html.append("</p></blockquote>");
 			}
 			case "divider" -> html.append("<hr>");
+			case "image" -> renderImage(block.path("props"), html);
+			case "file" -> renderAttachmentLink(block.path("props"), html);
 			case "video" -> renderVideoFile(block.path("props"), html);
 			default -> {
 				html.append("<p>");
@@ -97,6 +99,53 @@ public class BlockRenderer {
 		renderChildren(block, html);
 	}
 
+	/**
+	 * An uploaded PNG/JPEG (block type "image", spec U-01): only an internal attachment URL is ever emitted as
+	 * source. The image links to itself so a scaled-down preview can still be opened at full size. With
+	 * showPreview off the editor shows a plain link, and so does the read view.
+	 */
+	private void renderImage(JsonNode props, StringBuilder html) {
+		String url = props.path("url").asString("");
+		if (!AttachmentService.isInternalUrl(url)) {
+			return;
+		}
+		if (!props.path("showPreview").asBoolean(true)) {
+			renderAttachmentLink(props, html);
+			return;
+		}
+		html.append("<figure class=\"afbeelding\"><a href=\"").append(escape(url))
+			.append("\" target=\"_blank\" rel=\"noopener\"><img src=\"").append(escape(url))
+			.append("\" alt=\"").append(escape(props.path("name").asString(""))).append("\" loading=\"lazy\"");
+		int width = props.path("previewWidth").asInt(0);
+		if (width > 0) {
+			html.append(" width=\"").append(width).append('"');
+		}
+		html.append("></a>");
+		renderCaption(props, html);
+		html.append("</figure>");
+	}
+
+	/** An uploaded PDF (block type "file"): a link that opens the file in a new tab, with the caption below. */
+	private void renderAttachmentLink(JsonNode props, StringBuilder html) {
+		String url = props.path("url").asString("");
+		if (!AttachmentService.isInternalUrl(url)) {
+			return;
+		}
+		String name = props.path("name").asString("").strip();
+		html.append("<figure class=\"bijlage\"><a href=\"").append(escape(url))
+			.append("\" target=\"_blank\" rel=\"noopener\">")
+			.append(escape(name.isEmpty() ? "Bijlage" : name)).append("</a>");
+		renderCaption(props, html);
+		html.append("</figure>");
+	}
+
+	private void renderCaption(JsonNode props, StringBuilder html) {
+		String caption = props.path("caption").asString("");
+		if (!caption.isBlank()) {
+			html.append("<figcaption>").append(escape(caption)).append("</figcaption>");
+		}
+	}
+
 	/** An uploaded video (block type "video"): only an internal attachment URL is ever emitted as source. */
 	private void renderVideoFile(JsonNode props, StringBuilder html) {
 		String url = props.path("url").asString("");
@@ -105,10 +154,7 @@ public class BlockRenderer {
 		}
 		html.append("<figure class=\"video-bestand\"><video controls preload=\"metadata\" src=\"")
 			.append(escape(url)).append("\"></video>");
-		String caption = props.path("caption").asString("");
-		if (!caption.isBlank()) {
-			html.append("<figcaption>").append(escape(caption)).append("</figcaption>");
-		}
+		renderCaption(props, html);
 		html.append("</figure>");
 	}
 

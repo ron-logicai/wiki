@@ -4,6 +4,7 @@ import nl.logicai.wiki.exceptions.InvalidContentException;
 import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.config.WikiLimits;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
@@ -19,12 +20,20 @@ public class DocumentValidator {
 
 	public static final int SCHEMA_VERSION = 1;
 
-	/** The documented subset (spec section 7) plus "video": an uploaded file of this wiki, see AttachmentService. */
+	/**
+	 * Blocks that point at a file uploaded to this wiki (spec U-01: "image" for PNG/JPEG, "file" for PDF;
+	 * "video" for MP4/WebM as an extension), see AttachmentService. Keyed by the Dutch noun used in messages.
+	 */
+	static final Map<String, String> FILE_BLOCK_TYPES = Map.of(
+		"image", "afbeelding", "file", "bijlage", "video", "video");
+
+	/** The documented subset (spec section 7) plus the file blocks above. */
 	static final Set<String> BLOCK_TYPES = Set.of(
 		"paragraph", "heading", "bulletListItem", "numberedListItem",
-		"checkListItem", "codeBlock", "quote", "divider", "video");
+		"checkListItem", "codeBlock", "quote", "divider", "image", "file", "video");
 
 	private static final int MAX_CAPTION_LENGTH = 500;
+	private static final int MAX_PREVIEW_WIDTH = 4_000;
 
 	static final Set<String> STYLE_KEYS = Set.of(
 		"bold", "italic", "underline", "strike", "code", "textColor", "backgroundColor");
@@ -99,14 +108,15 @@ public class DocumentValidator {
 			}
 		}
 
-		if ("video".equals(type)) {
-			validateVideo(props, text);
+		if (FILE_BLOCK_TYPES.containsKey(type)) {
+			validateFileBlock(type, props, text);
 		}
 
 		JsonNode content = block.path("content");
-		if ("divider".equals(type) || "video".equals(type)) {
+		if ("divider".equals(type) || FILE_BLOCK_TYPES.containsKey(type)) {
 			if (!content.isMissingNode() && !(content.isArray() && content.isEmpty())) {
-				throw new InvalidContentException("Een scheidingslijn of video heeft geen tekstinhoud.");
+				throw new InvalidContentException(
+					"Een scheidingslijn, afbeelding, bijlage of video heeft geen tekstinhoud.");
 			}
 		}
 		else if (!content.isMissingNode()) {
@@ -128,11 +138,15 @@ public class DocumentValidator {
 		}
 	}
 
-	/** A video points at a file uploaded to this wiki; name and caption are searchable text. */
-	private void validateVideo(JsonNode props, StringBuilder text) {
+	/**
+	 * An image, attachment or video points at a file uploaded to this wiki (never an external URL); name and
+	 * caption are searchable text. An image may carry the display width the editor chose.
+	 */
+	private void validateFileBlock(String type, JsonNode props, StringBuilder text) {
+		String noun = FILE_BLOCK_TYPES.get(type);
 		JsonNode url = props.path("url");
 		if (!url.isString() || !AttachmentService.isInternalUrl(url.stringValue())) {
-			throw new InvalidContentException("Een video moet een bestand zijn dat in deze wiki is geüpload.");
+			throw new InvalidContentException("Een " + noun + " moet een bestand zijn dat in deze wiki is geüpload.");
 		}
 		for (String key : new String[] {"name", "caption"}) {
 			JsonNode value = props.path(key);
@@ -140,9 +154,15 @@ public class DocumentValidator {
 				continue;
 			}
 			if (!value.isString() || value.stringValue().length() > MAX_CAPTION_LENGTH) {
-				throw new InvalidContentException("De naam of het bijschrift van een video is te lang.");
+				throw new InvalidContentException("De naam of het bijschrift van een " + noun + " is te lang.");
 			}
 			text.append(value.stringValue()).append(' ');
+		}
+		JsonNode width = props.path("previewWidth");
+		if (!width.isMissingNode() && !width.isNull()
+				&& (!width.isNumber() || width.asInt(0) < 1 || width.asInt(0) > MAX_PREVIEW_WIDTH)) {
+			throw new InvalidContentException("De breedte van een " + noun + " moet tussen 1 en "
+				+ MAX_PREVIEW_WIDTH + " pixels liggen.");
 		}
 		text.append('\n');
 	}

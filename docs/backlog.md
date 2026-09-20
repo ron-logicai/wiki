@@ -20,6 +20,7 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 ( M4 )   Markdown-export per actieve pagina: knop "Exporteren" en `/pages/{id}/export.md`; subset en verlies vastgelegd in `docs/markdown-export.md` ( F-17 )
 ( extra )   YouTube-link in een eigen alinea toont de video in de leesweergave (server-side iframe van youtube-nocookie.com; document blijft een gewone link) ( buiten MVP, op verzoek )
 ( extra )   Video uploaden vanaf de eigen computer: blok "video" in de editor, MP4/WebM, typecontrole op de bytes, opslag in `WIKI_ATTACHMENTS_DIR`, download alleen met sessie via `/attachments/{id}` ( naar de regels van U-01; hoort bij de back-up )
+( U-01 )   Afbeeldingen en bijlagen: blokken "image" (PNG, JPEG) en "file" (PDF) in de editor, maximaal 10 MB per bestand (`WIKI_UPLOAD_MAX_FILE_SIZE`), typecontrole op de bytes (SVG/HTML geweigerd), zelfde opslag en download als video; reden van weigering zichtbaar in de editor ( U-01 )
 
 ## Volgende stappen
 

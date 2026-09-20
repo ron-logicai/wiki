@@ -188,6 +188,23 @@ class MarkdownExporterTest {
 	}
 
 	@Test
+	void uploadedImageAndPdfBecomeImageSyntaxAndALink() {
+		String md = exporter.exportDocument("""
+			[{"type":"image","props":{"url":"/attachments/6f1d2c3b-4a5e-4f60-8b9c-0d1e2f3a4b5c","name":"schema_v2.png","caption":"Het schema","previewWidth":400}},
+			 {"type":"file","props":{"url":"/attachments/6f1d2c3b-4a5e-4f60-8b9c-0d1e2f3a4b5d","name":"handleiding.pdf"}},
+			 {"type":"image","props":{"url":"https://evil.example/x.png","name":"buiten"}}]
+			""", BASE);
+		assertThat(md).isEqualTo("""
+			![schema\\_v2.png](https://wiki.example.test/attachments/6f1d2c3b-4a5e-4f60-8b9c-0d1e2f3a4b5c)\\
+			*Het schema*
+
+			[Bijlage: handleiding.pdf](https://wiki.example.test/attachments/6f1d2c3b-4a5e-4f60-8b9c-0d1e2f3a4b5d)
+
+			Afbeelding: buiten
+			""");
+	}
+
+	@Test
 	void unsafeLinkFallsBackToFragment() {
 		String md = exporter.exportDocument("""
 			[{"type":"paragraph","content":[{"type":"link","href":"javascript:alert(1)","content":[{"type":"text","text":"slecht","styles":{}}]}]}]

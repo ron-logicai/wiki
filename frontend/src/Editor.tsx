@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import { BlockNoteSchema, defaultBlockSpecs, type PartialBlock } from "@blocknote/core";
+import { BlockNoteSchema, defaultBlockSpecs, type BlockSpec, type PartialBlock } from "@blocknote/core";
 import { savePage, type SaveState } from "./save";
 import { uploadFile } from "./upload";
 
@@ -13,15 +13,28 @@ interface EditorProps {
   saveUrl?: string;
   /** Where "open the newest version" points after a conflict. */
   viewUrl?: string;
-  /** Endpoint for file uploads (video blocks). Without it the editor offers no upload. */
+  /** Endpoint for file uploads (image, file and video blocks). Without it the editor offers no upload. */
   uploadUrl?: string;
 }
 
 const TITLE_INPUT_ID = "page-title";
 
 /**
+ * Narrows the file picker of a file block to what the server accepts (spec U-01); the server checks the
+ * bytes again, this only keeps the picker from offering files that would be refused.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- BlockSpec's parameters differ per block; only meta is touched
+function accepting<T extends BlockSpec<any, any, any>>(spec: T, mimeTypes: string[]): T {
+  return {
+    ...spec,
+    implementation: { ...spec.implementation, meta: { ...spec.implementation.meta, fileBlockAccept: mimeTypes } },
+  };
+}
+
+/**
  * Exactly the blocks the server accepts (DocumentValidator.BLOCK_TYPES), so the block menu never
- * offers something that would be refused on save. "video" is an uploaded MP4/WebM file.
+ * offers something that would be refused on save. "image" is an uploaded PNG/JPEG, "file" an uploaded
+ * PDF (spec U-01, at most 10 MB each), "video" an uploaded MP4/WebM file.
  */
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -33,7 +46,9 @@ const schema = BlockNoteSchema.create({
     codeBlock: defaultBlockSpecs.codeBlock,
     quote: defaultBlockSpecs.quote,
     divider: defaultBlockSpecs.divider,
-    video: defaultBlockSpecs.video,
+    image: accepting(defaultBlockSpecs.image, ["image/png", "image/jpeg"]),
+    file: accepting(defaultBlockSpecs.file, ["application/pdf"]),
+    video: accepting(defaultBlockSpecs.video, ["video/mp4", "video/webm"]),
   },
 });
 
@@ -51,11 +66,23 @@ const STATUS_LABEL: Record<SaveState["status"], string> = {
 export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, uploadUrl }: EditorProps) {
   const [version, setVersion] = useState(baseVersion);
   const [state, setState] = useState<SaveState>({ status: "clean" });
+  // BlockNote's file panel only shows a generic "upload failed"; the server's reason (type, size) is shown here.
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const editor = useCreateBlockNote({
     schema,
     initialContent: toInitialContent(initialDocument),
-    uploadFile: uploadUrl ? (file: File) => uploadFile(uploadUrl, file) : undefined,
+    uploadFile: uploadUrl
+      ? async (file: File) => {
+          setUploadError(null);
+          try {
+            return await uploadFile(uploadUrl, file);
+          } catch (error) {
+            setUploadError(error instanceof Error ? error.message : "Uploaden mislukt.");
+            throw error;
+          }
+        }
+      : undefined,
   });
 
   // The title lives in a plain input rendered by Thymeleaf; typing there also marks the page dirty.
@@ -110,6 +137,11 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
           <a href={viewUrl ?? `/pages/${encodeURIComponent(pageId)}`} target="_blank" rel="noopener">
             Nieuwste versie openen
           </a>
+        ) : null}
+        {uploadError ? (
+          <span role="alert" className="wiki-editor__upload-error" data-upload-error>
+            {uploadError}
+          </span>
         ) : null}
       </div>
       <BlockNoteView editor={editor} onChange={() => setState({ status: "dirty" })} />

@@ -25,7 +25,8 @@ import tools.jackson.databind.node.ObjectNode;
  *   <li>codeBlock: fenced with backticks and the language; the fence grows when the code contains backticks</li>
  *   <li>quote: every line prefixed with {@code > }</li>
  *   <li>divider: {@code ---}</li>
- *   <li>video (uploaded file): a link {@code [Video: name](url)} plus the caption; the file itself is not part of the export</li>
+ *   <li>image (uploaded PNG/JPEG): {@code ![name](url)} plus the caption; the bytes are not part of the export</li>
+ *   <li>file and video (uploaded PDF or video): a link {@code [Bijlage: name](url)} / {@code [Video: name](url)} plus the caption</li>
  *   <li>bold, italic, strike, code: {@code **}, {@code *}, {@code ~~}, backticks; underline becomes {@code <u>} (no Markdown equivalent)</li>
  *   <li>textColor / backgroundColor: dropped, Markdown has no colours (documented loss)</li>
  *   <li>links: {@code [text](href)}; application-relative destinations such as {@code /pages/{id}} are made absolute with the wiki base URL</li>
@@ -143,7 +144,9 @@ public class MarkdownExporter {
 			case "codeBlock" -> out.add(new Part(renderCode(block), true));
 			case "quote" -> out.add(new Part(prefixLines(hardBreaks(renderInline(content, baseUrl)), "> "), true));
 			case "divider" -> out.add(new Part("---", true));
-			case "video" -> out.add(new Part(renderVideo(block.path("props"), baseUrl), false));
+			case "image" -> out.add(new Part(renderImage(block.path("props"), baseUrl), false));
+			case "file" -> out.add(new Part(renderAttachment("Bijlage", block.path("props"), baseUrl), false));
+			case "video" -> out.add(new Part(renderAttachment("Video", block.path("props"), baseUrl), false));
 			default -> {
 				String text = renderInline(content, baseUrl);
 				if (!text.isEmpty()) {
@@ -199,12 +202,24 @@ public class MarkdownExporter {
 		return md.append(fence).toString();
 	}
 
-	/** An uploaded video cannot travel inside a text file; the export keeps a link to it and the caption. */
-	private String renderVideo(JsonNode props, String baseUrl) {
+	/** An uploaded image: standard Markdown image syntax with the file name as alt text, caption below. */
+	private String renderImage(JsonNode props, String baseUrl) {
+		String url = props.path("url").asString("");
+		if (!AttachmentService.isInternalUrl(url)) {
+			return renderAttachment("Afbeelding", props, baseUrl);
+		}
+		String name = props.path("name").asString("").strip();
+		StringBuilder md = new StringBuilder();
+		md.append("![").append(escapeInline(name)).append("](").append(linkDestination(baseUrl + url)).append(')');
+		appendCaption(props, md);
+		return md.toString();
+	}
+
+	/** An uploaded PDF or video cannot travel inside a text file; the export keeps a link to it and the caption. */
+	private String renderAttachment(String kind, JsonNode props, String baseUrl) {
 		String url = props.path("url").asString("");
 		String name = props.path("name").asString("").strip();
-		String caption = props.path("caption").asString("").strip();
-		String label = "Video" + (name.isEmpty() ? "" : ": " + escapeInline(name));
+		String label = kind + (name.isEmpty() ? "" : ": " + escapeInline(name));
 		StringBuilder md = new StringBuilder();
 		if (AttachmentService.isInternalUrl(url)) {
 			md.append('[').append(label).append("](").append(linkDestination(baseUrl + url)).append(')');
@@ -212,10 +227,15 @@ public class MarkdownExporter {
 		else {
 			md.append(label);
 		}
+		appendCaption(props, md);
+		return md.toString();
+	}
+
+	private static void appendCaption(JsonNode props, StringBuilder md) {
+		String caption = props.path("caption").asString("").strip();
 		if (!caption.isEmpty()) {
 			md.append("\\\n*").append(escapeInline(caption)).append('*');
 		}
-		return md.toString();
 	}
 
 	/** Inline content as Markdown; a newline inside the text stays a newline (callers decide how to break). */

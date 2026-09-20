@@ -40,6 +40,8 @@ De bestandsnaam is een slug van de titel (`deploy-handleiding.md`); zonder lette
 | codeBlock | ``` ```taal ``` … ``` ``` ``` | hek wordt langer als de code zelf backticks bevat; taal `text` wordt weggelaten |
 | quote | `> ` per regel | |
 | divider | `---` | |
+| image (geüploade PNG/JPEG) | `![bestandsnaam](https://wiki.example/attachments/{id})` + bijschrift cursief | de afbeelding zelf zit niet in de export; de link werkt alleen met een wikisessie; de gekozen breedte gaat verloren |
+| file (geüploade PDF) | `[Bijlage: bestandsnaam](https://wiki.example/attachments/{id})` + bijschrift cursief | het bestand zelf zit niet in de export; de link werkt alleen met een wikisessie |
 | video (geüpload bestand) | `[Video: bestandsnaam](https://wiki.example/attachments/{id})` + bijschrift cursief | het videobestand zelf zit niet in de export; de link werkt alleen met een wikisessie |
 
 ## Vertaling van tekstopmaak en links

@@ -561,7 +561,30 @@ h3 {
     background: #000;
 }
 
-.paginainhoud .video-bestand figcaption {
+/* Geüploade afbeelding (blok "image", PNG/JPEG) en bijlage (blok "file", PDF); spec U-01 */
+.paginainhoud .afbeelding {
+    margin: 6px 0 12px;
+    max-width: 720px;
+}
+
+.paginainhoud .afbeelding img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+.paginainhoud .bijlage {
+    margin: 6px 0 12px;
+}
+
+.paginainhoud .bijlage > a::before {
+    content: "\1F4CE\00A0";
+}
+
+.paginainhoud .video-bestand figcaption,
+.paginainhoud .afbeelding figcaption,
+.paginainhoud .bijlage figcaption {
     margin-top: 4px;
     font-size: 13px;
     color: var(--tekst-gedempt);
@@ -761,6 +784,13 @@ h3 {
 
 [data-save-status="error"],
 [data-save-status="conflict"] {
+    color: var(--fout);
+}
+
+/* Reden waarom een upload (afbeelding, PDF, video) is geweigerd: type of grootte */
+.wiki-editor__upload-error {
+    order: 4;
+    flex-basis: 100%;
     color: var(--fout);
 }
 

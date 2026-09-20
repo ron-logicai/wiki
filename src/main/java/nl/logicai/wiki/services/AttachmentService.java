@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -24,12 +23,15 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Uploaded video files (extension beyond the MVP, built to the rules of spec U-01): server-side check of
- * type and size, storage outside the public static files, download only through an authorised route.
- * The type is taken from the file's first bytes, never from the browser's claim or the file name.
+ * Uploaded files (spec U-01): PNG, JPEG and PDF of at most {@code wiki.attachments.max-size}, plus MP4/WebM
+ * video as an extension with its own limit. The server checks type and size, stores the bytes outside the
+ * public static files and serves them only through an authorised route. The type is taken from the file's
+ * first bytes, never from the browser's claim or the file name, so SVG, HTML and other active formats can
+ * never get in under a different name.
  */
 @Service
 public class AttachmentService {
@@ -38,8 +40,9 @@ public class AttachmentService {
 	public static final Pattern INTERNAL_URL = Pattern.compile(
 		"^/attachments/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$");
 
-	static final Map<String, String> ALLOWED = Map.of("video/mp4", "MP4", "video/webm", "WebM");
-
+	private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+	private static final byte[] JPEG_MAGIC = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+	private static final byte[] PDF_MAGIC = "%PDF-".getBytes(StandardCharsets.US_ASCII);
 	private static final byte[] WEBM_MAGIC = {(byte) 0x1A, 0x45, (byte) 0xDF, (byte) 0xA3};
 	private static final byte[] MP4_MAGIC = "ftyp".getBytes(StandardCharsets.US_ASCII);
 
@@ -66,10 +69,6 @@ public class AttachmentService {
 		if (file == null || file.isEmpty()) {
 			throw new InvalidContentException("Kies een bestand om te uploaden.");
 		}
-		long max = properties.maxSize().toBytes();
-		if (file.getSize() > max) {
-			throw new InvalidContentException("Het bestand is te groot (maximaal " + properties.maxSize().toMegabytes() + " MB).");
-		}
 		String contentType;
 		try (InputStream in = file.getInputStream()) {
 			contentType = detectContentType(in.readNBytes(16));
@@ -78,7 +77,12 @@ public class AttachmentService {
 			throw new UncheckedIOException(ex);
 		}
 		if (contentType == null) {
-			throw new InvalidContentException("Alleen MP4- en WebM-video's worden ondersteund.");
+			throw new InvalidContentException("Alleen PNG, JPEG en PDF (en MP4- of WebM-video) worden ondersteund.");
+		}
+		DataSize max = isVideo(contentType) ? properties.maxVideoSize() : properties.maxSize();
+		if (file.getSize() > max.toBytes()) {
+			throw new InvalidContentException((isVideo(contentType) ? "Een video" : "Een afbeelding of PDF")
+				+ " mag maximaal " + max.toMegabytes() + " MB groot zijn.");
 		}
 		if (pageId != null && pages.findByIdAndDeletedAtIsNull(pageId).isEmpty()) {
 			throw new InvalidContentException("De pagina voor deze upload bestaat niet.");
@@ -124,15 +128,36 @@ public class AttachmentService {
 		return url != null && INTERNAL_URL.matcher(url).matches();
 	}
 
-	/** The video type from the first bytes: MP4/MOV family ("ftyp" at offset 4) or WebM (EBML header). */
+	static boolean isVideo(String contentType) {
+		return contentType.startsWith("video/");
+	}
+
+	/**
+	 * The type from the first bytes: PNG and JPEG signatures, {@code %PDF-}, the MP4/MOV family ("ftyp" at
+	 * offset 4) or WebM (EBML header). Anything else, including SVG and HTML, is null and refused.
+	 */
 	static String detectContentType(byte[] head) {
-		if (head.length >= 8 && Arrays.equals(Arrays.copyOfRange(head, 4, 8), MP4_MAGIC)) {
+		if (startsWith(head, 0, PNG_MAGIC)) {
+			return "image/png";
+		}
+		if (startsWith(head, 0, JPEG_MAGIC)) {
+			return "image/jpeg";
+		}
+		if (startsWith(head, 0, PDF_MAGIC)) {
+			return "application/pdf";
+		}
+		if (startsWith(head, 4, MP4_MAGIC)) {
 			return "video/mp4";
 		}
-		if (head.length >= 4 && Arrays.equals(Arrays.copyOfRange(head, 0, 4), WEBM_MAGIC)) {
+		if (startsWith(head, 0, WEBM_MAGIC)) {
 			return "video/webm";
 		}
 		return null;
+	}
+
+	private static boolean startsWith(byte[] head, int offset, byte[] magic) {
+		return head.length >= offset + magic.length
+			&& Arrays.equals(head, offset, offset + magic.length, magic, 0, magic.length);
 	}
 
 	private Path pathOf(UUID id) {
@@ -144,7 +169,7 @@ public class AttachmentService {
 		String name = original == null ? "" : original.replace('\\', '/');
 		name = name.substring(name.lastIndexOf('/') + 1).strip();
 		if (name.isEmpty()) {
-			name = "video";
+			name = "bestand";
 		}
 		return name.length() > 255 ? name.substring(0, 255) : name;
 	}
