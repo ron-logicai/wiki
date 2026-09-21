@@ -58,6 +58,68 @@ echte HTTP getest, met een nagebootste Entra in de test.
 Tijdens frontend-ontwikkeling herbouwt `npm run dev` de bundle bij elke wijziging;
 Spring Boot serveert de bestanden onder `/editor/`.
 
+## Ontwikkelen met een blijvende database (Docker-volume)
+
+Bij `docker compose up -d db` staan de databasebestanden niet in de container maar in het
+benoemde Docker-volume `wiki-db-data`. Dat volume blijft bestaan als de container stopt, opnieuw
+start of wordt verwijderd, dus je pagina's, gebruikers en revisies zijn er na een herstart nog.
+Dit is de relevante configuratie uit `docker-compose.yml`:
+
+```yaml
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped            # start mee met Docker Desktop
+    environment:
+      POSTGRES_DB: ${WIKI_DB_NAME:-wiki}
+      POSTGRES_USER: ${WIKI_DB_USERNAME:-wiki}
+      POSTGRES_PASSWORD: ${WIKI_DB_PASSWORD:?set WIKI_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"          # alleen bereikbaar vanaf je eigen machine
+    volumes:
+      - wiki-db-data:/var/lib/postgresql   # postgres:18 verwacht het volume hier, niet in .../data
+
+volumes:
+  wiki-db-data:                        # benoemd volume, beheerd door Docker
+```
+
+Zo werk je er dagelijks mee:
+
+```bash
+docker compose up -d db          # database starten (eerste keer: volume wordt aangemaakt en Flyway vult het schema bij de eerste app-start)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+
+docker compose stop db           # stoppen, gegevens blijven staan
+docker compose down              # containers weg, volume blijft staan
+docker compose up -d db          # weer verder met dezelfde gegevens
+
+docker volume ls | grep wiki     # het volume bekijken (heet <projectmap>_wiki-db-data)
+docker compose down -v           # ALLES wissen: containers én volume, je begint met een lege wiki
+```
+
+Alleen `docker compose down -v` (of `docker volume rm`) gooit de gegevens weg. Geüploade bestanden
+staan bij een lokale run niet in Docker maar in `./data/attachments` (zie `WIKI_ATTACHMENTS_DIR`);
+die map staat in `.gitignore` en blijft ook gewoon staan.
+
+Wil je de databasebestanden liever als gewone map in het project (bijvoorbeeld om ze makkelijk te
+kopiëren of te verwijderen), zet dan een `docker-compose.override.yml` naast `docker-compose.yml`.
+Compose leest die automatisch mee; commit hem niet.
+
+```yaml
+# docker-compose.override.yml: databasebestanden in ./data/postgres in plaats van in een Docker-volume
+services:
+  db:
+    volumes:
+      - ./data/postgres:/var/lib/postgresql
+```
+
+Een kopie van je ontwikkeldata maak je met `pg_dump` in de container; terugzetten gaat met `psql`:
+
+```bash
+docker compose exec db pg_dump -U wiki wiki > wiki-dev.sql
+docker compose exec -T db psql -U wiki wiki < wiki-dev.sql
+```
+
 ## Tests
 
 ```bash
