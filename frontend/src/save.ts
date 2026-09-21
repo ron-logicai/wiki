@@ -1,8 +1,8 @@
 /**
  * Save path per spec section 8: send the document, the title and the version they are based on.
  * The server answers 200 with the new version, 409 on a stale base version,
- * 401 when the session expired, 400 for invalid content. The editor keeps its content in
- * every failure case.
+ * 401 when the session expired, 403 when the CSRF token is stale or the role is insufficient,
+ * 400 for invalid content. The editor keeps its content in every failure case.
  */
 export type SaveState =
   | { status: "clean" }
@@ -42,6 +42,11 @@ export async function savePage(pageId: string, request: SaveRequest, saveUrl?: s
     if (response.status === 400) {
       const body = await safeJson(response);
       return { status: "error", message: body?.error ?? "De inhoud is ongeldig." };
+    }
+    if (response.status === 403) {
+      // CSRF token stale or no rights (spec N-02); the server sends the reason as JSON.
+      const body = await safeJson(response);
+      return { status: "error", message: body?.error ?? "Opslaan geweigerd. Herlaad de pagina en probeer het opnieuw." };
     }
     if (!response.ok) {
       return { status: "error", message: `Server antwoordde met ${response.status}` };

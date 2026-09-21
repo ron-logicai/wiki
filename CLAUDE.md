@@ -48,7 +48,7 @@ CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B v
 
 Everything is server-rendered Spring MVC + Thymeleaf with fixed URLs (`/pages/{uuid}`, `/pages/{uuid}/edit`, `/search`, `/tags`, `/templates`, `/trash`). Forms POST and redirect to GET. There is no client-side router.
 
-The only JSON traffic is the editor save: `PUT /api/pages/{id}/content` (and `/api/templates/{id}/content`), handled by `PageApiController` / `TemplateApiController` with `ApiExceptionAdvice` mapping exceptions to 400/409 JSON bodies. `SecurityConfig` gives `/api/**` a 401 entry point instead of the login redirect so the editor never mistakes a login page for a save. CSRF stays on; the token is a `<meta name="_csrf">` in `fragments.html` and `frontend/src/save.ts` sends it as a header.
+The only JSON traffic is the editor save: `PUT /api/pages/{id}/content` (and `/api/templates/{id}/content`), handled by `PageApiController` / `TemplateApiController` with `ApiExceptionAdvice` mapping exceptions to 400/409 JSON bodies. `SecurityConfig` gives `/api/**` a 401 entry point instead of the login redirect so the editor never mistakes a login page for a save. CSRF stays on; the token is a `<meta name="_csrf">` in `fragments.html` and `frontend/src/save.ts` sends it as a header. A CSRF or authorization failure on `/api/**` goes through `ApiAccessDeniedHandler` (JSON, 401 without a session, 403 otherwise); note that `defaultAccessDeniedHandlerFor` and `defaultAuthenticationEntryPointFor` need two mappings each, a single mapping is applied to every request.
 
 `GlobalModelAdvice` injects `boom` (the full active page tree, one query) and `gebruiker` into every HTML controller listed in its `assignableTypes`. New HTML controllers must be added there or the sidebar is empty.
 
@@ -78,4 +78,4 @@ Flyway owns the schema (`src/main/resources/db/migration/V*.sql`); Hibernate run
 
 ### Tests
 
-Integration tests are `@SpringBootTest` + `MockMvc` + `@Import(TestcontainersConfiguration.class)` with `@WithMockUser(roles = ...)` and `.with(csrf())` on writes. Pure unit tests exist for `BlockRenderer`, `DocumentValidator`, search snippets and the move rules. Playwright e2e in `frontend/e2e` is a smoke suite against a running app.
+Integration tests are `@SpringBootTest` + `MockMvc` + `@Import(TestcontainersConfiguration.class)` with `@WithMockUser(roles = ...)` and `.with(csrf())` on writes. Pure unit tests exist for `BlockRenderer`, `DocumentValidator`, search snippets and the move rules. Playwright e2e in `frontend/e2e` is a smoke suite against a running app. The login flows (spec N-02) live in `src/test/java/.../security`: `CsrfProtectionIntegrationTest` (MockMvc), and `LoginFlowIntegrationTest` / `EntraLoginFlowIntegrationTest` on `RANDOM_PORT` over real HTTP via `BrowserSession`, so cookie attributes and redirects are the real ones; `FakeEntra` is an in-test OIDC provider (JDK `HttpServer` + nimbus-signed ID tokens).

@@ -47,6 +47,14 @@ Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_AD
 alleen aangemaakt zolang de gebruikerstabel leeg is. Entra-accounts komen alleen binnen als hun
 `preferred_username` of e-mailadres overeenkomt met een actieve gebruiker.
 
+Browserbeveiliging (spec N-02): CSRF-bescherming staat aan voor alle formulieren en voor de
+fetch-verzoeken van de editor (het token staat als meta-tag in de pagina en gaat mee als header).
+De sessiecookie is HttpOnly, Secure en SameSite=Lax; alleen het profiel `local` zet Secure uit omdat
+daar geen HTTPS is. Lax is bewust gekozen: de Entra-callback naar `/login/oauth2/code/entra` is een
+top-level GET vanaf een andere site, en Strict zou die cookie laten vallen. Productie draait daarom
+altijd achter HTTPS. De loginflow (wachtwoord en Entra) wordt in `src/test/java/.../security` over
+echte HTTP getest, met een nagebootste Entra in de test.
+
 Tijdens frontend-ontwikkeling herbouwt `npm run dev` de bundle bij elke wijziging;
 Spring Boot serveert de bestanden onder `/editor/`.
 

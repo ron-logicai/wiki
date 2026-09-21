@@ -2,6 +2,7 @@ package nl.logicai.wiki.config;
 
 import nl.logicai.wiki.repositories.WikiUserRepository;
 import nl.logicai.wiki.security.ActiveUserFilter;
+import nl.logicai.wiki.security.ApiAccessDeniedHandler;
 import nl.logicai.wiki.security.WikiOidcUserService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -30,7 +32,10 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  *   <li>HTML requests without a session are redirected to the login page.</li>
  *   <li>Editor API requests ({@code /api/**}) get 401 instead of login HTML, so the editor
  *       never mistakes a login page for a successful save.</li>
- *   <li>CSRF stays enabled, also for fetch requests; the token is rendered as a meta tag.</li>
+ *   <li>CSRF stays enabled, also for fetch requests; the token is rendered as a meta tag and the editor
+ *       sends it as a header. A refused API request gets a JSON body ({@link ApiAccessDeniedHandler}).</li>
+ *   <li>The session cookie is HttpOnly, Secure and SameSite=Lax (application.yaml); Lax is what the
+ *       OIDC callback needs, see the comment there.</li>
  *   <li>Company login (Entra ID via OIDC) is enabled automatically when a client registration
  *       is configured (profile {@code entra}); the account must match an active app_user.</li>
  *   <li>Password login checks app_user through {@code WikiUserDetailsService}; profile {@code local}
@@ -60,6 +65,10 @@ public class SecurityConfig {
 				// Pages go to the login form (also without an Accept header); the JSON API gets 401.
 				ex.defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"), new NegatedRequestMatcher(api));
 				ex.defaultAuthenticationEntryPointFor(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED), api);
+				// Also used by the CSRF filter, so a save without a valid token gets JSON instead of an error page.
+				// Both mappings are needed: with a single one Spring would apply it to every request.
+				ex.defaultAccessDeniedHandlerFor(new AccessDeniedHandlerImpl(), new NegatedRequestMatcher(api));
+				ex.defaultAccessDeniedHandlerFor(new ApiAccessDeniedHandler(), api);
 			});
 
 		if (clientRegistrations.getIfAvailable() != null) {

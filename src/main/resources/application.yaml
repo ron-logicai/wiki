@@ -32,8 +32,13 @@ server:
   servlet:
     session:
       cookie:
+        # Spec N-02: never readable from JavaScript, only sent over HTTPS (profile local switches Secure off).
         http-only: true
         secure: true
+        # Lax fits the OIDC login flow: Entra sends the browser back to /login/oauth2/code/entra with a
+        # top-level GET, and Lax includes the cookie on such navigations so the state and nonce stored
+        # in the session can be checked. Strict would drop the cookie there and every Entra login would
+        # fail; None is not needed as long as the callback stays a GET (Spring's default response_mode).
         same-site: lax
   forward-headers-strategy: native
 
