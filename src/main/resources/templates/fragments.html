@@ -66,7 +66,9 @@
     <div class="zij__sectie">Ruimtes</div>
     <p class="zij__rij zij__rij--gedempt" th:if="${#lists.isEmpty(boom)}">Nog geen pagina's</p>
     <th:block th:replace="~{fragments :: takken(${boom}, 0)}"></th:block>
-    <a class="zij__rij zij__rij--gedempt" th:href="@{/pages/new}">
+    <!-- Op een geopende (actieve) pagina wordt de nieuwe pagina daar een subpagina van. -->
+    <a class="zij__rij zij__rij--gedempt"
+       th:href="${huidigeId != null and !pagina.deleted} ? @{/pages/new(parentId=${huidigeId})} : @{/pages/new}">
         <span class="icoon" th:insert="~{fragments :: icoon('plus')}"></span>
         <span class="zij__label">Nieuwe pagina</span>
     </a>

@@ -24,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -90,7 +91,8 @@ class PageControllerTemplateTest {
 			.andExpect(content().string(containsString("<h1>Onboarding</h1>")))
 			.andExpect(content().string(containsString("<p>Welkom &lt;b&gt;hier&lt;/b&gt;</p>")))
 			.andExpect(content().string(containsString("aria-current=\"page\"")))
-			.andExpect(content().string(containsString("/pages/" + page.getId() + "/edit")));
+			.andExpect(content().string(containsString("/pages/" + page.getId() + "/edit")))
+			.andExpect(content().string(containsString("/pages/new?parentId=" + page.getId())));
 	}
 
 	@Test
@@ -191,7 +193,8 @@ class PageControllerTemplateTest {
 		mvc.perform(get("/pages/{id}", weg.getId()))
 			.andExpect(status().isGone())
 			.andExpect(content().string(containsString("staat in de prullenbak")))
-			.andExpect(content().string(containsString("/trash")));
+			.andExpect(content().string(containsString("/trash")))
+			.andExpect(content().string(not(containsString("parentId="))));
 	}
 
 	@Test
