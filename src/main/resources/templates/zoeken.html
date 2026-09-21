@@ -21,7 +21,8 @@
                     <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
                     <label class="verborgen" for="q">Zoek pagina's en werkinstructies</label>
                     <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Zoek pagina's en werkinstructies" autofocus>
-                    <input type="hidden" name="tag" th:if="${resultaat.tag != null}" th:value="${resultaat.tag}">
+                    <input type="hidden" name="tag" th:value="${resultaat.tag ?: ''}">
+                    <input type="hidden" name="page" value="1">
                     <span class="gedempt klein zoek__aantal" th:unless="${#strings.isEmpty(resultaat.query)}"
                           th:text="${resultaat.total} + (${resultaat.total == 1} ? ' resultaat' : ' resultaten')">0 resultaten</span>
                     <button type="submit" class="knop">Zoeken</button>
@@ -37,7 +38,7 @@
                         <p class="gedempt klein" th:if="${resultaat.tags.isEmpty()}">Geen tags in deze resultaten.</p>
                         <ul class="zoek__taglijst">
                             <li th:each="t : ${resultaat.tags}">
-                                <a th:href="@{/search(q=${resultaat.query}, tag=${t.name})}"
+                                <a th:href="@{/search(q=${resultaat.query}, tag=${t.name}, page=1)}"
                                    th:classappend="${resultaat.tag != null and #strings.equalsIgnoreCase(resultaat.tag, t.name)} ? 'zoek__tag--aan'"
                                    class="zoek__tag">
                                     <span class="zoek__vinkje" aria-hidden="true"></span>
@@ -46,7 +47,7 @@
                                 </a>
                             </li>
                         </ul>
-                        <a class="klein" th:if="${resultaat.tag != null}" th:href="@{/search(q=${resultaat.query})}">Filters wissen</a>
+                        <a class="klein" th:if="${resultaat.tag != null}" th:href="@{/search(q=${resultaat.query}, tag='', page=1)}">Filters wissen</a>
                     </aside>
 
                     <section class="zoek__resultaten" aria-label="Resultaten">
@@ -68,9 +69,9 @@
                         </article>
 
                         <nav class="zoek__paginering" aria-label="Paginering" th:if="${resultaat.totalPages > 1}">
-                            <a class="knop" th:if="${resultaat.hasPrevious()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag}, page=${resultaat.page - 1})}">Vorige</a>
+                            <a class="knop" th:if="${resultaat.hasPrevious()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag ?: ''}, page=${resultaat.page - 1})}">Vorige</a>
                             <span class="gedempt klein">Pagina <span th:text="${resultaat.page}">1</span> van <span th:text="${resultaat.totalPages}">1</span></span>
-                            <a class="knop" th:if="${resultaat.hasNext()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag}, page=${resultaat.page + 1})}">Volgende</a>
+                            <a class="knop" th:if="${resultaat.hasNext()}" th:href="@{/search(q=${resultaat.query}, tag=${resultaat.tag ?: ''}, page=${resultaat.page + 1})}">Volgende</a>
                         </nav>
                     </section>
                 </div>

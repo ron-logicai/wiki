@@ -67,10 +67,12 @@ class SearchFlowIntegrationTest {
 
 		String all = search("q=" + marker);
 		assertThat(all).contains("/pages/" + a).contains("/pages/" + b).contains("Filter op tag").contains("Shopify");
+		assertThat(all).contains("/search?q=" + marker + "&amp;tag=Shopify&amp;page=1");
 
 		String filtered = search("q=" + marker + "&tag=shopify");
 		assertThat(filtered).contains("/pages/" + a).doesNotContain("/pages/" + b)
 			.contains("zoek__tag--aan").contains("Filters wissen");
+		assertThat(filtered).contains("/search?q=" + marker + "&amp;tag=&amp;page=1");
 	}
 
 	@Test
@@ -81,10 +83,12 @@ class SearchFlowIntegrationTest {
 		}
 		String first = search("q=" + marker);
 		assertThat(first).contains("21 resultaten").contains("Volgende").doesNotContain(">Vorige<");
+		assertThat(first).contains("/search?q=" + marker + "&amp;tag=&amp;page=2");
 		assertThat(first.split("class=\"zoek__hit\"").length - 1).isEqualTo(20);
 
 		String second = search("q=" + marker + "&page=2");
 		assertThat(second).contains(">Vorige<").doesNotContain(">Volgende<");
+		assertThat(second).contains("/search?q=" + marker + "&amp;tag=&amp;page=1");
 		assertThat(second.split("class=\"zoek__hit\"").length - 1).isEqualTo(1);
 	}
 
