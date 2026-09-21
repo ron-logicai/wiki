@@ -42,7 +42,7 @@ class ApiExceptionAdvice {
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<Map<String, Object>> invalidRequest(MethodArgumentNotValidException ex) {
 		String message = ex.getBindingResult().getFieldErrors().stream()
-			.map(error -> error.getField() + ": " + error.getDefaultMessage())
+			.map(error -> error.getDefaultMessage())
 			.findFirst()
 			.orElse("Ongeldig verzoek.");
 		return ResponseEntity.badRequest().body(Map.of("error", message));

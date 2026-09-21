@@ -18,6 +18,7 @@ interface EditorProps {
 }
 
 const TITLE_INPUT_ID = "page-title";
+const TITLE_MAX_LENGTH = 200;
 
 /**
  * Narrows the file picker of a file block to what the server accepts (spec U-01); the server checks the
@@ -110,10 +111,18 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
   }, [state.status]);
 
   async function handleSave() {
+    const title = titleInput()?.value ?? "";
+    // Same rules as the server (spec N-05); checking here gives the message without a round trip.
+    const titleError = validateTitle(title);
+    if (titleError) {
+      setState({ status: "error", message: titleError });
+      titleInput()?.focus();
+      return;
+    }
     setState({ status: "saving" });
     const result = await savePage(pageId, {
       baseVersion: version,
-      title: titleInput()?.value ?? "",
+      title,
       document: editor.document,
     }, saveUrl);
     if (result.status === "saved") {
@@ -151,6 +160,18 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
 
 function titleInput(): HTMLInputElement | null {
   return document.getElementById(TITLE_INPUT_ID) as HTMLInputElement | null;
+}
+
+/** Mirrors the server limit (wiki.limits.title-max-length); the input has no maxlength on purpose, so a too-long title shows an error instead of being cut off silently. */
+function validateTitle(title: string): string | null {
+  const length = title.trim().length;
+  if (length === 0) {
+    return "Een titel is verplicht.";
+  }
+  if (length > TITLE_MAX_LENGTH) {
+    return `De titel mag maximaal ${TITLE_MAX_LENGTH} tekens bevatten.`;
+  }
+  return null;
 }
 
 /** Only a non-empty array of blocks is a valid initial document; otherwise start empty. */

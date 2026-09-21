@@ -95,6 +95,31 @@ class PageFlowIntegrationTest {
 	}
 
 	@Test
+	@WithMockUser(username = "editor", roles = "EDITOR")
+	void titleLongerThan200CharactersIsRejectedOnCreateAndSave() throws Exception {
+		String tooLong = "t".repeat(201);
+		String maxLength = "t".repeat(200);
+
+		// The new-page form stays on the form and shows the message (spec N-05).
+		mvc.perform(post("/pages").with(csrf()).param("title", tooLong))
+			.andExpect(status().isOk())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("De titel mag maximaal 200 tekens bevatten.")));
+
+		// Exactly 200 characters is allowed.
+		UUID id = createPage(maxLength);
+
+		// The editor save answers 400 with the same Dutch message; the stored title is untouched.
+		mvc.perform(put("/api/pages/{id}/content", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(saveBody(0, tooLong, PARAGRAPH)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error").value("De titel mag maximaal 200 tekens bevatten."));
+		mvc.perform(get("/pages/{id}", id))
+			.andExpect(status().isOk())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("<h1>" + maxLength + "</h1>")));
+	}
+
+	@Test
 	@WithMockUser(username = "viewer", roles = "VIEWER")
 	void viewerCannotCreateOrSave() throws Exception {
 		mvc.perform(post("/pages").with(csrf()).param("title", "Verboden"))

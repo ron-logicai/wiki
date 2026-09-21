@@ -28,7 +28,8 @@ public class PageApiController {
 
 	public record SaveRequest(
 		@NotNull Long baseVersion,
-		@NotBlank @Size(max = 200) String title,
+		@NotBlank(message = "Een titel is verplicht.")
+		@Size(max = 200, message = "De titel mag maximaal 200 tekens bevatten.") String title,
 		@NotNull JsonNode document) {
 	}
 

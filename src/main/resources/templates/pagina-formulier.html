@@ -36,7 +36,7 @@
                     </div>
                     <div class="veld">
                         <label for="title">Titel</label>
-                        <input id="title" type="text" th:field="*{title}" maxlength="200" required autofocus
+                        <input id="title" type="text" th:field="*{title}" required autofocus
                                th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
                         <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
                     </div>

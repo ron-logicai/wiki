@@ -25,7 +25,7 @@
             <div class="kolom">
                 <label class="verborgen" for="page-title">Titel</label>
                 <input id="page-title" class="titel-invoer" type="text" th:value="${template.title}"
-                       maxlength="200" required placeholder="Titel">
+                       required placeholder="Titel">
                 <p class="intro" th:if="${!#strings.isEmpty(template.description)}" th:text="${template.description}">omschrijving</p>
 
                 <noscript>
