@@ -48,6 +48,12 @@ management:
         enabled: true
 
 wiki:
+  # First admin on a fresh installation: created once, only while app_user is empty. Password for
+  # form login and/or e-mail for Entra login. Afterwards manage users on /admin/users.
+  bootstrap-admin:
+    username: ${WIKI_BOOTSTRAP_ADMIN_USERNAME:}
+    password: ${WIKI_BOOTSTRAP_ADMIN_PASSWORD:}
+    email: ${WIKI_BOOTSTRAP_ADMIN_EMAIL:}
   limits:
     title-max-length: 200
     document-max-bytes: 2097152

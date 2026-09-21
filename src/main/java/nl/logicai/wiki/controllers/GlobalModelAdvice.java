@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 /** Model attributes every server-rendered page needs: the sidebar page tree and the current user. */
-@ControllerAdvice(assignableTypes = {WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class})
+@ControllerAdvice(assignableTypes = {WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class, AdminController.class, UserAdminController.class})
 class GlobalModelAdvice {
 
 	private final PageService pageService;

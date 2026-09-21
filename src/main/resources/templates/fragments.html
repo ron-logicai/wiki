@@ -78,7 +78,12 @@
             <span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span>
             <span class="zij__label">Prullenbak</span>
         </a>
-        <div class="zij__rij" th:if="${gebruiker != null}">
+        <!-- Voor beheerders is de gebruikersrij de ingang naar de beheerpagina (/admin). -->
+        <a class="zij__rij" sec:authorize="hasRole('ADMIN')" th:classappend="${actief == 'beheer'} ? 'zij__rij--aan'" th:href="@{/admin}">
+            <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+            <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+        </a>
+        <div class="zij__rij" sec:authorize="!hasRole('ADMIN')" th:if="${gebruiker != null}">
             <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
             <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
         </div>

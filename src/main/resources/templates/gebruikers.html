@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Gebruikers · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('beheer')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <a th:href="@{/admin}">Beheer</a>
+            <span class="sep">/</span>
+            <span>Gebruikers</span>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Gebruikers en rollen</h1>
+                <p class="intro">
+                    Alleen gebruikers in deze lijst kunnen inloggen. Een gedeactiveerde gebruiker wordt bij het
+                    volgende verzoek geweigerd, ook met een open sessie. Gebruikers worden nooit verwijderd.
+                </p>
+
+                <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <p class="leeg" th:if="${gebruikers.isEmpty()}">Er zijn nog geen gebruikers. Maak hieronder de eerste aan.</p>
+                <table class="tabel tabel--gebruikers" th:unless="${gebruikers.isEmpty()}">
+                    <thead>
+                        <tr><th>Gebruikersnaam</th><th>Naam</th><th>E-mail</th><th>Rol</th><th>Login</th><th>Laatste login</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="u : ${gebruikers}" th:classappend="${!u.active} ? 'gedempt'">
+                            <td>
+                                <strong th:text="${u.username}">naam</strong>
+                                <span class="klein gedempt" th:if="${u.username == gebruiker}">(jij)</span>
+                            </td>
+                            <td th:text="${u.displayName}">Naam</td>
+                            <td th:text="${u.email ?: '—'}">mail</td>
+                            <td>
+                                <form class="rolformulier" th:action="@{/admin/users/{id}/role(id=${u.id})}" method="post">
+                                    <label class="verborgen" th:for="'rol-' + ${u.id}">Rol</label>
+                                    <select th:id="'rol-' + ${u.id}" name="role">
+                                        <option th:each="r : ${rollen}" th:value="${r}" th:text="${r.label}" th:selected="${r == u.role}">Rol</option>
+                                    </select>
+                                    <button type="submit" class="knop">Wijzigen</button>
+                                </form>
+                            </td>
+                            <td class="klein" th:text="${u.hasPassword()} ? 'Wachtwoord' : 'Entra'">login</td>
+                            <td class="klein">
+                                <time th:if="${u.lastLoginAt != null}" th:datetime="${u.lastLoginAt}" th:text="${@datums.relatief(u.lastLoginAt)}">datum</time>
+                                <span class="gedempt" th:if="${u.lastLoginAt == null}">nog nooit</span>
+                            </td>
+                            <td>
+                                <span th:if="${u.active}">Actief</span>
+                                <span th:unless="${u.active}">Gedeactiveerd</span>
+                                <form th:unless="${u.username == gebruiker}" th:action="@{/admin/users/{id}/active(id=${u.id})}" method="post">
+                                    <input type="hidden" name="active" th:value="${!u.active}">
+                                    <button type="submit" class="knop" th:text="${u.active} ? 'Deactiveren' : 'Activeren'">Deactiveren</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2>Nieuwe gebruiker</h2>
+                <form th:action="@{/admin/users}" th:object="${form}" method="post" class="formulier" autocomplete="off">
+                    <div class="veld">
+                        <label for="username">Gebruikersnaam</label>
+                        <input id="username" type="text" th:field="*{username}" maxlength="100" required autocomplete="off">
+                        <p class="gedempt klein">Letters, cijfers en . _ @ - ; voor Entra-login het Entra-account (meestal het e-mailadres).</p>
+                    </div>
+                    <div class="veld">
+                        <label for="displayName">Naam</label>
+                        <input id="displayName" type="text" th:field="*{displayName}" maxlength="200" required>
+                    </div>
+                    <div class="veld">
+                        <label for="email">E-mail</label>
+                        <input id="email" type="email" th:field="*{email}" maxlength="200">
+                    </div>
+                    <div class="veld">
+                        <label for="password">Wachtwoord</label>
+                        <input id="password" type="password" name="password" minlength="8" autocomplete="new-password">
+                        <p class="gedempt klein">Minimaal 8 tekens. Leeg laten voor iemand die alleen via Entra inlogt (dan is e-mail verplicht).</p>
+                    </div>
+                    <div class="veld">
+                        <label for="role">Rol</label>
+                        <select id="role" th:field="*{role}">
+                            <option th:each="r : ${rollen}" th:value="${r}" th:text="${r.label}">Rol</option>
+                        </select>
+                    </div>
+                    <div class="acties">
+                        <button type="submit" class="knop knop--primair">Aanmaken</button>
+                        <a class="knop" th:href="@{/admin}">Terug naar beheer</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

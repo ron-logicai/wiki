@@ -26,6 +26,10 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 
 	boolean existsByParentIdAndDeletedAtIsNull(UUID parentId);
 
+	long countByDeletedAtIsNull();
+
+	long countByDeletedAtIsNotNull();
+
 	/**
 	 * Full-text search on title and content (spec F-13). The 'simple' configuration matches whole
 	 * words without stemming, so technical terms such as "Spring Boot" and "PostgreSQL" are found

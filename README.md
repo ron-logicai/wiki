@@ -38,7 +38,14 @@ cd frontend && npm ci && npm run build && cd ..
 De applicatie draait op <http://localhost:8080>. Healthcheck: <http://localhost:8080/actuator/health>.
 
 Met het profiel `local` bestaan drie testgebruikers, allemaal met wachtwoord `wiki`:
-`viewer`, `editor` en `admin`. Deze accounts bestaan alleen onder dit profiel en nooit in productie.
+`viewer`, `editor` en `admin`. Ze worden bij het opstarten in de tabel `app_user` gezet als ze
+ontbreken; buiten dit profiel gebeurt dat nooit, dus in productie bestaan ze niet.
+
+Gebruikers en rollen beheer je als admin op `/admin/users` (klik onderin de zijbalk op je eigen naam).
+Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_ADMIN_USERNAME` nodig
+(met `WIKI_BOOTSTRAP_ADMIN_PASSWORD` en/of `WIKI_BOOTSTRAP_ADMIN_EMAIL` voor Entra); die admin wordt
+alleen aangemaakt zolang de gebruikerstabel leeg is. Entra-accounts komen alleen binnen als hun
+`preferred_username` of e-mailadres overeenkomt met een actieve gebruiker.
 
 Tijdens frontend-ontwikkeling herbouwt `npm run dev` de bundle bij elke wijziging;
 Spring Boot serveert de bestanden onder `/editor/`.
@@ -85,7 +92,8 @@ src/main/java/nl/logicai/wiki
   repositories/    Spring Data JPA-repositories
   services/        Bedrijfsregels, documentvalidatie en HTML-rendering
   exceptions/      Fouten met bijbehorende HTTP-status
-  config/          Security, testgebruikers (profiel local), limieten
+  config/          Security, testgebruikers (profiel local), eerste admin, limieten
+  security/        Login tegen app_user (wachtwoord en Entra) en de controle per verzoek op deactivering
 src/main/resources/templates     Thymeleaf-templates (fragments.html bevat kop, zijbalk en kruimelpad)
 src/main/resources/static/css    Stylesheet
 src/main/resources/db/migration  Flyway-migraties

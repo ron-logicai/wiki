@@ -990,3 +990,68 @@ h3 {
     font: inherit;
     font-size: 12px;
 }
+
+/* Beheerpagina: teltegels */
+.tegels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    margin: 8px 0 24px;
+    padding: 0;
+    list-style: none;
+}
+
+.tegel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 1px solid var(--rand);
+    border-radius: 6px;
+    background: var(--zijbalk);
+}
+
+.tegel__getal {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.tegel__label {
+    color: var(--tekst-gedempt);
+    font-size: 12px;
+}
+
+.rij--gedempt .rij__titel {
+    color: var(--tekst-gedempt);
+}
+
+/* Gebruikersbeheer */
+.tabel--gebruikers td {
+    vertical-align: middle;
+}
+
+.tabel--gebruikers form {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.tabel--gebruikers td form + form,
+.tabel--gebruikers td span + form {
+    margin-left: 6px;
+}
+
+.rolformulier select {
+    padding: 4px 6px;
+    border: 1px solid var(--rand);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--tekst);
+    font: inherit;
+    font-size: 13px;
+}
+
+tr.gedempt td {
+    color: var(--tekst-gedempt);
+}

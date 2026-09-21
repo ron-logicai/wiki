@@ -21,7 +21,7 @@ docker compose up -d db
 cd frontend && npm ci && npm run build
 cd frontend && npm run dev      # vite build --watch during editor work
 
-# Run the app (profile local = no secure cookies, Thymeleaf cache off, in-memory users)
+# Run the app (profile local = no secure cookies, Thymeleaf cache off, seeded test users)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 # Alternative: src/test/java/.../TestWikiApplication starts it with a Testcontainers Postgres.
 
@@ -70,7 +70,7 @@ Pages form a tree via `parent_id`; the URL never changes on move. `PageService.m
 
 ### Security
 
-Roles ADMIN > EDITOR > VIEWER via `RoleHierarchy`. Route rules live in `SecurityConfig`; write operations are additionally guarded by `@PreAuthorize("hasRole('EDITOR')")` on service methods. Profile `local` adds in-memory users (`LocalUsersConfig`); profile `entra` enables OIDC login through Microsoft Entra when `WIKI_ENTRA_*` are set. Never add test users outside the `local` profile.
+Roles ADMIN > EDITOR > VIEWER via `RoleHierarchy`. Route rules live in `SecurityConfig`; write operations are additionally guarded by `@PreAuthorize("hasRole('EDITOR')")` on service methods. Users live in `app_user` (V7): `WikiUserDetailsService` does password login, `WikiOidcUserService` only admits Entra accounts that match an active user, and `ActiveUserFilter` re-checks active status and role on every request (spec F-02), passing through principals that are not in the table (mock users in tests). Admins manage users on `/admin/users` (`UserService`, never deletes). Profile `local` seeds `viewer`/`editor`/`admin` (`LocalUsersConfig`); `WIKI_BOOTSTRAP_ADMIN_*` creates the first admin on an empty table; profile `entra` enables OIDC login when `WIKI_ENTRA_*` are set. Never add test users outside the `local` profile.
 
 ### Persistence
 

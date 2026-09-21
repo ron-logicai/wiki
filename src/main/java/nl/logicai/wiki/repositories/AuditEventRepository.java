@@ -10,4 +10,6 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
 
 	List<AuditEvent> findByPageIdOrderByOccurredAtDesc(UUID pageId);
 
+	List<AuditEvent> findTop20ByOrderByOccurredAtDesc();
+
 }

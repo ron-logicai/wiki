@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Beheer · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('beheer')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <span>Beheer</span>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <h1>Beheer</h1>
+                <p class="intro">
+                    Overzicht voor beheerders: wat er in de wiki staat, wat je als beheerder kunt doen en wat er
+                    recent is verplaatst, verwijderd of hersteld.
+                </p>
+
+                <h2>In de wiki</h2>
+                <ul class="tegels">
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.activePages}">0</span><span class="tegel__label">actieve pagina's</span></li>
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.trashedPages}">0</span><span class="tegel__label">in de prullenbak</span></li>
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.tags}">0</span><span class="tegel__label">tags</span></li>
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.templates}">0</span><span class="tegel__label">templates</span></li>
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.attachments}">0</span><span class="tegel__label">bijlagen</span></li>
+                    <li class="tegel"><span class="tegel__getal" th:text="${overzicht.activeUsers}">0</span><span class="tegel__label">actieve gebruikers<th:block th:if="${overzicht.users != overzicht.activeUsers}"> (van <span th:text="${overzicht.users}">0</span>)</th:block></span></li>
+                </ul>
+
+                <h2>Beheerfuncties</h2>
+                <ul class="rijen">
+                    <li class="rij">
+                        <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+                        <span class="rij__titel"><a th:href="@{/admin/users}">Gebruikers en rollen: toevoegen, rol wijzigen, activeren en deactiveren</a></span>
+                        <span class="rij__ruimte gedempt klein">alleen beheerders</span>
+                    </li>
+                    <li class="rij">
+                        <span class="icoon" th:insert="~{fragments :: icoon('tag')}"></span>
+                        <span class="rij__titel"><a th:href="@{/tags}">Tags hernoemen of verwijderen</a></span>
+                        <span class="rij__ruimte gedempt klein">alleen beheerders</span>
+                    </li>
+                    <li class="rij">
+                        <span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span>
+                        <span class="rij__titel"><a th:href="@{/trash}">Prullenbak: verwijderde pagina's herstellen</a></span>
+                        <span class="rij__ruimte gedempt klein">editors en beheerders</span>
+                    </li>
+                    <li class="rij">
+                        <span class="icoon" th:insert="~{fragments :: icoon('sjabloon')}"></span>
+                        <span class="rij__titel"><a th:href="@{/templates}">Templates bewerken</a></span>
+                        <span class="rij__ruimte gedempt klein">editors en beheerders</span>
+                    </li>
+                </ul>
+
+                <h2>Recente wijzigingen (audit)</h2>
+                <p class="leeg" th:if="${audit.isEmpty()}">Nog geen gebeurtenissen: verplaatsen, verwijderen, herstellen en gebruikersbeheer komen hier te staan.</p>
+                <table class="tabel" th:unless="${audit.isEmpty()}">
+                    <thead>
+                        <tr><th>Wanneer</th><th>Wat</th><th>Pagina</th><th>Door</th><th>Details</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${audit}">
+                            <td><time th:datetime="${r.event.occurredAt}" th:text="${@datums.relatief(r.event.occurredAt)}">datum</time></td>
+                            <td th:text="${r.label()}">actie</td>
+                            <td>
+                                <a th:if="${r.page != null}" th:href="@{/pages/{id}(id=${r.page.id})}" th:text="${r.page.title}">titel</a>
+                                <span class="gedempt" th:if="${r.page == null and r.event.pageId != null}">(pagina bestaat niet meer)</span>
+                                <span class="gedempt" th:if="${r.event.pageId == null}">—</span>
+                            </td>
+                            <td th:text="${r.event.actor}">iemand</td>
+                            <td class="gedempt klein" th:text="${r.event.details}">details</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

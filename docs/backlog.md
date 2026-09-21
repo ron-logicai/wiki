@@ -22,7 +22,14 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 ( extra )   Video uploaden vanaf de eigen computer: blok "video" in de editor, MP4/WebM, typecontrole op de bytes, opslag in `WIKI_ATTACHMENTS_DIR`, download alleen met sessie via `/attachments/{id}` ( naar de regels van U-01; hoort bij de back-up )
 ( U-01 )   Afbeeldingen en bijlagen: blokken "image" (PNG, JPEG) en "file" (PDF) in de editor, maximaal 10 MB per bestand (`WIKI_UPLOAD_MAX_FILE_SIZE`), typecontrole op de bytes (SVG/HTML geweigerd), zelfde opslag en download als video; reden van weigering zichtbaar in de editor ( U-01 )
 
+( extra )   Beheerpagina `/admin` (alleen Admin): aantallen, links naar beheerfuncties en de laatste 20 audit-gebeurtenissen; de gebruikersrij onderin de zijbalk is voor beheerders de link ernaartoe ( sectie 1, URL-contract )
+
+( F-01, F-02 )   Gebruikers en rollen: tabel `app_user` (V7), beheer op `/admin/users` (toevoegen, rol wijzigen, activeren/deactiveren, nooit verwijderen), wachtwoordlogin tegen de tabel, Entra-login alleen voor accounts die op gebruikersnaam of e-mail overeenkomen, deactivering en rolwijziging gelden bij het volgende verzoek ook met open sessie; eerste admin via `WIKI_BOOTSTRAP_ADMIN_*` ( sectie 1, F-01, F-02, A-07 )
+
 ## Volgende stappen
+
+- Eigen wachtwoord wijzigen (nu zet alleen een admin een wachtwoord bij het aanmaken; wachtwoord resetten voor bestaande gebruikers ontbreekt ook).
+- Nederlandse loginpagina met melding na deactivering (`/login?deactivated` toont nu de standaardpagina van Spring Security zonder tekst).
 
 
 (nog te bepalen met de begeleider)
