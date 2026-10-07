@@ -45,3 +45,40 @@
   padding: 6px 8px;
   color: var(--bn-colors-side-menu);
 }
+
+/* Right-click menu on selected text (spec U-06). Positioned by LinkContextMenu; the form phase also gets bn-form-popover. */
+.wiki-contextmenu {
+  position: fixed;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 2px;
+  background-color: var(--bn-colors-menu-background);
+  border: var(--bn-border);
+  border-radius: var(--bn-border-radius-medium);
+  box-shadow: var(--bn-shadow-medium);
+  color: var(--bn-colors-menu-text);
+  font-size: 12px;
+}
+
+.wiki-contextmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-contextmenu__item:hover,
+.wiki-contextmenu__item:focus-visible {
+  background-color: var(--bn-colors-hovered-background);
+  outline: none;
+}

@@ -25,8 +25,8 @@ async function createPage(page: Page, title: string): Promise<string> {
   return page.url().split("/pages/")[1];
 }
 
-/** Types a sentence, selects it and opens the link popover from the formatting toolbar. */
-async function openLinkPopover(page: Page, sentence: string) {
+/** Types a sentence and selects it, retrying until the formatting toolbar confirms the selection. */
+async function typeAndSelect(page: Page, sentence: string) {
   const editor = page.locator('.bn-editor[contenteditable="true"]');
   await editor.click();
   await page.keyboard.type(sentence);
@@ -39,7 +39,14 @@ async function openLinkPopover(page: Page, sentence: string) {
     await page.keyboard.press("Shift+Home");
     await linkButton.waitFor({ state: "visible", timeout: 2000 }).catch(() => undefined);
   }
-  await linkButton.click();
+  await expect(linkButton).toBeVisible();
+  return editor;
+}
+
+/** Types a sentence, selects it and opens the link popover from the formatting toolbar. */
+async function openLinkPopover(page: Page, sentence: string) {
+  const editor = await typeAndSelect(page, sentence);
+  await page.locator('[data-test="createLink"]').click();
   const input = page.getByPlaceholder("URL of zoek een pagina…");
   await expect(input).toBeVisible();
   return { editor, input };
@@ -77,4 +84,41 @@ test("a plain address still becomes an https link", async ({ page }) => {
   await input.press("Enter");
 
   await expect(editor.locator('a[href="https://example.com"]')).toHaveText("Voorbeeld");
+});
+
+test("right-click on selected text offers Link toevoegen and inserts a page link", async ({ page }) => {
+  await login(page, "editor");
+  const stamp = Date.now();
+  const targetTitle = `Rechtsklikdoel ${stamp}`;
+  const targetId = await createPage(page, targetTitle);
+  const sourceId = await createPage(page, `Rechtsklikbron ${stamp}`);
+
+  await page.goto(`/pages/${sourceId}/edit`);
+  const editor = await typeAndSelect(page, "Rechtsklik hier");
+  // The whole line is selected, so the centre of the paragraph lies inside the selection.
+  await editor.locator("p", { hasText: "Rechtsklik hier" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Link toevoegen" }).click();
+
+  const input = page.getByPlaceholder("URL of zoek een pagina…");
+  await expect(input).toBeVisible();
+  await input.fill(`rechtsklikdoel ${stamp}`);
+  await page.getByRole("option", { name: targetTitle }).click();
+
+  await expect(editor.locator(`a[href="/pages/${targetId}"]`)).toHaveText("Rechtsklik hier");
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
+});
+
+test("right-click without a selection leaves the browser menu alone", async ({ page }) => {
+  await login(page, "editor");
+  const sourceId = await createPage(page, `Rechtsklik leeg ${Date.now()}`);
+
+  await page.goto(`/pages/${sourceId}/edit`);
+  const editor = page.locator('.bn-editor[contenteditable="true"]');
+  await editor.click();
+  await page.keyboard.type("Geen selectie");
+  await expect(editor).toContainText("Geen selectie");
+  await editor.locator("p", { hasText: "Geen selectie" }).click({ button: "right" });
+
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
+  await expect(page.locator('[data-test="linkContextMenu"]')).toHaveCount(0);
 });

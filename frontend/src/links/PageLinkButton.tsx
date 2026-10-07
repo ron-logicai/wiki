@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatKeyboardShortcut, isTableCellSelection } from "@blocknote/core";
+import { formatKeyboardShortcut } from "@blocknote/core";
 import { FormattingToolbarExtension, ShowSelectionExtension } from "@blocknote/core/extensions";
 import {
   useBlockNoteEditor,
@@ -11,6 +11,7 @@ import {
 } from "@blocknote/react";
 import { LinkIcon } from "./LinkIcon";
 import { PageLinkForm } from "./PageLinkForm";
+import { selectLinkTarget } from "./linkSelection";
 
 /**
  * The link button of the formatting toolbar: a port of BlockNote's CreateLinkButton with our
@@ -33,27 +34,7 @@ export function PageLinkButton() {
     return () => showSelection(false, "pageLinkButton");
   }, [showPopover, showSelection]);
 
-  const state = useEditorState({
-    editor,
-    selector: ({ editor }) => {
-      if (
-        !editor.isEditable ||
-        !("link" in editor.schema.inlineContentSchema) ||
-        isTableCellSelection(editor.prosemirrorState.selection) ||
-        !(editor.getSelection()?.blocks || [editor.getTextCursorPosition().block]).find((block) => block.content !== undefined)
-      ) {
-        return undefined;
-      }
-      return {
-        url: editor.getSelectedLinkUrl(),
-        text: editor.getSelectedText(),
-        range: {
-          from: editor.prosemirrorState.selection.from,
-          to: editor.prosemirrorState.selection.to,
-        },
-      };
-    },
-  });
+  const state = useEditorState({ editor, selector: ({ editor }) => selectLinkTarget(editor) });
   useEffect(() => {
     setShowPopover(false);
   }, [state]);
@@ -89,7 +70,7 @@ export function PageLinkButton() {
         />
       </Components.Generic.Popover.Trigger>
       <Components.Generic.Popover.Content className="bn-popover-content bn-form-popover" variant="form-popover">
-        <PageLinkForm url={state.url || ""} text={state.text} range={state.range} onDone={() => formattingToolbar.store.setState(false)} />
+        <PageLinkForm url={state.url} text={state.text} range={state.range} onDone={() => formattingToolbar.store.setState(false)} />
       </Components.Generic.Popover.Content>
     </Components.Generic.Popover.Root>
   );
