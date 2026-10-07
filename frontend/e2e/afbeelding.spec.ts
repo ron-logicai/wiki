@@ -54,10 +54,10 @@ test("editor uploads a PNG from the file picker and the page shows it", async ({
   await expect(image).toHaveAttribute("src", /^\/attachments\/[0-9a-f-]{36}$/);
   const src = await image.getAttribute("src");
 
+  // A successful save returns to the read view.
   await page.click('button:has-text("Opslaan")');
-  await expect(page.locator("[data-save-status]")).toHaveAttribute("data-save-status", "saved");
+  await page.waitForURL(new RegExp(`/pages/${id}$`));
 
-  await page.goto(`/pages/${id}`);
   await expect(page.locator("article figure.afbeelding img")).toHaveAttribute("src", src!);
   const response = await page.request.get(src!);
   expect(response.status()).toBe(200);

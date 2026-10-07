@@ -13,6 +13,8 @@ interface EditorProps {
   saveUrl?: string;
   /** Where "open the newest version" points after a conflict. */
   viewUrl?: string;
+  /** Where the browser goes after a successful save (the read view). Without it the editor stays open. */
+  afterSaveUrl?: string;
   /** Endpoint for file uploads (image, file and video blocks). Without it the editor offers no upload. */
   uploadUrl?: string;
 }
@@ -64,7 +66,7 @@ const STATUS_LABEL: Record<SaveState["status"], string> = {
   conflict: "Conflict: de pagina is intussen door iemand anders gewijzigd. Kopieer je tekst en open de nieuwste versie.",
 };
 
-export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, uploadUrl }: EditorProps) {
+export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, afterSaveUrl, uploadUrl }: EditorProps) {
   const [version, setVersion] = useState(baseVersion);
   const [state, setState] = useState<SaveState>({ status: "clean" });
   // BlockNote's file panel only shows a generic "upload failed"; the server's reason (type, size) is shown here.
@@ -129,12 +131,17 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
       setVersion(result.version);
     }
     setState(result);
+    // Back to the read view once the server confirmed the save (spec F-09). Routing stays client-side:
+    // the PUT endpoint does not redirect (spec section 7). On error or conflict the editor stays open.
+    if (result.status === "saved" && afterSaveUrl) {
+      window.location.assign(afterSaveUrl);
+    }
   }
 
   return (
     <div className="wiki-editor">
       <div className="wiki-editor__toolbar">
-        <button type="button" onClick={handleSave} disabled={state.status === "saving"}>
+        <button type="button" onClick={handleSave} disabled={state.status === "saving" || state.status === "saved"}>
           Opslaan
         </button>
         <span role="status" aria-live="polite" data-save-status={state.status}>

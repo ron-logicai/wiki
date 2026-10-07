@@ -53,11 +53,9 @@ test("editor uploads a video from the file picker and the page plays it", async 
   await expect(player).toHaveAttribute("src", /^\/attachments\/[0-9a-f-]{36}$/);
   const src = await player.getAttribute("src");
 
+  // A successful save returns to the read view, which serves the player from the wiki itself, with a session.
   await page.click('button:has-text("Opslaan")');
-  await expect(page.locator("[data-save-status]")).toHaveAttribute("data-save-status", "saved");
-
-  // The read view serves the player from the wiki itself, with a session.
-  await page.goto(`/pages/${id}`);
+  await page.waitForURL(new RegExp(`/pages/${id}$`));
   await expect(page.locator("article video")).toHaveAttribute("src", src!);
   const response = await page.request.get(src!);
   expect(response.status()).toBe(200);

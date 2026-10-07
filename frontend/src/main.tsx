@@ -44,6 +44,7 @@ function mount() {
         initialDocument={initialDocument}
         saveUrl={root.dataset.saveUrl}
         viewUrl={root.dataset.viewUrl}
+        afterSaveUrl={root.dataset.afterSaveUrl}
         uploadUrl={root.dataset.uploadUrl}
       />
     </StrictMode>,
