@@ -62,7 +62,7 @@ class PagePropertiesIntegrationTest {
 				.param("owner", owner.getUsername()).param("status", "ACTUEEL").param("baseVersion", "0"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(header().string("Location", "/pages/" + id))
-			.andExpect(flash().attribute("melding", "Eigenschappen opgeslagen."));
+			.andExpect(flash().attribute("melding", "Eigenschappen opgeslagen. De pagina is actueel."));
 
 		String page = body(get("/pages/{id}", id));
 		assertThat(page).contains("status--actueel").doesNotContain("status--concept");

@@ -250,7 +250,7 @@ public class PageController {
 			RedirectAttributes redirect) {
 		try {
 			pageService.updateProperties(id, baseVersion, owner, status, auth.getName());
-			redirect.addFlashAttribute("melding", "Eigenschappen opgeslagen.");
+			redirect.addFlashAttribute("melding", "Eigenschappen opgeslagen. " + status.getMelding());
 		}
 		catch (PageStateException | PageConflictException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());
