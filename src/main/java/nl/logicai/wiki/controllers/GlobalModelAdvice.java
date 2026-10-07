@@ -11,6 +11,7 @@ import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.PageService.PageNode;
 import org.springframework.security.core.Authentication;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -21,9 +22,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 class GlobalModelAdvice {
 
 	private final PageService pageService;
+	private final FavoriteService favoriteService;
 
-	GlobalModelAdvice(PageService pageService) {
+	GlobalModelAdvice(PageService pageService, FavoriteService favoriteService) {
 		this.pageService = pageService;
+		this.favoriteService = favoriteService;
 	}
 
 	@ModelAttribute("boom")
@@ -36,17 +39,21 @@ class GlobalModelAdvice {
 		return auth == null ? null : auth.getName();
 	}
 
-}
+	/** The user's favorites for the sidebar, plus their ids so the tree can mark a starred page (spec U-03). */
+	@ModelAttribute
+	void favorieten(Authentication auth, Model model) {
+		List<Page> favorieten = auth == null ? List.of() : favoriteService.favoritesOf(auth.getName());
+		Set<UUID> favorietIds = favorieten.stream().map(Page::getId).collect(Collectors.toSet());
+		model.addAttribute("favorieten", favorieten);
+		model.addAttribute("favorietIds", favorietIds);
+	}
 
-	List<Page> favorieten(Authentication auth){
-		return auth == null ? List.of() : favoriteService.favoritesOf(auth.getName());
-	}
-	Set<UUID>favorietIds(@ModelAttribute("favorieten")List<Page>favorieten){
-		return favorieten.stream().map(Page::getId).collect(Collectors.toSet());
-	}
+	/** The current path, so the star form can return to it. */
 	@ModelAttribute("huidigePad")
-    String huidigePad(HttpServletRequest request){
+	String huidigePad(HttpServletRequest request) {
 		String query = request.getQueryString();
-		return request.getRequestURI() + (query == null ? "" : "? + query");
+		return request.getRequestURI() + (query == null ? "" : "?" + query);
 	}
+
+}
 

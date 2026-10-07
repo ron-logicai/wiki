@@ -19,6 +19,7 @@ import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.PageRevision;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.BlockRenderer;
+import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.TagService;
@@ -39,7 +40,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import nl.logicai.wiki.services.FavoriteService;
 
 /**
  * Server-rendered page routes from the URL contract (spec section 5). Every visible page is a
@@ -48,16 +48,18 @@ import nl.logicai.wiki.services.FavoriteService;
 @Controller
 @RequestMapping("/pages")
 public class PageController {
-    private final FavoriteService favoriteService;
+
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
 	private final MarkdownExporter markdownExporter;
 	private final TagService tagService;
 	private final TemplateService templateService;
+	private final FavoriteService favoriteService;
 
 	public PageController(PageService pageService, BlockRenderer blockRenderer, MarkdownExporter markdownExporter,
-			TagService tagService, TemplateService templateService) {
+			TagService tagService, TemplateService templateService, FavoriteService favoriteService) {
 		this.pageService = pageService;
+		this.favoriteService = favoriteService;
 		this.blockRenderer = blockRenderer;
 		this.markdownExporter = markdownExporter;
 		this.tagService = tagService;
@@ -233,10 +235,14 @@ public class PageController {
 			redirect.addFlashAttribute("fout", ex.getMessage());
 			return "redirect:/pages/" + id;
 		}
-		@PostMapping("/{id}/favorite")
-			favoritesService.toggle(id, auth.getName());
-		    boolean veiglig = terug.startsWith("/") && !terug.startWith("//");
-			return "redirect:" + (veilig ? terug : "/pages?" + id);
+	}
+
+	/** Star or unstar a page (spec U-03) and return to 'terug' when that is a local path. */
+	@PostMapping("/{id}/favorite")
+	public String favoriet(@PathVariable UUID id, @RequestParam(required = false) String terug, Authentication auth) {
+		favoriteService.toggle(id, auth.getName());
+		boolean veilig = terug != null && terug.startsWith("/") && !terug.startsWith("//");
+		return "redirect:" + (veilig ? terug : "/pages/" + id);
 	}
 
 	private void voegVerplaatsContextToe(Page page, Model model) {

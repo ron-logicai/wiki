@@ -11,60 +11,65 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 
+/** A page a user has starred (spec U-03); one row per (page, user). */
 @Entity
-@Table(name = "page_favorites")
-@idClass(PageFavorites.Key.class)
+@Table(name = "page_favorite")
+@IdClass(PageFavorite.Key.class)
 public class PageFavorite {
-    @Id
-    @Column(name = "page_id")
-    private UUID pageId;
-    @Id
-    @Column(nullable = false, length = 100)
-    private String username;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
 
-    protected PageFavorite() {
-    }
+	@Id
+	@Column(name = "page_id")
+	private UUID pageId;
 
-    public PageFavorite(UUID pageId, String username, Instant now) {
-        this.pageId = pageId;
-        this.username = username;
-        this.createdAt = now;
-    }
+	@Id
+	@Column(nullable = false, length = 100)
+	private String username;
 
-    public UUID getPageId() {
-        return pageId;
-    }
+	@Column(name = "created_at", nullable = false)
+	private Instant createdAt;
 
-    public String getUSername() {
-        return username;
-    }
+	protected PageFavorite() {
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public PageFavorite(UUID pageId, String username, Instant now) {
+		this.pageId = pageId;
+		this.username = username;
+		this.createdAt = now;
+	}
 
-    public static class Key implements Serializable {
-        private UUID pageId;
-        private String username;
+	public UUID getPageId() {
+		return pageId;
+	}
 
-        public key() {
-        }
+	public String getUsername() {
+		return username;
+	}
 
-        public Key(UUID pageId, String username) {
-            this.pageId = pageId;
-            this.username = username;
-        }
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
 
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof Key key && Objects.equals(pageId, ley.pageId) && Object.equals(username, key.username);
-        }
+	public static class Key implements Serializable {
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(pageId, username);
-        }
-    }
+		private UUID pageId;
+		private String username;
+
+		public Key() {
+		}
+
+		public Key(UUID pageId, String username) {
+			this.pageId = pageId;
+			this.username = username;
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			return other instanceof Key key && Objects.equals(pageId, key.pageId) && Objects.equals(username, key.username);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(pageId, username);
+		}
+	}
 }
