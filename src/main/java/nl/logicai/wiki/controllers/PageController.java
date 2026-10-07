@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import nl.logicai.wiki.services.FavoriteService;
 
 /**
  * Server-rendered page routes from the URL contract (spec section 5). Every visible page is a
@@ -47,7 +48,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @Controller
 @RequestMapping("/pages")
 public class PageController {
-
+    private final FavoriteService favoriteService;
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
 	private final MarkdownExporter markdownExporter;
@@ -232,6 +233,10 @@ public class PageController {
 			redirect.addFlashAttribute("fout", ex.getMessage());
 			return "redirect:/pages/" + id;
 		}
+		@PostMapping("/{id}/favorite")
+			favoritesService.toggle(id, auth.getName());
+		    boolean veiglig = terug.startsWith("/") && !terug.startWith("//");
+			return "redirect:" + (veilig ? terug : "/pages?" + id);
 	}
 
 	private void voegVerplaatsContextToe(Page page, Model model) {

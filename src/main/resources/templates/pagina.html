@@ -13,15 +13,22 @@
         <div class="top">
             <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
             <span class="top__ruimte"></span>
-            <a class="knop" th:href="@{/pages/new(parentId=${pagina.id})}">Subpagina</a>
-            <a class="knop" th:href="@{/pages/{id}/move(id=${pagina.id})}">Verplaatsen</a>
-            <a class="knop" th:href="@{/pages/{id}/history(id=${pagina.id})}">Geschiedenis</a>
-            <a class="knop" th:href="@{/pages/{id}/export.md(id=${pagina.id})}" download title="Deze pagina downloaden als Markdown (.md)">Exporteren</a>
-            <a class="knop" th:href="@{/pages/{id}/edit(id=${pagina.id})}">Bewerken</a>
+            <a class="knop knop--icoon" th:href="@{/pages/new(parentId=${pagina.id})}" title="Subpagina"
+               aria-label="Subpagina"><span class="icoon" th:insert="~{fragments :: icoon('bestand-plus')}"></span></a>
+            <a class="knop knop--icoon" th:href="@{/pages/{id}/move(id=${pagina.id})}" title="Verplaatsen"
+               aria-label="Verplaatsen"><span class="icoon" th:insert="~{fragments :: icoon('verplaatsen')}"></span></a>
+            <a class="knop knop--icoon" th:href="@{/pages/{id}/history(id=${pagina.id})}" title="Geschiedenis"
+               aria-label="Geschiedenis"><span class="icoon" th:insert="~{fragments :: icoon('geschiedenis')}"></span></a>
+            <a class="knop knop--icoon" th:href="@{/pages/{id}/export.md(id=${pagina.id})}" download
+               title="Deze pagina downloaden als Markdown (.md)"
+               aria-label="Exporteren"><span class="icoon" th:insert="~{fragments :: icoon('download')}"></span></a>
+            <a class="knop knop--icoon" th:href="@{/pages/{id}/edit(id=${pagina.id})}" title="Bewerken"
+               aria-label="Bewerken"><span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span></a>
             <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
                   onsubmit="return confirm('Deze pagina naar de prullenbak verplaatsen? Je kunt haar daar herstellen.')">
                 <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
-                <button type="submit" class="knop">Verwijderen</button>
+                <button type="submit" class="knop knop--icoon" title="Verwijderen"
+                        aria-label="Verwijderen"><span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span></button>
             </form>
         </div>
 

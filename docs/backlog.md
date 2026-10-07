@@ -26,6 +26,8 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( F-01, F-02 )   Gebruikers en rollen: tabel `app_user` (V7), beheer op `/admin/users` (toevoegen, rol wijzigen, activeren/deactiveren, nooit verwijderen), wachtwoordlogin tegen de tabel, Entra-login alleen voor accounts die op gebruikersnaam of e-mail overeenkomen, deactivering en rolwijziging gelden bij het volgende verzoek ook met open sessie; eerste admin via `WIKI_BOOTSTRAP_ADMIN_*` ( sectie 1, F-01, F-02, A-07 )
 
+( U-03 )   Persoonlijke favorieten: ster bij elke pagina in de zijbalkboom (zichtbaar bij hover, `POST /pages/{id}/favorite`), sectie "Favorieten" boven "Ruimtes", tabel `page_favorite` (V8) per gebruikersnaam; pagina's in de prullenbak worden verborgen en komen na herstel terug ( U-03 )
+
 ( N-02 )   Browserbeveiliging: CSRF actief op alle mutaties, ook voor de fetch-verzoeken van de editor (token als header; geweigerde API-verzoeken krijgen een JSON-melding, 401 zonder sessie); sessiecookie HttpOnly, Secure en SameSite=Lax (Lax omdat de Entra-callback een top-level GET is); de volledige loginflow is getest over echte HTTP, voor wachtwoordlogin en voor Entra tegen een nagebootste identity provider in de test ( N-02, A-07 )
 
 ## Volgende stappen

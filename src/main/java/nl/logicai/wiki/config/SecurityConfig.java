@@ -58,7 +58,7 @@ public class SecurityConfig {
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())
-			.formLogin(Customizer.withDefaults())
+			.formLogin(form -> form.defaultSuccessUrl("/", true))
 			.logout(logout -> logout.logoutSuccessUrl("/login?logout"))
 			.exceptionHandling(ex -> {
 				RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");

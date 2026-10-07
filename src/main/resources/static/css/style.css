@@ -228,10 +228,47 @@ h3 {
 }
 
 .boom__link {
+    flex: 1;
     overflow: hidden;
     color: inherit;
     text-decoration: none;
     text-overflow: ellipsis;
+}
+
+/* Favoriet-ster (spec U-03): pas zichtbaar bij hover of focus op de rij; een favoriet is altijd zichtbaar en gevuld */
+.boom__ster {
+    display: inline-flex;
+    flex: none;
+    margin: 0;
+    opacity: 0;
+}
+
+.zij__rij:hover .boom__ster,
+.boom__ster:focus-within,
+.boom__ster--aan {
+    opacity: 1;
+}
+
+.boom__sterknop {
+    display: inline-flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.boom__sterknop:hover {
+    background: var(--zijbalk-aan);
+}
+
+.boom__ster--aan .icoon {
+    color: #f5b301;
+}
+
+.boom__ster--aan .icoon svg {
+    fill: currentColor;
 }
 
 /* Bovenbalk */
@@ -315,6 +352,14 @@ h3 {
 
 .knop--primair:hover {
     background: var(--primair-hover);
+}
+
+.knop--icoon {
+    padding: 6px;
+}
+
+.knop--icoon .icoon {
+    color: inherit;
 }
 
 .knop:disabled {
