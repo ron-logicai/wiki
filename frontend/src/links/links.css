@@ -1,0 +1,47 @@
+/* Suggestion list under the URL field of the link popover (spec U-06). */
+.wiki-paginalinks {
+  width: 300px;
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.wiki-paginalinks__lijst {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wiki-paginalinks__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.wiki-paginalinks__item[aria-selected="true"] {
+  background-color: var(--bn-colors-hovered-background);
+}
+
+.wiki-paginalinks__titel {
+  color: var(--bn-colors-menu-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-paginalinks__pad {
+  color: var(--bn-colors-side-menu);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-paginalinks__status {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--bn-colors-side-menu);
+}

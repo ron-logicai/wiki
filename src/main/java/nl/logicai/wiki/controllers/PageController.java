@@ -17,6 +17,7 @@ import nl.logicai.wiki.models.MovePageForm;
 import nl.logicai.wiki.models.NewPageForm;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.PageRevision;
+import nl.logicai.wiki.models.PageStatus;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.FavoriteService;
@@ -106,6 +107,11 @@ public class PageController {
 		model.addAttribute("subpaginas", pageService.children(id));
 		model.addAttribute("tags", tagService.tagsOf(id));
 		model.addAttribute("inhoudHtml", blockRenderer.render(page.getDocument()));
+		// Eigenschappen en laatste controle (spec U-07, U-08).
+		model.addAttribute("eigenaarNaam", pageService.displayNameOf(page.getOwner()));
+		model.addAttribute("gecontroleerdDoorNaam", pageService.displayNameOf(page.getReviewedBy()));
+		model.addAttribute("statussen", PageStatus.values());
+		model.addAttribute("eigenaren", pageService.ownerCandidates());
 		return "pagina";
 	}
 
@@ -235,6 +241,35 @@ public class PageController {
 			redirect.addFlashAttribute("fout", ex.getMessage());
 			return "redirect:/pages/" + id;
 		}
+	}
+
+	/** Eigenaar en status opslaan (spec U-07); een verouderde versie of onbekende eigenaar geeft een melding. */
+	@PostMapping("/{id}/properties")
+	public String eigenschappen(@PathVariable UUID id, @RequestParam(required = false) String owner,
+			@RequestParam(required = false) PageStatus status, @RequestParam long baseVersion, Authentication auth,
+			RedirectAttributes redirect) {
+		try {
+			pageService.updateProperties(id, baseVersion, owner, status, auth.getName());
+			redirect.addFlashAttribute("melding", "Eigenschappen opgeslagen.");
+		}
+		catch (PageStateException | PageConflictException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/pages/" + id;
+	}
+
+	/** Markeert de pagina als gecontroleerd door de ingelogde gebruiker (spec U-08). */
+	@PostMapping("/{id}/review")
+	public String gecontroleerd(@PathVariable UUID id, @RequestParam long baseVersion, Authentication auth,
+			RedirectAttributes redirect) {
+		try {
+			pageService.markReviewed(id, baseVersion, auth.getName());
+			redirect.addFlashAttribute("melding", "Pagina gemarkeerd als gecontroleerd.");
+		}
+		catch (PageConflictException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/pages/" + id;
 	}
 
 	/** Star or unstar a page (spec U-03) and return to 'terug' when that is a local path. */

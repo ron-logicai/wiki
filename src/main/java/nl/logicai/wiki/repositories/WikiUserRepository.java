@@ -16,6 +16,9 @@ public interface WikiUserRepository extends JpaRepository<WikiUser, UUID> {
 
 	List<WikiUser> findAllByOrderByUsernameAsc();
 
+	/** Actieve gebruikers voor de eigenaar-keuzelijst (spec U-07). */
+	List<WikiUser> findByActiveTrueOrderByDisplayNameAsc();
+
 	long countByRoleAndActiveTrue(Role role);
 
 	long countByActiveTrue();

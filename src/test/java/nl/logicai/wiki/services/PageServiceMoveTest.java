@@ -14,6 +14,7 @@ import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.repositories.PageRevisionRepository;
+import nl.logicai.wiki.repositories.WikiUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -34,7 +35,8 @@ class PageServiceMoveTest {
 	private final PageRepository pages = mock(PageRepository.class);
 	private final PageRevisionRepository revisions = mock(PageRevisionRepository.class);
 	private final PageService service = new PageService(pages, revisions,
-		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class), mock(AuditEventRepository.class));
+		mock(DocumentValidator.class), new ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class), mock(AuditEventRepository.class),
+		mock(WikiUserRepository.class));
 
 	/** Tree: root > child > grandchild, plus an unrelated top-level page. */
 	private final Page root = page("Projecten", null);

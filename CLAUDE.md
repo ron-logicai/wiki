@@ -44,17 +44,17 @@ CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B v
 
 ## Architecture
 
-### Request flow and the one JSON endpoint
+### Request flow and the JSON endpoints
 
 Everything is server-rendered Spring MVC + Thymeleaf with fixed URLs (`/pages/{uuid}`, `/pages/{uuid}/edit`, `/search`, `/tags`, `/templates`, `/trash`). Forms POST and redirect to GET. There is no client-side router.
 
-The only JSON traffic is the editor save: `PUT /api/pages/{id}/content` (and `/api/templates/{id}/content`), handled by `PageApiController` / `TemplateApiController` with `ApiExceptionAdvice` mapping exceptions to 400/409 JSON bodies. `SecurityConfig` gives `/api/**` a 401 entry point instead of the login redirect so the editor never mistakes a login page for a save. CSRF stays on; the token is a `<meta name="_csrf">` in `fragments.html` and `frontend/src/save.ts` sends it as a header. A CSRF or authorization failure on `/api/**` goes through `ApiAccessDeniedHandler` (JSON, 401 without a session, 403 otherwise); note that `defaultAccessDeniedHandlerFor` and `defaultAuthenticationEntryPointFor` need two mappings each, a single mapping is applied to every request.
+The JSON traffic is the editor's: the save `PUT /api/pages/{id}/content` (and `/api/templates/{id}/content`), the attachment upload `POST /api/attachments`, and the link-popover lookup `GET /api/pages/suggest?q=` (spec U-06, max 10 active pages by title substring; `frontend/src/links/`). They are handled by `PageApiController` / `TemplateApiController` / `AttachmentApiController` with `ApiExceptionAdvice` mapping exceptions to 400/409 JSON bodies (new API controllers must be added to its `assignableTypes`). `SecurityConfig` gives `/api/**` a 401 entry point instead of the login redirect so the editor never mistakes a login page for a save. CSRF stays on; the token is a `<meta name="_csrf">` in `fragments.html` and `frontend/src/save.ts` sends it as a header. A CSRF or authorization failure on `/api/**` goes through `ApiAccessDeniedHandler` (JSON, 401 without a session, 403 otherwise); note that `defaultAccessDeniedHandlerFor` and `defaultAuthenticationEntryPointFor` need two mappings each, a single mapping is applied to every request.
 
 `GlobalModelAdvice` injects `boom` (the full active page tree, one query) and `gebruiker` into every HTML controller listed in its `assignableTypes`. New HTML controllers must be added there or the sidebar is empty.
 
 ### Editor island contract
 
-`pagina-bewerken.html` renders `<div id="editor-root" data-page-id data-base-version>` plus `<script id="editor-document" type="application/json">`. `frontend/src/main.tsx` mounts BlockNote on it; Vite (`frontend/vite.config.ts`) emits stable names `editor.js` / `editor.css` under `base: /editor/` so the template can reference them directly. `PageService.embeddableJson` escapes `<` so document JSON is safe inside the script tag. An editor that fails to start must show an error and never save (spec F-06).
+`pagina-bewerken.html` renders `<div id="editor-root" data-page-id data-base-version data-upload-url data-suggest-url>` plus `<script id="editor-document" type="application/json">`. `frontend/src/main.tsx` mounts BlockNote on it; the only custom UI is the link popover (`frontend/src/links/`), which replaces BlockNote's because that one prepends `https://` to `/pages/{id}`; Vite (`frontend/vite.config.ts`) emits stable names `editor.js` / `editor.css` under `base: /editor/` so the template can reference them directly. `PageService.embeddableJson` escapes `<` so document JSON is safe inside the script tag. An editor that fails to start must show an error and never save (spec F-06).
 
 ### Document pipeline
 
@@ -66,7 +66,7 @@ Page content is BlockNote block JSON in a JSONB column, the single source of tru
 
 ### Tree, trash, audit
 
-Pages form a tree via `parent_id`; the URL never changes on move. `PageService.move` runs SERIALIZABLE and refuses cycles. Delete is a soft delete (`deleted_at`), refused while active subpages exist; `/pages/{id}` of a trashed page returns 410 with a message page. Repository queries filter `deleted_at is null` explicitly; use `getActive` vs `getAny` deliberately. Move, delete and restore write an `AuditEvent`.
+Pages form a tree via `parent_id`; the URL never changes on move. `PageService.move` runs SERIALIZABLE and refuses cycles. Delete is a soft delete (`deleted_at`), refused while active subpages exist; `/pages/{id}` of a trashed page returns 410 with a message page. Repository queries filter `deleted_at is null` explicitly; use `getActive` vs `getAny` deliberately. Move, delete and restore write an `AuditEvent`. Per-page properties (spec U-07/U-08: `owner`, `status`, `reviewed_at/by` on `page`, V9) are set from the read view via `POST /pages/{id}/properties` and `/review`; they follow the same `baseVersion` check and also write an `AuditEvent`. Owner and reviewer are usernames (strings), like `updated_by`.
 
 ### Security
 

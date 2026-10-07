@@ -22,6 +22,9 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 
 	List<Page> findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
 
+	/** Title substring match for link suggestions (spec U-06); Spring Data escapes % and _ in the argument. */
+	List<Page> findTop10ByDeletedAtIsNullAndTitleContainingIgnoreCaseOrderByTitleAsc(String title);
+
 	List<Page> findByDeletedAtIsNotNullOrderByDeletedAtDesc();
 
 	boolean existsByParentIdAndDeletedAtIsNull(UUID parentId);

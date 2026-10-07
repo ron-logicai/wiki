@@ -8,6 +8,7 @@ import nl.logicai.wiki.exceptions.PageNotFoundException;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.services.BlockRenderer;
+import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
@@ -51,6 +52,10 @@ class PageControllerTemplateTest {
 
 	@MockitoBean
 	private SearchService searchService;
+
+	/** GlobalModelAdvice needs it for the sidebar favorites (spec U-03); the mock returns no favorites. */
+	@MockitoBean
+	private FavoriteService favoriteService;
 
 	private final Page page = Page.create("Onboarding",
 		null,

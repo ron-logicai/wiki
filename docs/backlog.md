@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 18 september 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 7 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -28,12 +28,17 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( U-03 )   Persoonlijke favorieten: ster bij elke pagina in de zijbalkboom (zichtbaar bij hover, `POST /pages/{id}/favorite`), sectie "Favorieten" boven "Ruimtes", tabel `page_favorite` (V8) per gebruikersnaam; pagina's in de prullenbak worden verborgen en komen na herstel terug ( U-03 )
 
+( U-06 (suggesties) )   Paginalinksuggesties: tijdens het invoegen of bewerken van een link (toolbar-knop, Ctrl+K of "Edit link") zoekt de editor op titel via `GET /api/pages/suggest?q=` (maximaal 10 actieve pagina's, hoofdletterongevoelig, prullenbak uitgesloten, leeg veld toont recent gewijzigde pagina's); een gekozen pagina wordt een link naar `/pages/{id}`, dus de verwijzing blijft werken na hernoemen en verplaatsen ( U-06 eerste helft, F-16 )
+
 ( N-02 )   Browserbeveiliging: CSRF actief op alle mutaties, ook voor de fetch-verzoeken van de editor (token als header; geweigerde API-verzoeken krijgen een JSON-melding, 401 zonder sessie); sessiecookie HttpOnly, Secure en SameSite=Lax (Lax omdat de Entra-callback een top-level GET is); de volledige loginflow is getest over echte HTTP, voor wachtwoordlogin en voor Entra tegen een nagebootste identity provider in de test ( N-02, A-07 )
+
+( U-07, U-08 )   Eigenschappen per pagina onder de titel: eigenaar (keuze uit actieve gebruikers, opgeslagen als gebruikersnaam) en status (Concept, Actueel, Verouderd) via `POST /pages/{id}/properties`; knop "Gecontroleerd" (`POST /pages/{id}/review`) stempelt wie de pagina wanneer het laatst heeft gecontroleerd; kolommen op `page` (V9), beide met versiecontrole en audit-gebeurtenis; viewers zien alleen de labels ( U-07, U-08 (signaleren), sectie 7 )
 
 ## Volgende stappen
 
 - Eigen wachtwoord wijzigen (nu zet alleen een admin een wachtwoord bij het aanmaken; wachtwoord resetten voor bestaande gebruikers ontbreekt ook).
 - Nederlandse loginpagina met melding na deactivering (`/login?deactivated` toont nu de standaardpagina van Spring Security zonder tekst).
+- Backlinks: op een pagina tonen welke pagina's ernaar verwijzen (tweede helft van U-06).
 
 
 (nog te bepalen met de begeleider)

@@ -456,6 +456,49 @@ h3 {
     font-size: 12px;
 }
 
+/* Eigenaar, status en laatste controle op een pagina (spec U-07, U-08) */
+.eigenschappen {
+    align-items: center;
+    margin-top: 0;
+}
+
+.eigenschappen form {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.eigenschappen .knop {
+    padding: 2px 8px;
+    border: 1px solid var(--rand);
+    font-size: 12px;
+}
+
+.label .icoon,
+.eigenschappenformulier .icoon {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    vertical-align: -2px;
+}
+
+/* Statuskleur, op het label (viewer) en op de select (editor) */
+.status--concept {
+    background: #fbf3db;
+    color: #8a6d1f;
+}
+
+.status--actueel {
+    background: #e3f3e6;
+    color: #2f6b3b;
+}
+
+.status--verouderd {
+    background: #fbe7e3;
+    color: var(--fout);
+}
+
 /* Lijsten met rijen (recent, alle pagina's, subpagina's) */
 .rijen {
     margin: 0;
@@ -1026,7 +1069,8 @@ h3 {
     margin: 0;
 }
 
-.tagformulier select {
+.tagformulier select,
+.eigenschappenformulier select {
     max-width: 240px;
     padding: 2px 6px;
     border: 1px solid var(--rand);

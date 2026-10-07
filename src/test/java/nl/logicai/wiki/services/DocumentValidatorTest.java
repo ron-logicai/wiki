@@ -46,6 +46,24 @@ class DocumentValidatorTest {
 			.hasMessageContaining("Linkbestemming");
 	}
 
+	/** Spec F-16 / U-06: a link to another wiki page is an app-relative href that the editor's suggestion list inserts. */
+	@Test
+	void acceptsRelativePageLink() {
+		WikiDocument document = validator.validate(mapper.readTree("""
+			[{"type":"paragraph","content":[{"type":"link","href":"/pages/5f1d8f5c-9c4b-4a3e-8c2d-1e6f7a8b9c0d","content":[{"type":"text","text":"Onboarding","styles":{}}]}]}]
+			"""));
+		assertThat(document.searchText()).isEqualTo("Onboarding");
+	}
+
+	@Test
+	void rejectsProtocolRelativeLink() {
+		assertThatThrownBy(() -> validator.validate(mapper.readTree("""
+			[{"type":"paragraph","content":[{"type":"link","href":"//evil.example/x","content":[{"type":"text","text":"x","styles":{}}]}]}]
+			""")))
+			.isInstanceOf(InvalidContentException.class)
+			.hasMessageContaining("Linkbestemming");
+	}
+
 	@Test
 	void rejectsNonArrayDocument() {
 		assertThatThrownBy(() -> validator.validate(mapper.readTree("{\"type\":\"paragraph\"}")))

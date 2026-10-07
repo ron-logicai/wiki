@@ -41,6 +41,40 @@
                     <time class="label" th:datetime="${pagina.updatedAt}" th:text="${@datums.relatief(pagina.updatedAt)}">datum</time>
                 </div>
 
+                <!-- Eigenaar, status en laatste controle (spec U-07, U-08) -->
+                <div class="labels eigenschappen">
+                    <th:block sec:authorize="!hasAnyRole('EDITOR', 'ADMIN')">
+                        <span class="label"><span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>Eigenaar:
+                            <span th:text="${eigenaarNaam ?: 'geen'}">naam</span></span>
+                        <span class="label" th:classappend="'status--' + ${#strings.toLowerCase(pagina.status)}"
+                              th:text="${pagina.status.label}">Status</span>
+                    </th:block>
+                    <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" class="eigenschappenformulier"
+                          th:action="@{/pages/{id}/properties(id=${pagina.id})}" method="post">
+                        <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                        <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+                        <label class="verborgen" for="eigenaar">Eigenaar</label>
+                        <select id="eigenaar" name="owner">
+                            <option value="">Geen eigenaar</option>
+                            <option th:each="u : ${eigenaren}" th:value="${u.username}" th:text="${u.displayName}"
+                                    th:selected="${u.username == pagina.owner}">naam</option>
+                        </select>
+                        <label class="verborgen" for="status">Status</label>
+                        <select id="status" name="status" class="status" th:classappend="'status--' + ${#strings.toLowerCase(pagina.status)}">
+                            <option th:each="s : ${statussen}" th:value="${s}" th:text="${s.label}" th:selected="${s == pagina.status}">Status</option>
+                        </select>
+                        <button type="submit" class="knop">Opslaan</button>
+                    </form>
+                    <span class="label" th:if="${pagina.reviewedAt != null}"><span class="icoon" th:insert="~{fragments :: icoon('klok')}"></span>Gecontroleerd door
+                        <span th:text="${gecontroleerdDoorNaam}">iemand</span>,
+                        <time th:datetime="${pagina.reviewedAt}" th:text="${@datums.relatief(pagina.reviewedAt)}">datum</time></span>
+                    <span class="label" th:unless="${pagina.reviewedAt != null}"><span class="icoon" th:insert="~{fragments :: icoon('klok')}"></span>Nog niet gecontroleerd</span>
+                    <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/review(id=${pagina.id})}" method="post">
+                        <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                        <button type="submit" class="knop" title="Markeer deze pagina als zojuist gecontroleerd">Gecontroleerd</button>
+                    </form>
+                </div>
+
                 <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
                 <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
                 <div class="tags">

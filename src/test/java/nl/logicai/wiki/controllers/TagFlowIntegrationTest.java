@@ -68,11 +68,11 @@ class TagFlowIntegrationTest {
 	@WithMockUser(username = "admin", roles = "ADMIN")
 	void adminRenamesAndDeletesTagsWithoutLosingPages() throws Exception {
 		UUID id = createPage("Beheerde pagina");
-		mvc.perform(post("/pages/{id}/tags", id).with(csrf()).param("name", "Concept")).andExpect(status().is3xxRedirection());
+		mvc.perform(post("/pages/{id}/tags", id).with(csrf()).param("name", "Ontwerp")).andExpect(status().is3xxRedirection());
 		mvc.perform(post("/pages/{id}/tags", id).with(csrf()).param("name", "Klaar")).andExpect(status().is3xxRedirection());
 		String overview = body(get("/tags"));
 		assertThat(overview).contains("/rename").contains("/delete");
-		UUID concept = tagIdFrom(overview, "Concept");
+		UUID concept = tagIdFrom(overview, "Ontwerp");
 
 		mvc.perform(post("/tags/{id}/rename", concept).with(csrf()).param("name", "klaar"))
 			.andExpect(status().is3xxRedirection())
@@ -81,7 +81,7 @@ class TagFlowIntegrationTest {
 		mvc.perform(post("/tags/{id}/rename", concept).with(csrf()).param("name", "Definitief"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(flash().attribute("melding", "Tag hernoemd."));
-		assertThat(body(get("/pages/{id}", id))).contains("Definitief").doesNotContain("Concept");
+		assertThat(body(get("/pages/{id}", id))).contains("Definitief").doesNotContain("Ontwerp");
 
 		mvc.perform(post("/tags/{id}/delete", concept).with(csrf()))
 			.andExpect(status().is3xxRedirection());

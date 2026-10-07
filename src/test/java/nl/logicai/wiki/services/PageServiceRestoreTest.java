@@ -15,6 +15,7 @@ import nl.logicai.wiki.models.WikiDocument;
 import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.repositories.PageRevisionRepository;
+import nl.logicai.wiki.repositories.WikiUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -47,7 +48,7 @@ class PageServiceRestoreTest {
 	private final DocumentValidator validator = mock(DocumentValidator.class);
 	private final AuditEventRepository audit = mock(AuditEventRepository.class);
 	private final PageService service = new PageService(pages, revisions, validator, new ObjectMapper(),
-		Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class), audit);
+		Clock.fixed(NOW, ZoneOffset.UTC), mock(TemplateService.class), audit, mock(WikiUserRepository.class));
 
 	private final UUID parentId = UUID.randomUUID();
 	private Page page;

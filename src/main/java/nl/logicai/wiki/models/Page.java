@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -56,6 +58,21 @@ public class Page {
 	@Column(name = "deleted_by", length = 200)
 	private String deletedBy;
 
+	/** Eigenaar (spec U-07): username, net als updatedBy; null = geen eigenaar. */
+	@Column(length = 100)
+	private String owner;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private PageStatus status;
+
+	/** Laatste controle (spec U-08): wie heeft de pagina wanneer als gecontroleerd gemarkeerd. */
+	@Column(name = "reviewed_at")
+	private Instant reviewedAt;
+
+	@Column(name = "reviewed_by", length = 200)
+	private String reviewedBy;
+
 	/** Optimistic lock for concurrent edits (spec F-10). Not the revision number. */
 	@Version
 	@Column(name = "lock_version", nullable = false)
@@ -80,6 +97,8 @@ public class Page {
 		page.updatedBy = actor;
 		page.createdAt = now;
 		page.updatedAt = now;
+		page.owner = actor;
+		page.status = PageStatus.CONCEPT;
 		page.currentRevision = 0;
 		return page;
 	}
@@ -111,6 +130,18 @@ public class Page {
 	/** Moves the page (and, implicitly, its subtree) under a new parent; null means top level (spec F-04). */
 	public void moveTo(UUID newParentId) {
 		this.parentId = newParentId;
+	}
+
+	/** Zet eigenaar en status (spec U-07); de service controleert de versie en of de eigenaar bestaat. */
+	public void updateProperties(String owner, PageStatus status) {
+		this.owner = owner;
+		this.status = status;
+	}
+
+	/** Markeert de pagina als gecontroleerd door de actor (spec U-08). */
+	public void markReviewed(String actor, Instant now) {
+		this.reviewedBy = actor;
+		this.reviewedAt = now;
 	}
 
 	/** Creates the next immutable revision from the current state (spec F-11). */
@@ -177,6 +208,22 @@ public class Page {
 
 	public int getCurrentRevision() {
 		return currentRevision;
+	}
+
+	public String getOwner() {
+		return owner;
+	}
+
+	public PageStatus getStatus() {
+		return status;
+	}
+
+	public Instant getReviewedAt() {
+		return reviewedAt;
+	}
+
+	public String getReviewedBy() {
+		return reviewedBy;
 	}
 
 }

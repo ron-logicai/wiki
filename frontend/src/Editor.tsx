@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useCreateBlockNote } from "@blocknote/react";
+import { FormattingToolbarController, LinkToolbarController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteSchema, defaultBlockSpecs, type BlockSpec, type PartialBlock } from "@blocknote/core";
 import { savePage, type SaveState } from "./save";
 import { uploadFile } from "./upload";
+import { PageLinkContext } from "./links/PageLinkContext";
+import { WikiFormattingToolbar, WikiLinkToolbar } from "./links/WikiToolbars";
 
 interface EditorProps {
   pageId: string;
@@ -17,6 +19,8 @@ interface EditorProps {
   afterSaveUrl?: string;
   /** Endpoint for file uploads (image, file and video blocks). Without it the editor offers no upload. */
   uploadUrl?: string;
+  /** Endpoint for page suggestions in the link popover (spec U-06). Without it the popover is a plain URL form. */
+  suggestUrl?: string;
 }
 
 const TITLE_INPUT_ID = "page-title";
@@ -66,7 +70,7 @@ const STATUS_LABEL: Record<SaveState["status"], string> = {
   conflict: "Conflict: de pagina is intussen door iemand anders gewijzigd. Kopieer je tekst en open de nieuwste versie.",
 };
 
-export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, afterSaveUrl, uploadUrl }: EditorProps) {
+export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl, afterSaveUrl, uploadUrl, suggestUrl }: EditorProps) {
   const [version, setVersion] = useState(baseVersion);
   const [state, setState] = useState<SaveState>({ status: "clean" });
   // BlockNote's file panel only shows a generic "upload failed"; the server's reason (type, size) is shown here.
@@ -160,7 +164,13 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
           </span>
         ) : null}
       </div>
-      <BlockNoteView editor={editor} onChange={() => setState({ status: "dirty" })} />
+      {/* Default BlockNote UI, except the link popovers: those offer existing pages (spec U-06). */}
+      <PageLinkContext.Provider value={{ suggestUrl }}>
+        <BlockNoteView editor={editor} onChange={() => setState({ status: "dirty" })} formattingToolbar={false} linkToolbar={false}>
+          <FormattingToolbarController formattingToolbar={WikiFormattingToolbar} />
+          <LinkToolbarController linkToolbar={WikiLinkToolbar} />
+        </BlockNoteView>
+      </PageLinkContext.Provider>
     </div>
   );
 }

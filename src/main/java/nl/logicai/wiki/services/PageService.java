@@ -10,7 +10,10 @@ import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.models.PageRevision;
 import nl.logicai.wiki.repositories.PageRevisionRepository;
+import nl.logicai.wiki.models.PageStatus;
 import nl.logicai.wiki.models.WikiDocument;
+import nl.logicai.wiki.models.WikiUser;
+import nl.logicai.wiki.repositories.WikiUserRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -42,10 +45,11 @@ public class PageService {
 	private final Clock clock;
 	private final TemplateService templates;
 	private final AuditEventRepository audit;
+	private final WikiUserRepository users;
 
 	public PageService(PageRepository pages, PageRevisionRepository revisions,
 			DocumentValidator validator, ObjectMapper mapper, Clock clock, TemplateService templates,
-			AuditEventRepository audit) {
+			AuditEventRepository audit, WikiUserRepository users) {
 		this.pages = pages;
 		this.revisions = revisions;
 		this.validator = validator;
@@ -53,6 +57,7 @@ public class PageService {
 		this.clock = clock;
 		this.templates = templates;
 		this.audit = audit;
+		this.users = users;
 	}
 
 	@PreAuthorize("hasRole('EDITOR')")
@@ -170,6 +175,60 @@ public class PageService {
 		audit.save(AuditEvent.of(AuditEvent.MOVE, id, actor, clock.instant(),
 			"naar " + (newParentId == null ? "hoofdniveau" : newParentId)));
 		return pages.saveAndFlush(page);
+	}
+
+	/**
+	 * Zet eigenaar en status (spec U-07). De eigenaar is een actieve gebruiker of leeg; de versie die de
+	 * gebruiker zag moet kloppen, zoals bij elke wijziging (spec section 7).
+	 */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page updateProperties(UUID id, long baseVersion, String owner, PageStatus status, String actor) {
+		Page page = getActive(id);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		if (status == null) {
+			throw new PageStateException("Kies een status.");
+		}
+		String cleanOwner = null;
+		if (owner != null && !owner.isBlank()) {
+			WikiUser user = users.findByUsernameIgnoreCase(owner.trim())
+				.filter(WikiUser::isActive)
+				.orElseThrow(() -> new PageStateException("Kies een actieve gebruiker als eigenaar."));
+			cleanOwner = user.getUsername();
+		}
+		page.updateProperties(cleanOwner, status);
+		audit.save(AuditEvent.of(AuditEvent.PROPERTIES, id, actor, clock.instant(),
+			"eigenaar=" + (cleanOwner == null ? "geen" : cleanOwner) + ", status=" + status.name()));
+		return pages.saveAndFlush(page);
+	}
+
+	/** Markeert de pagina als gecontroleerd door de actor (spec U-08), met versiecontrole. */
+	@PreAuthorize("hasRole('EDITOR')")
+	public Page markReviewed(UUID id, long baseVersion, String actor) {
+		Page page = getActive(id);
+		if (page.getLockVersion() != baseVersion) {
+			throw new PageConflictException(page.getLockVersion());
+		}
+		Instant now = clock.instant();
+		page.markReviewed(actor, now);
+		audit.save(AuditEvent.of(AuditEvent.REVIEW, id, actor, now, ""));
+		return pages.saveAndFlush(page);
+	}
+
+	/** Actieve gebruikers voor de eigenaar-keuzelijst; ook viewers laden de leespagina, dus geen rolcheck. */
+	@Transactional(readOnly = true)
+	public List<WikiUser> ownerCandidates() {
+		return users.findByActiveTrueOrderByDisplayNameAsc();
+	}
+
+	/** Weergavenaam van een username; de username zelf als die niet (meer) in app_user staat. */
+	@Transactional(readOnly = true)
+	public String displayNameOf(String username) {
+		if (username == null) {
+			return null;
+		}
+		return users.findByUsernameIgnoreCase(username).map(WikiUser::getDisplayName).orElse(username);
 	}
 
 	/** Any page, also one in the trash; for the "this page is in the trash" message (spec F-12, F-16). */
@@ -302,6 +361,31 @@ public class PageService {
 	@Transactional(readOnly = true)
 	public List<Page> recentlyChanged() {
 		return pages.findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
+	}
+
+	/** A page offered while inserting a link, with its place in the tree ("Ouder / Kind") for display. */
+	public record PageSuggestion(Page page, String path) {
+	}
+
+	/**
+	 * Pages the editor offers while inserting a link (spec U-06): active pages whose title contains the
+	 * query, case-insensitive, at most ten (spec section 9: no unbounded lists). An empty query gives the
+	 * most recently changed pages so the popover is useful right away. The current page is not excluded:
+	 * a self-link is harmless and templates have no page to exclude.
+	 */
+	@Transactional(readOnly = true)
+	public List<PageSuggestion> suggest(String rawQuery) {
+		String query = rawQuery == null ? "" : rawQuery.strip().replaceAll("\\s+", " ");
+		if (query.length() > 200) {
+			query = query.substring(0, 200);
+		}
+		List<Page> found = query.isEmpty()
+			? pages.findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc()
+			: pages.findTop10ByDeletedAtIsNullAndTitleContainingIgnoreCaseOrderByTitleAsc(query);
+		return found.stream()
+			.map(page -> new PageSuggestion(page, ancestors(page).stream().map(Page::getTitle)
+				.reduce((a, b) -> a + " / " + b).orElse("")))
+			.toList();
 	}
 
 	@Transactional(readOnly = true)

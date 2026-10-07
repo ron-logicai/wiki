@@ -11,7 +11,8 @@ import "@blocknote/mantine/style.css";
  *   <script id="editor-document" type="application/json">[...blocks]</script>
  *
  * Routing stays with Spring MVC. This script only manages the editor component
- * and saves through the JSON endpoint (PUT /api/pages/{id}/content).
+ * and saves through the JSON endpoint (PUT /api/pages/{id}/content). The link popover
+ * looks up pages through data-suggest-url (GET /api/pages/suggest, spec U-06).
  */
 function mount() {
   const root = document.getElementById("editor-root");
@@ -46,6 +47,7 @@ function mount() {
         viewUrl={root.dataset.viewUrl}
         afterSaveUrl={root.dataset.afterSaveUrl}
         uploadUrl={root.dataset.uploadUrl}
+        suggestUrl={root.dataset.suggestUrl}
       />
     </StrictMode>,
   );

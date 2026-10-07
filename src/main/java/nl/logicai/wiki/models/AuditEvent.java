@@ -8,7 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** Who did what and when (spec section 7): move, delete, restore. Never holds document content. */
+/** Who did what and when (spec section 7): move, delete, restore, properties, review. Never holds document content. */
 @Entity
 @Table(name = "audit_event")
 public class AuditEvent {
@@ -17,6 +17,8 @@ public class AuditEvent {
 	public static final String DELETE = "page.delete";
 	public static final String RESTORE = "page.restore";
 	public static final String RESTORE_REVISION = "page.restore-revision";
+	public static final String PROPERTIES = "page.properties";
+	public static final String REVIEW = "page.review";
 
 	@Id
 	private UUID id;
