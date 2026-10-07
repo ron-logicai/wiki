@@ -6,6 +6,7 @@ import { savePage, type SaveState } from "./save";
 import { uploadFile } from "./upload";
 import { PageLinkContext } from "./links/PageLinkContext";
 import { WikiFormattingToolbar, WikiLinkToolbar } from "./links/WikiToolbars";
+import { LinkContextMenu } from "./links/LinkContextMenu";
 
 interface EditorProps {
   pageId: string;
@@ -169,6 +170,7 @@ export function Editor({ pageId, baseVersion, initialDocument, saveUrl, viewUrl,
         <BlockNoteView editor={editor} onChange={() => setState({ status: "dirty" })} formattingToolbar={false} linkToolbar={false}>
           <FormattingToolbarController formattingToolbar={WikiFormattingToolbar} />
           <LinkToolbarController linkToolbar={WikiLinkToolbar} />
+          <LinkContextMenu />
         </BlockNoteView>
       </PageLinkContext.Provider>
     </div>
