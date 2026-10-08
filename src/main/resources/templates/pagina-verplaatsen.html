@@ -19,7 +19,8 @@
         </div>
 
         <main class="pagina">
-            <div class="kolom">
+            <div class="formkaart">
+                <p class="eyebrow" th:text="${pagina.title}">Pagina</p>
                 <h1>Verplaatsen</h1>
                 <p class="intro">
                     Kies een nieuwe plek voor <a th:href="@{/pages/{id}(id=${pagina.id})}" th:text="${pagina.title}">pagina</a>.

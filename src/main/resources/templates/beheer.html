@@ -17,11 +17,14 @@
 
         <main class="pagina">
             <div class="kolom">
-                <h1>Beheer</h1>
-                <p class="intro">
-                    Overzicht voor beheerders: wat er in de wiki staat, wat je als beheerder kunt doen en wat er
-                    recent is verplaatst, verwijderd of hersteld.
-                </p>
+                <div class="kop">
+                    <p class="eyebrow">Beheer</p>
+                    <h1>Beheer</h1>
+                    <p class="intro">
+                        Overzicht voor beheerders: wat er in de wiki staat, wat je als beheerder kunt doen en wat er
+                        recent is verplaatst, verwijderd of hersteld.
+                    </p>
+                </div>
 
                 <h2>In de wiki</h2>
                 <ul class="tegels">
@@ -34,7 +37,7 @@
                 </ul>
 
                 <h2>Beheerfuncties</h2>
-                <ul class="rijen">
+                <ul class="rijen lijst">
                     <li class="rij">
                         <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
                         <span class="rij__titel"><a th:href="@{/admin/users}">Gebruikers en rollen: toevoegen, rol wijzigen, activeren en deactiveren</a></span>
@@ -59,7 +62,8 @@
 
                 <h2>Recente wijzigingen (audit)</h2>
                 <p class="leeg" th:if="${audit.isEmpty()}">Nog geen gebeurtenissen: verplaatsen, verwijderen, herstellen en gebruikersbeheer komen hier te staan.</p>
-                <table class="tabel" th:unless="${audit.isEmpty()}">
+                <div class="kaart kaart--tabel" th:unless="${audit.isEmpty()}">
+                <table class="tabel">
                     <thead>
                         <tr><th>Wanneer</th><th>Wat</th><th>Pagina</th><th>Door</th><th>Details</th></tr>
                     </thead>
@@ -77,6 +81,7 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </main>
     </div>

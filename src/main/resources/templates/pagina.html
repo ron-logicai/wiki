@@ -13,41 +13,48 @@
         <div class="top">
             <nav th:replace="~{fragments :: kruimels(${ouders}, ${pagina})}"></nav>
             <span class="top__ruimte"></span>
-            <a class="knop knop--icoon" th:href="@{/pages/new(parentId=${pagina.id})}" title="Subpagina"
-               aria-label="Subpagina"><span class="icoon" th:insert="~{fragments :: icoon('bestand-plus')}"></span></a>
-            <a class="knop knop--icoon" th:href="@{/pages/{id}/move(id=${pagina.id})}" title="Verplaatsen"
-               aria-label="Verplaatsen"><span class="icoon" th:insert="~{fragments :: icoon('verplaatsen')}"></span></a>
-            <a class="knop knop--icoon" th:href="@{/pages/{id}/history(id=${pagina.id})}" title="Geschiedenis"
-               aria-label="Geschiedenis"><span class="icoon" th:insert="~{fragments :: icoon('geschiedenis')}"></span></a>
-            <!-- Exportmenu (F-17 plus PDF): details/summary, werkt zonder JavaScript; het script onderaan sluit het menu netjes. -->
-            <details class="menu">
-                <summary class="knop knop--icoon" title="Exporteren" aria-label="Exporteren" aria-haspopup="menu">
-                    <span class="icoon" th:insert="~{fragments :: icoon('download')}"></span>
-                </summary>
-                <div class="menu__lijst" role="menu">
-                    <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.md(id=${pagina.id})}"
-                       title="Deze pagina downloaden als Markdown (.md)"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .md</a>
-                    <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.pdf(id=${pagina.id})}"
-                       title="Deze pagina downloaden als PDF"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .pdf</a>
-                </div>
-            </details>
-            <a class="knop knop--icoon" th:href="@{/pages/{id}/edit(id=${pagina.id})}" title="Bewerken"
-               aria-label="Bewerken"><span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span></a>
-            <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
-                  onsubmit="return confirm('Deze pagina naar de prullenbak verplaatsen? Je kunt haar daar herstellen.')">
-                <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
-                <button type="submit" class="knop knop--icoon" title="Verwijderen"
-                        aria-label="Verwijderen"><span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span></button>
-            </form>
+            <div class="knopgroep">
+                <a class="knop knop--icoon" th:href="@{/pages/new(parentId=${pagina.id})}" title="Subpagina"
+                   aria-label="Subpagina"><span class="icoon" th:insert="~{fragments :: icoon('bestand-plus')}"></span></a>
+                <a class="knop knop--icoon" th:href="@{/pages/{id}/move(id=${pagina.id})}" title="Verplaatsen"
+                   aria-label="Verplaatsen"><span class="icoon" th:insert="~{fragments :: icoon('verplaatsen')}"></span></a>
+                <a class="knop knop--icoon" th:href="@{/pages/{id}/history(id=${pagina.id})}" title="Geschiedenis"
+                   aria-label="Geschiedenis"><span class="icoon" th:insert="~{fragments :: icoon('geschiedenis')}"></span></a>
+                <!-- Exportmenu (F-17 plus PDF): details/summary, werkt zonder JavaScript; het script onderaan sluit het menu netjes. -->
+                <details class="menu">
+                    <summary class="knop knop--icoon" title="Exporteren" aria-label="Exporteren" aria-haspopup="menu">
+                        <span class="icoon" th:insert="~{fragments :: icoon('download')}"></span>
+                    </summary>
+                    <div class="menu__lijst" role="menu">
+                        <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.md(id=${pagina.id})}"
+                           title="Deze pagina downloaden als Markdown (.md)"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .md</a>
+                        <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.pdf(id=${pagina.id})}"
+                           title="Deze pagina downloaden als PDF"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .pdf</a>
+                    </div>
+                </details>
+                <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
+                      onsubmit="return confirm('Deze pagina naar de prullenbak verplaatsen? Je kunt haar daar herstellen.')">
+                    <span class="knopgroep__streep" aria-hidden="true"></span>
+                    <input type="hidden" name="baseVersion" th:value="${pagina.lockVersion}">
+                    <button type="submit" class="knop knop--icoon knop--gevaar" title="Verwijderen"
+                            aria-label="Verwijderen"><span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span></button>
+                </form>
+            </div>
+            <a class="knop knop--navy" th:href="@{/pages/{id}/edit(id=${pagina.id})}" title="Bewerken">
+                <span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span>Bewerken</a>
         </div>
 
         <main class="pagina" th:attr="data-page-id=${pagina.id}">
-            <div class="kolom">
+            <div class="artikel">
+                <p class="eyebrow" th:text="${#lists.isEmpty(ouders)} ? 'LogicAI Wiki' : ${ouders[0].title}">Ruimte</p>
                 <h1 th:text="${pagina.title}">Titel</h1>
-                <div class="labels">
+                <div class="labels artikel__meta">
+                    <span class="label artikel__auteur">
+                        <span class="avatar" aria-hidden="true" th:text="${#strings.substring(pagina.updatedBy, 0, 1)}">a</span>
+                        <span th:text="${pagina.updatedBy}">iemand</span>
+                    </span>
+                    <time class="label" th:datetime="${pagina.updatedAt}" th:text="'Bijgewerkt ' + ${@datums.relatief(pagina.updatedAt)}">datum</time>
                     <span class="label">Versie <span th:text="${pagina.currentRevision}">1</span></span>
-                    <span class="label" th:text="${pagina.updatedBy}">iemand</span>
-                    <time class="label" th:datetime="${pagina.updatedAt}" th:text="${@datums.relatief(pagina.updatedAt)}">datum</time>
                 </div>
 
                 <!-- Eigenaar, status en laatste controle (spec U-07, U-08) -->
@@ -107,7 +114,7 @@
 
                 <section th:unless="${subpaginas.isEmpty()}">
                     <h2>Subpagina's</h2>
-                    <ul class="rijen">
+                    <ul class="rijen lijst">
                         <li class="rij" th:each="s : ${subpaginas}">
                             <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
                             <span class="rij__titel"><a th:href="@{/pages/{id}(id=${s.id})}" th:text="${s.title}">Subpagina</a></span>

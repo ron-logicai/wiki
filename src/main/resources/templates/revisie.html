@@ -27,7 +27,7 @@
         </div>
 
         <main class="pagina">
-            <div class="kolom">
+            <div class="artikel">
                 <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
                 <p class="melding melding--info">
                     Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
@@ -36,6 +36,7 @@
                     <span th:if="${revisie.revisionNumber == pagina.currentRevision}">Dit is de actuele versie.</span>
                 </p>
 
+                <p class="eyebrow">Versie <span th:text="${revisie.revisionNumber}">1</span></p>
                 <h1 th:text="${revisie.title}">Titel</h1>
                 <article class="paginainhoud" th:utext="${inhoudHtml}"></article>
                 <p class="leeg" th:if="${#strings.isEmpty(inhoudHtml)}">Deze versie is leeg.</p>

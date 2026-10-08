@@ -18,37 +18,72 @@
 
         <main class="pagina">
             <div class="kolom">
-                <h1>LogicAI</h1>
-                <p class="intro">Alle interne kennis op één plek.</p>
+                <!-- Hero met zoekveld (gaat naar /search) en de mascotte -->
+                <section class="hero">
+                    <img class="hero__mascotte" th:src="@{/img/mascotte.png}" alt="">
+                    <div class="hero__tekst">
+                        <p class="eyebrow">LogicAI Wiki</p>
+                        <h1>Alle interne kennis op één plek.</h1>
+                    </div>
+                    <form class="hero__zoek" th:action="@{/search}" method="get" role="search">
+                        <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
+                        <label class="verborgen" for="home-q">Zoeken</label>
+                        <input id="home-q" name="q" type="search" placeholder="Waar ben je naar op zoek?">
+                    </form>
+                </section>
                 <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
 
-                <h2>Ruimtes</h2>
-                <p class="leeg" th:if="${#lists.isEmpty(boom)}">
-                    Er zijn nog geen pagina's. <a th:href="@{/pages/new}">Maak de eerste aan</a>.
-                </p>
-                <ul class="ruimtes" th:unless="${#lists.isEmpty(boom)}">
-                    <li th:each="k : ${boom}">
-                        <span class="icoon" th:insert="~{fragments :: icoon('map')}"></span>
-                        <span>
-                            <a th:href="@{/pages/{id}(id=${k.page.id})}" th:text="${k.page.title}">Ruimte</a>
-                            <span class="gedempt klein">· <span th:text="${k.aantalNakomelingen()}">0</span> pagina's</span>
-                        </span>
-                    </li>
-                </ul>
+                <!-- Persoonlijke favorieten (spec U-03) als kaarten -->
+                <section class="sectie" th:unless="${#lists.isEmpty(favorieten)}">
+                    <div class="sectiekop">
+                        <h2><span class="icoon" th:insert="~{fragments :: icoon('ster')}"></span>Favorieten</h2>
+                    </div>
+                    <ul class="kaarten">
+                        <li class="kaartje" th:each="f : ${favorieten}">
+                            <span class="kaartje__icoon"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span></span>
+                            <span>
+                                <a class="kaartje__titel" th:href="@{/pages/{id}(id=${f.id})}" th:text="${f.title}">Pagina</a>
+                            </span>
+                        </li>
+                    </ul>
+                </section>
 
-                <h2>Recent bijgewerkt</h2>
-                <p class="leeg" th:if="${recentePaginas.isEmpty()}">Nog niets bijgewerkt.</p>
-                <ul class="rijen" th:unless="${recentePaginas.isEmpty()}">
-                    <li class="rij" th:each="r : ${recentePaginas}">
-                        <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
-                        <span class="rij__titel">
-                            <a th:href="@{/pages/{id}(id=${r.pagina.id})}" th:text="${r.pagina.title}">Titel</a>
-                        </span>
-                        <span class="rij__ruimte" th:text="${r.ruimte}">Ruimte</span>
-                        <span class="avatar" th:title="${r.pagina.updatedBy}" th:text="${#strings.substring(r.pagina.updatedBy, 0, 1)}">a</span>
-                        <time class="rij__tijd" th:datetime="${r.pagina.updatedAt}" th:text="${@datums.relatief(r.pagina.updatedAt)}">datum</time>
-                    </li>
-                </ul>
+                <section class="sectie">
+                    <div class="sectiekop">
+                        <h2>Ruimtes</h2>
+                    </div>
+                    <p class="leeg" th:if="${#lists.isEmpty(boom)}">
+                        Er zijn nog geen pagina's. <a th:href="@{/pages/new}">Maak de eerste aan</a>.
+                    </p>
+                    <ul class="ruimtes" th:unless="${#lists.isEmpty(boom)}">
+                        <li th:each="k : ${boom}">
+                            <span class="icoon" th:insert="~{fragments :: icoon('map')}"></span>
+                            <span>
+                                <a th:href="@{/pages/{id}(id=${k.page.id})}" th:text="${k.page.title}">Ruimte</a>
+                                <span class="gedempt klein"><span th:text="${k.aantalNakomelingen()}">0</span> pagina's</span>
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="sectie">
+                    <div class="sectiekop">
+                        <h2>Recent bijgewerkt</h2>
+                        <a th:href="@{/pages}">Alles bekijken</a>
+                    </div>
+                    <p class="leeg" th:if="${recentePaginas.isEmpty()}">Nog niets bijgewerkt.</p>
+                    <ul class="rijen lijst" th:unless="${recentePaginas.isEmpty()}">
+                        <li class="rij" th:each="r : ${recentePaginas}">
+                            <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+                            <span class="rij__titel">
+                                <a th:href="@{/pages/{id}(id=${r.pagina.id})}" th:text="${r.pagina.title}">Titel</a>
+                            </span>
+                            <span class="rij__ruimte" th:text="${r.ruimte}">Ruimte</span>
+                            <span class="avatar" th:title="${r.pagina.updatedBy}" th:text="${#strings.substring(r.pagina.updatedBy, 0, 1)}">a</span>
+                            <time class="rij__tijd" th:datetime="${r.pagina.updatedAt}" th:text="${@datums.relatief(r.pagina.updatedAt)}">datum</time>
+                        </li>
+                    </ul>
+                </section>
             </div>
         </main>
     </div>

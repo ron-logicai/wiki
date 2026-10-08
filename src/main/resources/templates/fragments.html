@@ -58,7 +58,7 @@
 <nav th:fragment="zijbalk(actief)" class="zij" aria-label="Navigatie"
      th:with="huidigeId=${pagina != null ? pagina.id : null}">
     <div class="zij__kop">
-        <a class="zij__merk" th:href="@{/}">LogicAI Wiki</a>
+        <a class="zij__merk" th:href="@{/}" title="LogicAI Wiki"><img class="zij__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki"></a>
     </div>
 
     <a class="zij__rij" th:classappend="${actief == 'zoeken'} ? 'zij__rij--aan'" th:href="@{/search}">
@@ -107,16 +107,24 @@
             <span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span>
             <span class="zij__label">Prullenbak</span>
         </a>
-        <!-- Voor beheerders is de gebruikersrij de ingang naar de beheerpagina (/admin). -->
-        <a class="zij__rij" sec:authorize="hasRole('ADMIN')" th:classappend="${actief == 'beheer'} ? 'zij__rij--aan'" th:href="@{/admin}">
-            <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
-            <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
-        </a>
-        <div class="zij__rij" sec:authorize="!hasRole('ADMIN')" th:if="${gebruiker != null}">
-            <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
-            <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+        <!-- Gebruikersblok: avatar, naam en uitloggen. Voor beheerders is de naam de ingang naar de beheerpagina (/admin). -->
+        <div class="zij__gebruiker" th:if="${gebruiker != null}">
+            <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.substring(gebruiker, 0, 1)}">g</span>
+            <a class="zij__rij" sec:authorize="hasRole('ADMIN')" th:classappend="${actief == 'beheer'} ? 'zij__rij--aan'" th:href="@{/admin}" title="Beheer">
+                <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+                <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+            </a>
+            <div class="zij__rij" sec:authorize="!hasRole('ADMIN')">
+                <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
+                <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="zij__uitloggen" title="Uitloggen" aria-label="Uitloggen">
+                    <span class="icoon" th:insert="~{fragments :: icoon('uitloggen')}"></span>
+                </button>
+            </form>
         </div>
-        <form th:action="@{/logout}" method="post">
+        <form th:action="@{/logout}" method="post" th:if="${gebruiker == null}">
             <button type="submit" class="zij__rij">
                 <span class="icoon" th:insert="~{fragments :: icoon('uitloggen')}"></span>
                 <span class="zij__label">Uitloggen</span>

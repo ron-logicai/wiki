@@ -18,8 +18,9 @@
         </div>
 
         <main class="pagina">
-            <div class="kolom">
-                <h1>Nieuwe pagina</h1>
+            <div class="formkaart">
+                <p class="eyebrow">Nieuwe pagina</p>
+                <h1>Waar gaat je pagina over?</h1>
                 <p class="intro" th:if="${ouder != null}">
                     Wordt een subpagina van <a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">ouder</a>; je kunt hieronder een andere plek kiezen.
                 </p>
@@ -36,7 +37,7 @@
                     </div>
                     <div class="veld">
                         <label for="title">Titel</label>
-                        <input id="title" type="text" th:field="*{title}" required autofocus
+                        <input id="title" type="text" th:field="*{title}" required autofocus placeholder="Bijv. Vakantie aanvragen"
                                th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
                         <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
                     </div>
@@ -49,7 +50,7 @@
                         <p class="gedempt klein" th:unless="${#lists.isEmpty(templates)}">De pagina begint met de opzet van het template en krijgt een eigen kopie.</p>
                     </div>
                     <div class="acties">
-                        <button type="submit" class="knop knop--primair">Aanmaken</button>
+                        <button type="submit" class="knop knop--primair">Pagina aanmaken</button>
                         <a class="knop" th:href="${ouder != null} ? @{/pages/{id}(id=${ouder.id})} : @{/pages}">Annuleren</a>
                     </div>
                 </form>

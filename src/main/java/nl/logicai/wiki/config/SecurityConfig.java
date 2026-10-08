@@ -54,7 +54,7 @@ public class SecurityConfig {
 			// Spec F-02: deactivation and role changes apply on the next request, also with a session.
 			.addFilterBefore(new ActiveUserFilter(users), AuthorizationFilter.class)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/error").permitAll()
+				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/fonts/**", "/img/**", "/error").permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())

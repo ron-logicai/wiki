@@ -12,7 +12,7 @@
 
     <div class="hoofd">
         <div class="top">
-            <a class="gedempt" th:href="@{/templates}" style="text-decoration:none">Templates</a>
+            <a th:href="@{/templates}">Templates</a>
             <span class="sep">/</span>
             <span th:text="${template.title}">Template</span>
             <span class="sep">/</span>
@@ -22,7 +22,7 @@
         </div>
 
         <main class="pagina">
-            <div class="kolom">
+            <div class="bewerkkaart">
                 <label class="verborgen" for="page-title">Titel</label>
                 <input id="page-title" class="titel-invoer" type="text" th:value="${template.title}"
                        required placeholder="Titel">

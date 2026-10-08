@@ -20,12 +20,12 @@
                 <form class="zoek__balk" th:action="@{/search}" method="get" role="search">
                     <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
                     <label class="verborgen" for="q">Zoek pagina's en werkinstructies</label>
-                    <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Zoek pagina's en werkinstructies" autofocus>
+                    <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Waar ben je naar op zoek?" autofocus>
                     <input type="hidden" name="tag" th:value="${resultaat.tag ?: ''}">
                     <input type="hidden" name="page" value="1">
                     <span class="gedempt klein zoek__aantal" th:unless="${#strings.isEmpty(resultaat.query)}"
                           th:text="${resultaat.total} + (${resultaat.total == 1} ? ' resultaat' : ' resultaten')">0 resultaten</span>
-                    <button type="submit" class="knop">Zoeken</button>
+                    <button type="submit" class="knop knop--navy">Zoeken</button>
                 </form>
 
                 <p class="leeg" th:if="${#strings.isEmpty(resultaat.query)}">

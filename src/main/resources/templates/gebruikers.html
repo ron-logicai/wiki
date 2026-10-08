@@ -19,17 +19,21 @@
 
         <main class="pagina">
             <div class="kolom">
-                <h1>Gebruikers en rollen</h1>
-                <p class="intro">
-                    Alleen gebruikers in deze lijst kunnen inloggen. Een gedeactiveerde gebruiker wordt bij het
-                    volgende verzoek geweigerd, ook met een open sessie. Gebruikers worden nooit verwijderd.
-                </p>
+                <div class="kop">
+                    <p class="eyebrow">Beheer</p>
+                    <h1>Gebruikers en rollen</h1>
+                    <p class="intro">
+                        Alleen gebruikers in deze lijst kunnen inloggen. Een gedeactiveerde gebruiker wordt bij het
+                        volgende verzoek geweigerd, ook met een open sessie. Gebruikers worden nooit verwijderd.
+                    </p>
+                </div>
 
                 <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
                 <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
 
                 <p class="leeg" th:if="${gebruikers.isEmpty()}">Er zijn nog geen gebruikers. Maak hieronder de eerste aan.</p>
-                <table class="tabel tabel--gebruikers" th:unless="${gebruikers.isEmpty()}">
+                <div class="kaart kaart--tabel" th:unless="${gebruikers.isEmpty()}">
+                <table class="tabel tabel--gebruikers">
                     <thead>
                         <tr><th>Gebruikersnaam</th><th>Naam</th><th>E-mail</th><th>Rol</th><th>Login</th><th>Laatste login</th><th>Status</th></tr>
                     </thead>
@@ -66,9 +70,10 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
 
                 <h2>Nieuwe gebruiker</h2>
-                <form th:action="@{/admin/users}" th:object="${form}" method="post" class="formulier" autocomplete="off">
+                <form th:action="@{/admin/users}" th:object="${form}" method="post" class="formulier kaart" autocomplete="off">
                     <div class="veld">
                         <label for="username">Gebruikersnaam</label>
                         <input id="username" type="text" th:field="*{username}" maxlength="100" required autocomplete="off">
