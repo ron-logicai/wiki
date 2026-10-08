@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+  PDF-export van een pagina (extra naast F-17). Zelfstandig document: geen zijbalk en geen /css/style.css,
+  want OpenHTMLtoPDF kan die niet laden. PdfExporter vult het model en zet het resultaat om naar PDF.
+-->
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${titel}">Pagina</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 18mm 22mm 18mm;
+            @bottom-left { content: element(voet); }
+            @bottom-right {
+                content: "Pagina " counter(page) " van " counter(pages);
+                font-family: Helvetica, sans-serif;
+                font-size: 9pt;
+                color: #777;
+            }
+        }
+        body { font-family: Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #222; }
+        #voet { position: running(voet); font-size: 9pt; color: #777; }
+        h1.titel { font-size: 22pt; margin: 0 0 4pt; }
+        .meta { font-size: 9pt; color: #666; margin: 0 0 14pt; padding-bottom: 8pt; border-bottom: 1px solid #ddd; }
+        .meta .tag { display: inline-block; padding: 0 5pt; border: 1px solid #ccc; border-radius: 3pt; margin-left: 3pt; }
+        .inhoud h1 { font-size: 17pt; margin: 16pt 0 6pt; }
+        .inhoud h2 { font-size: 14pt; margin: 14pt 0 5pt; }
+        .inhoud h3 { font-size: 12pt; margin: 12pt 0 4pt; }
+        .inhoud h4, .inhoud h5, .inhoud h6 { font-size: 10.5pt; margin: 10pt 0 3pt; }
+        .inhoud p { margin: 0 0 8pt; }
+        .inhoud ul, .inhoud ol { margin: 0 0 8pt; padding-left: 18pt; }
+        .inhoud li { margin: 0 0 2pt; }
+        .inhoud ul.checklist { list-style: none; padding-left: 4pt; }
+        .inhoud .vinkje { font-family: Courier, monospace; margin-right: 4pt; }
+        .inhoud blockquote { margin: 0 0 8pt; padding: 2pt 0 2pt 10pt; border-left: 3pt solid #ccc; color: #555; }
+        .inhoud pre { margin: 0 0 8pt; padding: 7pt 9pt; background: #f4f4f4; border: 1px solid #e3e3e3; border-radius: 3pt;
+                      font-family: Courier, monospace; font-size: 9pt; white-space: pre-wrap; page-break-inside: avoid; }
+        .inhoud code { font-family: Courier, monospace; font-size: 9.5pt; }
+        .inhoud hr { border: 0; border-top: 1px solid #ddd; margin: 12pt 0; }
+        .inhoud figure { margin: 0 0 10pt; page-break-inside: avoid; }
+        .inhoud figure img { max-width: 100%; }
+        .inhoud figcaption { font-size: 9pt; color: #666; font-style: italic; margin-top: 3pt; }
+        .inhoud .block-children { margin-left: 14pt; }
+        .inhoud a { color: #1a56c4; text-decoration: none; }
+        .inhoud mark { background: #fff3a3; }
+        .inhoud .ontbreekt { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div id="voet" th:text="${bron}">https://wiki.example/pages/...</div>
+    <h1 class="titel" th:text="${titel}">Titel</h1>
+    <p class="meta">
+        Versie <span th:text="${versie}">1</span>
+        <th:block th:if="${bijgewerkt != null}"> &middot; bijgewerkt op <span th:text="${bijgewerkt}">datum</span></th:block>
+        <th:block th:if="${!tags.isEmpty()}"> &middot; tags: <span class="tag" th:each="t : ${tags}" th:text="${t}">tag</span></th:block>
+    </p>
+    <div class="inhoud" th:utext="${inhoudHtml}"></div>
+</body>
+</html>

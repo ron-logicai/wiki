@@ -19,9 +19,18 @@
                aria-label="Verplaatsen"><span class="icoon" th:insert="~{fragments :: icoon('verplaatsen')}"></span></a>
             <a class="knop knop--icoon" th:href="@{/pages/{id}/history(id=${pagina.id})}" title="Geschiedenis"
                aria-label="Geschiedenis"><span class="icoon" th:insert="~{fragments :: icoon('geschiedenis')}"></span></a>
-            <a class="knop knop--icoon" th:href="@{/pages/{id}/export.md(id=${pagina.id})}" download
-               title="Deze pagina downloaden als Markdown (.md)"
-               aria-label="Exporteren"><span class="icoon" th:insert="~{fragments :: icoon('download')}"></span></a>
+            <!-- Exportmenu (F-17 plus PDF): details/summary, werkt zonder JavaScript; het script onderaan sluit het menu netjes. -->
+            <details class="menu">
+                <summary class="knop knop--icoon" title="Exporteren" aria-label="Exporteren" aria-haspopup="menu">
+                    <span class="icoon" th:insert="~{fragments :: icoon('download')}"></span>
+                </summary>
+                <div class="menu__lijst" role="menu">
+                    <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.md(id=${pagina.id})}"
+                       title="Deze pagina downloaden als Markdown (.md)"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .md</a>
+                    <a class="menu__item" role="menuitem" download th:href="@{/pages/{id}/export.pdf(id=${pagina.id})}"
+                       title="Deze pagina downloaden als PDF"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>Downloaden als .pdf</a>
+                </div>
+            </details>
             <a class="knop knop--icoon" th:href="@{/pages/{id}/edit(id=${pagina.id})}" title="Bewerken"
                aria-label="Bewerken"><span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span></a>
             <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:action="@{/pages/{id}/delete(id=${pagina.id})}" method="post"
@@ -111,5 +120,23 @@
     </div>
 </div>
 
+<script>
+    // Sluit een open uitklapmenu bij een klik erbuiten, bij Escape en na het kiezen van een item.
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('details.menu[open]').forEach(function (menu) {
+            if (!menu.contains(e.target) || e.target.closest('.menu__item')) {
+                menu.removeAttribute('open');
+            }
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('details.menu[open]').forEach(function (menu) {
+                menu.removeAttribute('open');
+                menu.querySelector('summary').focus();
+            });
+        }
+    });
+</script>
 </body>
 </html>

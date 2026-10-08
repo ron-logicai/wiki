@@ -23,6 +23,7 @@ import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.services.PageService;
+import nl.logicai.wiki.services.PdfExporter;
 import nl.logicai.wiki.services.TagService;
 import nl.logicai.wiki.services.TemplateService;
 import org.springframework.http.ContentDisposition;
@@ -53,16 +54,18 @@ public class PageController {
 	private final PageService pageService;
 	private final BlockRenderer blockRenderer;
 	private final MarkdownExporter markdownExporter;
+	private final PdfExporter pdfExporter;
 	private final TagService tagService;
 	private final TemplateService templateService;
 	private final FavoriteService favoriteService;
 
 	public PageController(PageService pageService, BlockRenderer blockRenderer, MarkdownExporter markdownExporter,
-			TagService tagService, TemplateService templateService, FavoriteService favoriteService) {
+			PdfExporter pdfExporter, TagService tagService, TemplateService templateService, FavoriteService favoriteService) {
 		this.pageService = pageService;
 		this.favoriteService = favoriteService;
 		this.blockRenderer = blockRenderer;
 		this.markdownExporter = markdownExporter;
+		this.pdfExporter = pdfExporter;
 		this.tagService = tagService;
 		this.templateService = templateService;
 	}
@@ -122,21 +125,48 @@ public class PageController {
 	@GetMapping("/{id}/export.md")
 	public ResponseEntity<String> exporteren(@PathVariable UUID id, HttpServletRequest request) {
 		Page page = pageService.getActive(id);
-		List<String> tags = tagService.tagsOf(id).stream().map(Tag::getName).toList();
-		String baseUrl = ServletUriComponentsBuilder.fromContextPath(request).build().toUriString();
-		var meta = new MarkdownExporter.PageMeta(page.getTitle(), tags, baseUrl + "/pages/" + page.getId(),
+		String baseUrl = baseUrl(request);
+		var meta = new MarkdownExporter.PageMeta(page.getTitle(), tagNames(id), baseUrl + "/pages/" + page.getId(),
 			page.getCurrentRevision(), page.getUpdatedAt());
 		String markdown = markdownExporter.exportPage(meta, page.getDocument(), baseUrl);
 		return ResponseEntity.ok()
 			.contentType(new MediaType("text", "markdown", StandardCharsets.UTF_8))
 			.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-				.filename(exportFileName(page), StandardCharsets.UTF_8).build().toString())
+				.filename(exportFileName(page, "md"), StandardCharsets.UTF_8).build().toString())
 			.header(HttpHeaders.CACHE_CONTROL, "no-store")
 			.body(markdown);
 	}
 
+	/**
+	 * PDF export of one active page: an extra next to F-17 with the same rules (every logged-in role,
+	 * spec N-01 and section 1; a page in the trash gives 404). Rendered server-side from the read-view HTML.
+	 */
+	@GetMapping("/{id}/export.pdf")
+	public ResponseEntity<byte[]> exporterenPdf(@PathVariable UUID id, HttpServletRequest request) {
+		Page page = pageService.getActive(id);
+		String baseUrl = baseUrl(request);
+		var meta = new PdfExporter.PageMeta(page.getTitle(), tagNames(id), baseUrl + "/pages/" + page.getId(),
+			page.getCurrentRevision(), page.getUpdatedAt());
+		byte[] pdf = pdfExporter.exportPage(meta, page.getDocument(), baseUrl);
+		return ResponseEntity.ok()
+			.contentType(MediaType.APPLICATION_PDF)
+			.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+				.filename(exportFileName(page, "pdf"), StandardCharsets.UTF_8).build().toString())
+			.header(HttpHeaders.CACHE_CONTROL, "no-store")
+			.body(pdf);
+	}
+
+	private List<String> tagNames(UUID pageId) {
+		return tagService.tagsOf(pageId).stream().map(Tag::getName).toList();
+	}
+
+	/** The wiki root without trailing slash, so internal links in an export can be made absolute. */
+	private static String baseUrl(HttpServletRequest request) {
+		return ServletUriComponentsBuilder.fromContextPath(request).build().toUriString();
+	}
+
 	/** A file name from the title, safe for every file system; the id is the fallback for titles without letters. */
-	static String exportFileName(Page page) {
+	static String exportFileName(Page page, String extension) {
 		String slug = Normalizer.normalize(page.getTitle(), Normalizer.Form.NFKD)
 			.replaceAll("\\p{M}+", "")
 			.toLowerCase(Locale.ROOT)
@@ -145,7 +175,7 @@ public class PageController {
 		if (slug.length() > 80) {
 			slug = slug.substring(0, 80).replaceAll("-+$", "");
 		}
-		return (slug.isEmpty() ? "pagina-" + page.getId() : slug) + ".md";
+		return (slug.isEmpty() ? "pagina-" + page.getId() : slug) + "." + extension;
 	}
 
 	@GetMapping("/{id}/edit")

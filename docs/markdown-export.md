@@ -1,8 +1,30 @@
-# Markdown-export (F-17)
+# Export: Markdown (F-17) en PDF
 
-Iedere actieve pagina is als `.md` te downloaden via de knop **Exporteren** op de leesweergave of rechtstreeks via
-`GET /pages/{id}/export.md`. Iedere ingelogde rol mag exporteren (ook Viewer); een pagina in de prullenbak geeft 404.
-De export is een gebruikersfunctie en geen back-up: historie, rechten en bijlagen zitten er niet in.
+Iedere actieve pagina is te downloaden via het download-icoon op de leesweergave. Dat opent een menu met twee keuzes:
+**Downloaden als .md** (`GET /pages/{id}/export.md`, spec F-17) en **Downloaden als .pdf** (`GET /pages/{id}/export.pdf`,
+een extra buiten de MVP). Voor beide geldt: iedere ingelogde rol mag exporteren (ook Viewer, sectie 1 en N-01); een pagina
+in de prullenbak geeft 404; de bestandsnaam is een slug van de titel (`deploy-handleiding.md` / `.pdf`), zonder letters of
+cijfers in de titel `pagina-{id}`. De export is een gebruikersfunctie en geen back-up: historie en rechten zitten er niet in.
+
+## PDF-export
+
+De PDF wordt server-side gemaakt door `PdfExporter` (OpenHTMLtoPDF) uit dezelfde HTML die `BlockRenderer` voor de
+leesweergave maakt; het sjabloon is `templates/export-pdf.html` (A4, titel, regel met versie, datum en tags, voettekst met
+de permanente paginalink en paginanummers). Er is dus geen derde vertaling van de blokken naast HTML en Markdown.
+Verschillen met de leesweergave, getest in `PdfExporterTest`:
+
+| Onderdeel | In de PDF | Opmerking |
+| --- | --- | --- |
+| geüploade afbeelding | ingesloten, op de gekozen breedte | anders dan bij Markdown is geen wikisessie nodig om haar te zien; ontbreekt het bestand, dan staat er "Afbeelding ontbreekt" |
+| geüploade video | link "Video: bijschrift" naar `/attachments/{id}` | een PDF speelt niets af; de link werkt alleen met een wikisessie |
+| YouTube-link in een eigen alinea | alleen de link | de speler vervalt |
+| geüploade PDF (blok file) | link naar `/attachments/{id}` | het bestand zelf wordt niet samengevoegd |
+| checklist | `[x]` / `[ ]` als tekst | |
+| interne links (`/pages/{id}`, `/attachments/{id}`) | absoluut gemaakt met de wiki-URL | klikbaar vanuit de PDF |
+| tekstkleur en achtergrondkleur | **vervalt** | de leesweergave toont ze ook niet |
+| lettertype | standaard PDF-fonts (Helvetica, Courier) | West-Europese tekens werken; emoji en niet-Latijnse schriften worden niet weergegeven (bekende beperking, een gebundeld lettertype is een latere verbetering) |
+
+## Markdown-export
 
 De export is bewust lossy (stageopdracht, sectie 7). Onderstaande tabel legt vast wat behouden blijft en wat niet.
 De regels zijn getest in `MarkdownExporterTest`; de code staat in `MarkdownExporter`.

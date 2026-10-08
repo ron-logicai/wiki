@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 7 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 8 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -31,6 +31,8 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 ( U-06 (suggesties) )   Paginalinksuggesties: tijdens het invoegen of bewerken van een link (toolbar-knop, Ctrl+K of "Edit link") zoekt de editor op titel via `GET /api/pages/suggest?q=` (maximaal 10 actieve pagina's, hoofdletterongevoelig, prullenbak uitgesloten, leeg veld toont recent gewijzigde pagina's); een gekozen pagina wordt een link naar `/pages/{id}`, dus de verwijzing blijft werken na hernoemen en verplaatsen ( U-06 eerste helft, F-16 )
 
 ( N-02 )   Browserbeveiliging: CSRF actief op alle mutaties, ook voor de fetch-verzoeken van de editor (token als header; geweigerde API-verzoeken krijgen een JSON-melding, 401 zonder sessie); sessiecookie HttpOnly, Secure en SameSite=Lax (Lax omdat de Entra-callback een top-level GET is); de volledige loginflow is getest over echte HTTP, voor wachtwoordlogin en voor Entra tegen een nagebootste identity provider in de test ( N-02, A-07 )
+
+( extra )   Exportmenu op de leesweergave: het download-icoon opent een menu met "Downloaden als .md" en "Downloaden als .pdf"; de PDF (`/pages/{id}/export.pdf`) wordt server-side gemaakt met OpenHTMLtoPDF uit dezelfde HTML als de leesweergave, afbeeldingen ingesloten, video's als link; zelfde rechten en 404-regels als de Markdown-export, vastgelegd in `docs/markdown-export.md` ( buiten MVP, op verzoek; volgt F-17 en N-01 )
 
 ( U-07, U-08 )   Eigenschappen per pagina onder de titel: eigenaar (keuze uit actieve gebruikers, opgeslagen als gebruikersnaam) en status (Concept, Actueel, Verouderd) via `POST /pages/{id}/properties`; knop "Gecontroleerd" (`POST /pages/{id}/review`) stempelt wie de pagina wanneer het laatst heeft gecontroleerd; kolommen op `page` (V9), beide met versiecontrole en audit-gebeurtenis; viewers zien alleen de labels ( U-07, U-08 (signaleren), sectie 7 )
 

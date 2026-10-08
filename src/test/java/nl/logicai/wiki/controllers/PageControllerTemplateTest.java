@@ -12,6 +12,7 @@ import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
+import nl.logicai.wiki.services.PdfExporter;
 import nl.logicai.wiki.services.TagService;
 import nl.logicai.wiki.services.SearchService;
 import nl.logicai.wiki.services.TemplateService;
@@ -52,6 +53,10 @@ class PageControllerTemplateTest {
 
 	@MockitoBean
 	private SearchService searchService;
+
+	/** The PDF export needs attachments and a renderer; the template test only checks the menu links. */
+	@MockitoBean
+	private PdfExporter pdfExporter;
 
 	/** GlobalModelAdvice needs it for the sidebar favorites (spec U-03); the mock returns no favorites. */
 	@MockitoBean
@@ -97,7 +102,12 @@ class PageControllerTemplateTest {
 			.andExpect(content().string(containsString("<p>Welkom &lt;b&gt;hier&lt;/b&gt;</p>")))
 			.andExpect(content().string(containsString("aria-current=\"page\"")))
 			.andExpect(content().string(containsString("/pages/" + page.getId() + "/edit")))
-			.andExpect(content().string(containsString("/pages/new?parentId=" + page.getId())));
+			.andExpect(content().string(containsString("/pages/new?parentId=" + page.getId())))
+			// Export menu: both formats behind the one download icon.
+			.andExpect(content().string(containsString("/pages/" + page.getId() + "/export.md")))
+			.andExpect(content().string(containsString("/pages/" + page.getId() + "/export.pdf")))
+			.andExpect(content().string(containsString("Downloaden als .md")))
+			.andExpect(content().string(containsString("Downloaden als .pdf")));
 	}
 
 	@Test
