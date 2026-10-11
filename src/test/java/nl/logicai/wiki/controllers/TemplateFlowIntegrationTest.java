@@ -59,8 +59,8 @@ class TemplateFlowIntegrationTest {
 		mvc.perform(get("/pages/{id}", pageId))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("<h1>Pull request maken</h1>")))
-			.andExpect(content().string(containsString("<h2>Doel</h2>")))
-			.andExpect(content().string(containsString("<h2>Gerelateerde links</h2>")));
+			.andExpect(content().string(containsString(">Doel</h2>")))
+			.andExpect(content().string(containsString(">Gerelateerde links</h2>")));
 
 		// A-09: change the template afterwards; the existing page does not change.
 		MvcResult edit = mvc.perform(get("/templates/{id}/edit", WERKINSTRUCTIE))
@@ -75,14 +75,14 @@ class TemplateFlowIntegrationTest {
 			.andExpect(jsonPath("$.version").value(version + 1));
 
 		mvc.perform(get("/pages/{id}", pageId))
-			.andExpect(content().string(containsString("<h2>Doel</h2>")))
+			.andExpect(content().string(containsString(">Doel</h2>")))
 			.andExpect(content().string(not(containsString("Nieuwe kop"))));
 
 		// A new page now starts from the changed template.
 		UUID later = createPage("Latere pagina", WERKINSTRUCTIE);
 		mvc.perform(get("/pages/{id}", later))
-			.andExpect(content().string(containsString("<h2>Nieuwe kop</h2>")))
-			.andExpect(content().string(not(containsString("<h2>Doel</h2>"))));
+			.andExpect(content().string(containsString(">Nieuwe kop</h2>")))
+			.andExpect(content().string(not(containsString(">Doel</h2>"))));
 
 		// Stale version on the template is a 409, like on pages.
 		mvc.perform(put("/api/templates/{id}/content", WERKINSTRUCTIE).with(csrf())

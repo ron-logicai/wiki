@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -358,9 +359,12 @@ public class PageService {
 		return knopen;
 	}
 
+	/** How many recently changed pages the home list loads at most; the view shows ten and folds the rest. */
+	public static final int RECENT_LIMIT = 50;
+
 	@Transactional(readOnly = true)
 	public List<Page> recentlyChanged() {
-		return pages.findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
+		return pages.findByDeletedAtIsNullOrderByUpdatedAtDesc(PageRequest.of(0, RECENT_LIMIT));
 	}
 
 	/** A page offered while inserting a link, with its place in the tree ("Ouder / Kind") for display. */

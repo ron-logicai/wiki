@@ -78,4 +78,28 @@ class BlockRendererTest {
 			"<ul><li>Ouder<div class=\"block-children\"><ul><li>Kind</li></ul></div></li></ul>");
 	}
 
+	@Test
+	void outlineGivesHeadingsSequentialIdsWhilePlainRenderStaysUnchanged() {
+		String doc = """
+			[{"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Kop","styles":{}}]},
+			 {"type":"paragraph","content":[{"type":"text","text":"Tekst","styles":{}}]},
+			 {"type":"heading","props":{"level":3},"content":[{"type":"text","text":"Sub & co","styles":{}}]},
+			 {"type":"bulletListItem","content":[{"type":"text","text":"Item","styles":{}}],
+			  "children":[{"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Kop","styles":{}}]}]}]
+			""";
+
+		BlockRenderer.Rendered rendered = renderer.renderWithOutline(doc);
+
+		assertThat(rendered.html()).isEqualTo(
+			"<h2 id=\"kop-1\">Kop</h2>"
+				+ "<p>Tekst</p>"
+				+ "<h3 id=\"kop-2\">Sub &amp; co</h3>"
+				+ "<ul><li>Item<div class=\"block-children\"><h2 id=\"kop-3\">Kop</h2></div></li></ul>");
+		assertThat(rendered.outline()).containsExactly(
+			new BlockRenderer.Heading(2, "kop-1", "Kop"),
+			new BlockRenderer.Heading(3, "kop-2", "Sub & co"),
+			new BlockRenderer.Heading(2, "kop-3", "Kop"));
+		assertThat(renderer.render(doc)).startsWith("<h2>Kop</h2>").doesNotContain("kop-1");
+	}
+
 }

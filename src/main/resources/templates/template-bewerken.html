@@ -12,11 +12,7 @@
 
     <div class="hoofd">
         <div class="top">
-            <a th:href="@{/templates}">Templates</a>
-            <span class="sep">/</span>
-            <span th:text="${template.title}">Template</span>
-            <span class="sep">/</span>
-            <span class="gedempt">Bewerken</span>
+            <nav aria-label="Locatie"><ol class="kruimels"><li><a th:href="@{/}">Home</a></li><li><a th:href="@{/templates}">Templates</a></li><li th:text="${template.title}">Template</li><li aria-current="page">Bewerken</li></ol></nav>
             <span class="top__ruimte"></span>
             <a class="knop" th:href="@{/templates}">Annuleren</a>
         </div>

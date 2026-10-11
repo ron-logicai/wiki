@@ -11,8 +11,9 @@
 
     <div class="hoofd">
         <div class="top">
-            <span>Home</span>
+            <nav aria-label="Locatie"><ol class="kruimels"><li aria-current="page">Home</li></ol></nav>
             <span class="top__ruimte"></span>
+            <a class="knop" th:href="@{/templates}">Templates</a>
             <a class="knop knop--primair" th:href="@{/pages/new}">+ Nieuwe pagina</a>
         </div>
 
@@ -72,22 +73,30 @@
                         <a th:href="@{/pages}">Alles bekijken</a>
                     </div>
                     <p class="leeg" th:if="${recentePaginas.isEmpty()}">Nog niets bijgewerkt.</p>
-                    <ul class="rijen lijst" th:unless="${recentePaginas.isEmpty()}">
-                        <li class="rij" th:each="r : ${recentePaginas}">
-                            <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
-                            <span class="rij__titel">
-                                <a th:href="@{/pages/{id}(id=${r.pagina.id})}" th:text="${r.pagina.title}">Titel</a>
-                            </span>
-                            <span class="rij__ruimte" th:text="${r.ruimte}">Ruimte</span>
-                            <span class="avatar" th:title="${r.pagina.updatedBy}" th:text="${#strings.substring(r.pagina.updatedBy, 0, 1)}">a</span>
-                            <time class="rij__tijd" th:datetime="${r.pagina.updatedAt}" th:text="${@datums.relatief(r.pagina.updatedAt)}">datum</time>
-                        </li>
-                    </ul>
+                    <!-- De eerste tien rijen staan open; de rest is verborgen tot op de pijlknop wordt geklikt. -->
+                    <div class="lijst" th:unless="${recentePaginas.isEmpty()}"
+                         th:with="meer=${#lists.size(recentePaginas) > recentZichtbaar}">
+                        <ul class="rijen" id="recent-lijst" th:classappend="${meer} ? 'rijen--uitklapbaar'">
+                            <li class="rij" th:each="r, st : ${recentePaginas}"
+                                th:classappend="${st.index >= recentZichtbaar} ? 'uitklap__rij'"
+                                th:hidden="${st.index >= recentZichtbaar}">
+                                <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+                                <span class="rij__titel">
+                                    <a th:href="@{/pages/{id}(id=${r.pagina.id})}" th:text="${r.pagina.title}">Titel</a>
+                                </span>
+                                <span class="rij__ruimte" th:text="${r.ruimte}">Ruimte</span>
+                                <span class="avatar" th:title="${r.pagina.updatedBy}" th:text="${#strings.substring(r.pagina.updatedBy, 0, 1)}">a</span>
+                                <time class="rij__tijd" th:datetime="${r.pagina.updatedAt}" th:text="${@datums.relatief(r.pagina.updatedAt)}">datum</time>
+                            </li>
+                        </ul>
+                        <th:block th:if="${meer}" th:insert="~{fragments :: uitklapknop('recent-lijst', ${#lists.size(recentePaginas) - recentZichtbaar})}"></th:block>
+                    </div>
                 </section>
             </div>
         </main>
     </div>
 </div>
 
+<script th:replace="~{fragments :: uitklapscript}"></script>
 </body>
 </html>

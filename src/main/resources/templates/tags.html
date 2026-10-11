@@ -6,50 +6,137 @@
 </head>
 <body>
 
+<!-- Dezelfde pagina op /tags (zijbalk) en /admin/tags (tab op Beheer); 'basis' is het prefix voor links en formulieren. -->
 <div class="app">
-    <nav th:replace="~{fragments :: zijbalk('tags')}"></nav>
+    <nav th:replace="~{fragments :: zijbalk(${beheer} ? 'beheer' : 'tags')}"></nav>
 
     <div class="hoofd">
         <div class="top">
-            <span>Tags</span>
+            <th:block th:unless="${beheer}"><nav th:replace="~{fragments :: kruimel('Tags')}"></nav></th:block>
+            <nav th:if="${beheer}" aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li><a th:href="@{/admin}">Beheer</a></li>
+                    <li aria-current="page">Tags</li>
+                </ol>
+            </nav>
             <span class="top__ruimte"></span>
+            <a th:unless="${beheer}" class="knop knop--primair" th:href="@{/pages/new}">+ Nieuwe pagina</a>
         </div>
 
         <main class="pagina">
             <div class="kolom">
-                <div class="kop">
-                    <p class="eyebrow">Overzicht</p>
-                    <h1>Tags</h1>
-                    <p class="intro">
-                        Een tag is een label dat op meerdere pagina's kan staan. Je voegt tags toe op de pagina zelf.
-                        <span sec:authorize="hasRole('ADMIN')">Als beheerder kun je ze hier hernoemen of verwijderen; pagina's blijven bestaan.</span>
-                    </p>
+                <!-- Op Beheer: kop met tab-pillen (ontwerp 3a) boven de twee kolommen -->
+                <div class="kop kop--met-tabs" th:if="${beheer}">
+                    <div>
+                        <p class="eyebrow">Beheer</p>
+                        <h1>Tags</h1>
+                        <p class="intro">
+                            Een tag is een label dat op meerdere pagina's kan staan. Je voegt tags toe op de pagina zelf.
+                            Hier kun je ze hernoemen of verwijderen; pagina's blijven bestaan.
+                        </p>
+                    </div>
+                    <nav th:replace="~{fragments :: beheertabs('tags')}"></nav>
                 </div>
 
-                <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
-                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+                <div class="tweekolom tweekolom--tags">
+                    <div class="tagoverzicht">
+                        <div class="kop" th:unless="${beheer}">
+                            <p class="eyebrow">Overzicht</p>
+                            <h1>Tags</h1>
+                            <p class="intro">
+                                Een tag is een label dat op meerdere pagina's kan staan. Je voegt tags toe op de pagina zelf.
+                                <span sec:authorize="hasRole('ADMIN')">Als beheerder kun je ze hier hernoemen of verwijderen; pagina's blijven bestaan.</span>
+                            </p>
+                        </div>
 
-                <p class="leeg" th:if="${tags.isEmpty()}">Er zijn nog geen tags.</p>
-                <ul class="rijen lijst" th:unless="${tags.isEmpty()}">
-                    <li class="rij" th:each="t : ${tags}">
-                        <span class="icoon" th:insert="~{fragments :: icoon('tag')}"></span>
-                        <span class="rij__titel">
-                            <span class="label label--tag" th:text="${t.tag.name}">tag</span>
-                        </span>
-                        <span class="rij__ruimte"><span th:text="${t.paginas}">0</span> pagina's</span>
-                        <th:block sec:authorize="hasRole('ADMIN')">
-                            <form class="tagformulier" th:action="@{/tags/{id}/rename(id=${t.tag.id})}" method="post">
-                                <label class="verborgen" th:for="'naam-' + ${t.tag.id}">Nieuwe naam</label>
-                                <input th:id="'naam-' + ${t.tag.id}" name="name" th:value="${t.tag.name}" maxlength="50" required>
-                                <button type="submit" class="knop">Hernoemen</button>
-                            </form>
-                            <form th:action="@{/tags/{id}/delete(id=${t.tag.id})}" method="post"
-                                  onsubmit="return confirm('Deze tag verwijderen? De pagina&#39;s blijven bestaan.')">
-                                <button type="submit" class="knop">Verwijderen</button>
-                            </form>
-                        </th:block>
-                    </li>
-                </ul>
+                        <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                        <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                        <!-- Zoeken en sorteren (ontwerp 6a), als GET-formulier zonder JavaScript -->
+                        <form class="lijstfilters" th:action="@{${basis}}" method="get" role="search">
+                            <div class="lijstzoek">
+                                <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
+                                <label class="verborgen" for="q">Zoek een tag</label>
+                                <input id="q" name="q" type="search" placeholder="Zoek een tag" th:value="${q}">
+                                <input type="hidden" name="sorteer" th:value="${sorteer}">
+                            </div>
+                            <div class="filterpillen" th:with="qs=${#strings.isEmpty(q)} ? null : ${q}">
+                                <span class="filterpillen__label">Sorteer:</span>
+                                <a class="filterpil" th:classappend="${sorteer == 'gebruik'} ? 'filterpil--aan'" th:href="@{${basis}(q=${qs})}">Meest gebruikt</a>
+                                <a class="filterpil" th:classappend="${sorteer == 'naam'} ? 'filterpil--aan'" th:href="@{${basis}(q=${qs}, sorteer='naam')}">A–Z</a>
+                            </div>
+                        </form>
+
+                        <div class="kaart kaart--tabel taglijst">
+                            <p class="leeg" th:if="${tags.isEmpty()}">
+                                <th:block th:if="${#strings.isEmpty(q)}">Er zijn nog geen tags.</th:block>
+                                <th:block th:unless="${#strings.isEmpty(q)}">Geen tag gevonden voor “<span th:text="${q}">zoekterm</span>”. <a th:href="@{${basis}}">Alle tags tonen</a>.</th:block>
+                            </p>
+                            <table class="tabel tabel--tags" th:unless="${tags.isEmpty()}">
+                                <thead>
+                                    <tr>
+                                        <th>Tag</th>
+                                        <th class="taglijst__gebruik">Gebruikt</th>
+                                        <th sec:authorize="hasRole('ADMIN')" class="taglijst__actie"><span class="verborgen">Hernoemen</span></th>
+                                        <th sec:authorize="hasRole('ADMIN')" class="taglijst__actie"><span class="verborgen">Verwijderen</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="t : ${tags}" th:classappend="${geselecteerd != null and geselecteerd.tag.id == t.tag.id} ? 'taglijst__rij--aan'">
+                                        <td>
+                                            <span class="taglijst__tag">
+                                                <span class="icoon" th:insert="~{fragments :: icoon('tag')}"></span>
+                                                <span class="label label--tag" th:classappend="${t.paginas == 0} ? 'label--leeg'" th:text="${t.tag.name}">tag</span>
+                                            </span>
+                                        </td>
+                                        <td class="taglijst__gebruik" th:classappend="${t.paginas == 0} ? 'taglijst__gebruik--nul'">
+                                            <span th:text="${t.paginas}">0</span> <span th:if="${t.paginas == 1}">pagina</span><span th:unless="${t.paginas == 1}">pagina's</span>
+                                        </td>
+                                        <td sec:authorize="hasRole('ADMIN')" class="taglijst__actie">
+                                            <a class="knop knop--icoon" th:href="@{${basis + '/' + t.tag.id + '/rename'}(q=${#strings.isEmpty(q)} ? null : ${q}, sorteer=${sorteer == 'naam'} ? 'naam' : null)}"
+                                               th:title="'Tag ' + ${t.tag.name} + ' hernoemen'" th:attr="aria-label='Tag ' + ${t.tag.name} + ' hernoemen'">
+                                                <span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span>
+                                            </a>
+                                        </td>
+                                        <td sec:authorize="hasRole('ADMIN')" class="taglijst__actie">
+                                            <form th:action="@{${basis + '/' + t.tag.id + '/delete'}}" method="post"
+                                                  onsubmit="return confirm('Deze tag verwijderen? De pagina&#39;s blijven bestaan.')">
+                                                <button type="submit" class="knop knop--icoon knop--gevaar"
+                                                        th:title="'Tag ' + ${t.tag.name} + ' verwijderen'" th:attr="aria-label='Tag ' + ${t.tag.name} + ' verwijderen'">
+                                                    <span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="zijkolom">
+                        <!-- Rechts (ontwerp 6a): de gekozen tag hernoemen, en een tip -->
+                        <form sec:authorize="hasRole('ADMIN')" th:if="${geselecteerd != null}" class="kaart formulier hernoemkaart"
+                              th:action="@{${basis + '/' + geselecteerd.tag.id + '/rename'}}" method="post">
+                            <h2>Tag hernoemen</h2>
+                            <p class="hernoemkaart__gekozen">Geselecteerd: <span class="label label--tag" th:text="${geselecteerd.tag.name}">tag</span></p>
+                            <div class="veld">
+                                <label for="nieuwe-naam">Nieuwe naam</label>
+                                <input id="nieuwe-naam" name="name" th:value="${geselecteerd.tag.name}" maxlength="50" required autofocus>
+                                <p class="gedempt klein">Wordt aangepast op <span th:text="${geselecteerd.paginas}">0</span> <span th:if="${geselecteerd.paginas == 1}">pagina</span><span th:unless="${geselecteerd.paginas == 1}">pagina's</span>.</p>
+                            </div>
+                            <div class="acties">
+                                <button type="submit" class="knop knop--rand">Opslaan</button>
+                                <a class="knop" th:href="@{${basis}(q=${#strings.isEmpty(q)} ? null : ${q}, sorteer=${sorteer == 'naam'} ? 'naam' : null)}">Annuleren</a>
+                            </div>
+                        </form>
+
+                        <div class="kaart kaart--teal tip">
+                            <h3>Goed om te weten</h3>
+                            <p>Een tag met 0 pagina's kun je veilig verwijderen. Bij een tag die in gebruik is, verdwijnt alleen het label; de pagina's blijven staan.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

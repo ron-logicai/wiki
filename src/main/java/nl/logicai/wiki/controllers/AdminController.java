@@ -15,10 +15,14 @@ public class AdminController {
 		this.adminService = adminService;
 	}
 
+	/** How many rows of "Recente wijzigingen" are open; the rest sits behind the arrow button. */
+	static final int AUDIT_ZICHTBAAR = 10;
+
 	@GetMapping("/admin")
 	public String overzicht(Model model) {
 		model.addAttribute("overzicht", adminService.overview());
 		model.addAttribute("audit", adminService.recentAudit());
+		model.addAttribute("auditZichtbaar", AUDIT_ZICHTBAAR);
 		return "beheer";
 	}
 

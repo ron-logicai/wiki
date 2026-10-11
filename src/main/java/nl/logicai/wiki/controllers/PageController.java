@@ -2,8 +2,11 @@ package nl.logicai.wiki.controllers;
 
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +27,7 @@ import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.PdfExporter;
+import nl.logicai.wiki.services.RelationService;
 import nl.logicai.wiki.services.TagService;
 import nl.logicai.wiki.services.TemplateService;
 import org.springframework.http.ContentDisposition;
@@ -58,11 +62,14 @@ public class PageController {
 	private final TagService tagService;
 	private final TemplateService templateService;
 	private final FavoriteService favoriteService;
+	private final RelationService relationService;
 
 	public PageController(PageService pageService, BlockRenderer blockRenderer, MarkdownExporter markdownExporter,
-			PdfExporter pdfExporter, TagService tagService, TemplateService templateService, FavoriteService favoriteService) {
+			PdfExporter pdfExporter, TagService tagService, TemplateService templateService, FavoriteService favoriteService,
+			RelationService relationService) {
 		this.pageService = pageService;
 		this.favoriteService = favoriteService;
+		this.relationService = relationService;
 		this.blockRenderer = blockRenderer;
 		this.markdownExporter = markdownExporter;
 		this.pdfExporter = pdfExporter;
@@ -70,9 +77,46 @@ public class PageController {
 		this.templateService = templateService;
 	}
 
+	/** Een rij in "Alle pagina's": de pagina en de ruimte (hoofdpagina) waar ze onder valt; null voor een hoofdpagina. */
+	public record PaginaRij(Page page, Page ruimte) {
+	}
+
+	/**
+	 * Alle pagina's (ontwerp 5a): filter op titel ('q'), op ruimte ('ruimte' = id van een hoofdpagina) en
+	 * sorteer op titel (standaard) of laatst bijgewerkt ('sorteer=bijgewerkt').
+	 */
 	@GetMapping
-	public String lijst(Model model) {
-		model.addAttribute("paginas", pageService.allActive());
+	public String lijst(@RequestParam(required = false) String q, @RequestParam(required = false) UUID ruimte,
+			@RequestParam(required = false) String sorteer, Model model) {
+		List<Page> alle = pageService.allActive();
+		Map<UUID, Page> opId = new HashMap<>();
+		alle.forEach(p -> opId.put(p.getId(), p));
+		Map<UUID, Page> ruimteVan = new HashMap<>();
+		for (Page p : alle) {
+			Page top = p;
+			int guard = 0;
+			while (top.getParentId() != null && opId.containsKey(top.getParentId()) && guard++ < 100) {
+				top = opId.get(top.getParentId());
+			}
+			ruimteVan.put(p.getId(), top == p ? null : top);
+		}
+		String zoek = q == null ? "" : q.strip().toLowerCase(Locale.ROOT);
+		boolean opTijd = "bijgewerkt".equals(sorteer);
+		Comparator<Page> volgorde = opTijd
+				? Comparator.comparing(Page::getUpdatedAt).reversed()
+				: Comparator.comparing(p -> p.getTitle().toLowerCase(Locale.ROOT));
+		List<PaginaRij> rijen = alle.stream()
+			.filter(p -> ruimte == null || ruimte.equals(p.getId()) || (ruimteVan.get(p.getId()) != null && ruimte.equals(ruimteVan.get(p.getId()).getId())))
+			.filter(p -> zoek.isEmpty() || p.getTitle().toLowerCase(Locale.ROOT).contains(zoek))
+			.sorted(volgorde)
+			.map(p -> new PaginaRij(p, ruimteVan.get(p.getId())))
+			.toList();
+		model.addAttribute("paginas", rijen);
+		model.addAttribute("totaal", alle.size());
+		model.addAttribute("ruimtes", alle.stream().filter(p -> p.getParentId() == null).toList());
+		model.addAttribute("q", q == null ? "" : q.strip());
+		model.addAttribute("ruimteFilter", ruimte);
+		model.addAttribute("sorteer", opTijd ? "bijgewerkt" : "titel");
 		return "paginas";
 	}
 
@@ -109,7 +153,12 @@ public class PageController {
 		model.addAttribute("ouders", pageService.ancestors(page));
 		model.addAttribute("subpaginas", pageService.children(id));
 		model.addAttribute("tags", tagService.tagsOf(id));
-		model.addAttribute("inhoudHtml", blockRenderer.render(page.getDocument()));
+		// Koppen krijgen een anker voor "Op deze pagina"; de rechterkolom toont ook de gerelateerde pagina's.
+		BlockRenderer.Rendered rendered = blockRenderer.renderWithOutline(page.getDocument());
+		model.addAttribute("inhoudHtml", rendered.html());
+		model.addAttribute("koppen", rendered.outline());
+		model.addAttribute("gerelateerd", relationService.relatedOf(id));
+		model.addAttribute("koppelbaar", relationService.candidatesFor(id));
 		// Eigenschappen en laatste controle (spec U-07, U-08).
 		model.addAttribute("eigenaarNaam", pageService.displayNameOf(page.getOwner()));
 		model.addAttribute("gecontroleerdDoorNaam", pageService.displayNameOf(page.getReviewedBy()));
@@ -299,6 +348,26 @@ public class PageController {
 		catch (PageConflictException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());
 		}
+		return "redirect:/pages/" + id;
+	}
+
+	/** Koppelt een bestaande pagina als gerelateerd (plus-knop bij "Gerelateerd"); een ongeldige keuze geeft een melding. */
+	@PostMapping("/{id}/related")
+	public String gerelateerdToevoegen(@PathVariable UUID id, @RequestParam(required = false) UUID relatedId,
+			Authentication auth, RedirectAttributes redirect) {
+		try {
+			Page related = relationService.add(id, relatedId, auth.getName());
+			redirect.addFlashAttribute("melding", "“" + related.getTitle() + "” toegevoegd als gerelateerde pagina.");
+		}
+		catch (PageStateException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/pages/" + id;
+	}
+
+	@PostMapping("/{id}/related/{relatedId}/remove")
+	public String gerelateerdVerwijderen(@PathVariable UUID id, @PathVariable UUID relatedId, Authentication auth) {
+		relationService.remove(id, relatedId, auth.getName());
 		return "redirect:/pages/" + id;
 	}
 

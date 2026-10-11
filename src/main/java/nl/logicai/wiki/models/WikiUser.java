@@ -80,6 +80,11 @@ public class WikiUser {
 		this.active = active;
 	}
 
+	/** Sets or replaces the password for form login; an Entra-only user gets password login as well. */
+	public void changePassword(String passwordHash) {
+		this.passwordHash = passwordHash;
+	}
+
 	public void recordLogin(Instant now) {
 		this.lastLoginAt = now;
 	}

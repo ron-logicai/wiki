@@ -44,7 +44,7 @@
                 <span class="icoon" th:insert="~{fragments :: icoon('potlood')}"></span>Bewerken</a>
         </div>
 
-        <main class="pagina" th:attr="data-page-id=${pagina.id}">
+        <main class="pagina pagina--met-zijkant" th:attr="data-page-id=${pagina.id}">
             <div class="artikel">
                 <p class="eyebrow" th:text="${#lists.isEmpty(ouders)} ? 'LogicAI Wiki' : ${ouders[0].title}">Ruimte</p>
                 <h1 th:text="${pagina.title}">Titel</h1>
@@ -123,6 +123,55 @@
                     </ul>
                 </section>
             </div>
+
+            <!-- Rechterkolom (ontwerp 2a): de koppen van deze pagina en de gerelateerde pagina's. -->
+            <aside class="zijkant" aria-label="Over deze pagina"
+                   th:if="${!#lists.isEmpty(koppen) or !#lists.isEmpty(gerelateerd) or #authorization.expression('hasRole(''EDITOR'')')}">
+                <nav class="zijkant__kaart" th:unless="${#lists.isEmpty(koppen)}" aria-labelledby="op-deze-pagina">
+                    <h2 class="zijkant__kop" id="op-deze-pagina">Op deze pagina</h2>
+                    <ol class="inhoudsopgave">
+                        <li th:each="k : ${koppen}" th:classappend="'inhoudsopgave__niveau-' + ${k.level}">
+                            <a th:href="'#' + ${k.id}" th:text="${k.text}">Kop</a>
+                        </li>
+                    </ol>
+                </nav>
+
+                <section class="zijkant__kaart zijkant__kaart--navy" aria-labelledby="gerelateerd"
+                         th:if="${!#lists.isEmpty(gerelateerd) or #authorization.expression('hasRole(''EDITOR'')')}">
+                    <div class="zijkant__koprij">
+                        <h2 class="zijkant__kop" id="gerelateerd">Gerelateerd</h2>
+                        <!-- Plus-knop: koppel een bestaande pagina (details/summary, werkt zonder JavaScript). -->
+                        <details class="menu menu--zijkant" sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:unless="${#lists.isEmpty(koppelbaar)}">
+                            <summary class="knop knop--icoon zijkant__plus" title="Gerelateerde pagina toevoegen"
+                                     aria-label="Gerelateerde pagina toevoegen" aria-haspopup="dialog">
+                                <span class="icoon" th:insert="~{fragments :: icoon('plus')}"></span>
+                            </summary>
+                            <form class="menu__lijst menu__formulier" th:action="@{/pages/{id}/related(id=${pagina.id})}" method="post">
+                                <label for="relatedId">Pagina koppelen</label>
+                                <select id="relatedId" name="relatedId" required>
+                                    <option value="">Kies een pagina…</option>
+                                    <option th:each="p : ${koppelbaar}" th:value="${p.id}" th:text="${p.title}">Titel</option>
+                                </select>
+                                <button type="submit" class="knop knop--primair">Toevoegen</button>
+                            </form>
+                        </details>
+                    </div>
+                    <p class="zijkant__leeg" th:if="${#lists.isEmpty(gerelateerd)}">Nog geen gerelateerde pagina's.</p>
+                    <ul class="gerelateerd" th:unless="${#lists.isEmpty(gerelateerd)}">
+                        <li th:each="g : ${gerelateerd}">
+                            <a th:href="@{/pages/{id}(id=${g.id})}">
+                                <span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span>
+                                <span th:text="${g.title}">Pagina</span>
+                            </a>
+                            <form sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" method="post"
+                                  th:action="@{/pages/{id}/related/{relatedId}/remove(id=${pagina.id}, relatedId=${g.id})}">
+                                <button type="submit" class="label__verwijder" th:attr="aria-label='Koppeling met ' + ${g.title} + ' verwijderen'"
+                                        title="Koppeling verwijderen">&times;</button>
+                            </form>
+                        </li>
+                    </ul>
+                </section>
+            </aside>
         </main>
     </div>
 </div>

@@ -3,16 +3,20 @@ package nl.logicai.wiki.controllers;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import nl.logicai.wiki.exceptions.PageNotFoundException;
+import nl.logicai.wiki.models.AuditEvent;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
+import nl.logicai.wiki.services.AdminService;
 import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.FavoriteService;
 import nl.logicai.wiki.services.MarkdownExporter;
 import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.services.PageService;
 import nl.logicai.wiki.services.PdfExporter;
+import nl.logicai.wiki.services.RelationService;
 import nl.logicai.wiki.services.TagService;
 import nl.logicai.wiki.services.SearchService;
 import nl.logicai.wiki.services.TemplateService;
@@ -25,7 +29,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -34,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
-@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class})
+@WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class, AdminController.class})
 @Import({BlockRenderer.class, MarkdownExporter.class, GlobalModelAdvice.class, Datums.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
@@ -62,6 +68,14 @@ class PageControllerTemplateTest {
 	@MockitoBean
 	private FavoriteService favoriteService;
 
+	/** The read view lists related pages ("Gerelateerd"); the mock returns none. */
+	@MockitoBean
+	private RelationService relationService;
+
+	/** Beheer > Overzicht (counts and the audit list). */
+	@MockitoBean
+	private AdminService adminService;
+
 	private final Page page = Page.create("Onboarding",
 		null,
 		new WikiDocument(
@@ -80,6 +94,64 @@ class PageControllerTemplateTest {
 			.andExpect(content().string(containsString("/pages/" + page.getId())));
 	}
 
+	/** The home list opens with ten rows; the rest is hidden behind the arrow button until it is clicked. */
+	@Test
+	void homeFoldsRecentPagesAfterTenBehindArrowButton() throws Exception {
+		List<Page> twaalf = IntStream.rangeClosed(1, 12)
+			.mapToObj(i -> Page.create("Recent " + i, null, new WikiDocument("[]", "", 1), "editor", Instant.parse("2026-09-15T10:00:00Z")))
+			.toList();
+		when(pageService.recentlyChanged()).thenReturn(twaalf);
+
+		String html = mvc.perform(get("/"))
+			.andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsString();
+		assertThat(html, containsString("Recent 10"));
+		assertThat(html, containsString("Recent 12"));
+		assertThat(html, containsString("class=\"lijst__meer\""));
+		assertThat(html, containsString("aria-expanded=\"false\""));
+		assertThat(html, containsString("Nog 2 tonen"));
+		// Only rows 11 and 12 carry the fold class and are hidden on load.
+		assertThat(html.split("uitklap__rij\" hidden=\"hidden\"", -1).length - 1, is(2));
+		assertThat(html.split("<li class=\"rij\"", -1).length - 1, is(10));
+
+		// Ten pages or fewer: no button and nothing hidden.
+		when(pageService.recentlyChanged()).thenReturn(twaalf.subList(0, 10));
+		mvc.perform(get("/"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Recent 10")))
+			.andExpect(content().string(not(containsString("class=\"lijst__meer\""))))
+			.andExpect(content().string(not(containsString("class=\"rij uitklap__rij\""))));
+	}
+
+	/** Beheer > Overzicht: "Recente wijzigingen" opens with ten rows; the rest is hidden behind the arrow button. */
+	@Test
+	@WithMockUser(username = "admin", roles = "ADMIN")
+	void adminFoldsAuditRowsAfterTenBehindArrowButton() throws Exception {
+		List<AdminService.AuditRow> twaalf = IntStream.rangeClosed(1, 12)
+			.mapToObj(i -> new AdminService.AuditRow(
+				AuditEvent.of(AuditEvent.MOVE, page.getId(), "admin", Instant.parse("2026-10-01T10:00:00Z"), "gebeurtenis " + i), page))
+			.toList();
+		when(adminService.overview()).thenReturn(new AdminService.Overview(1, 0, 0, 0, 1, 1, 1));
+		when(adminService.recentAudit()).thenReturn(twaalf);
+
+		String html = mvc.perform(get("/admin"))
+			.andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsString();
+		assertThat(html, containsString("gebeurtenis 10"));
+		assertThat(html, containsString("gebeurtenis 12"));
+		assertThat(html, containsString("aria-controls=\"audit-lijst\""));
+		assertThat(html, containsString("Nog 2 tonen"));
+		assertThat(html.split("<tr hidden=\"hidden\" class=\"uitklap__rij\">", -1).length - 1, is(2));
+		assertThat(html.split("<tr>", -1).length - 1, is(11)); // header row + ten open rows
+
+		when(adminService.recentAudit()).thenReturn(twaalf.subList(0, 10));
+		mvc.perform(get("/admin"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("gebeurtenis 10")))
+			.andExpect(content().string(not(containsString("class=\"lijst__meer\""))))
+			.andExpect(content().string(not(containsString("uitklap__rij\" hidden"))));
+	}
+
 	@Test
 	void listRendersTable() throws Exception {
 		when(pageService.allActive()).thenReturn(List.of(page));
@@ -88,6 +160,16 @@ class PageControllerTemplateTest {
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("Alle pagina's")))
 			.andExpect(content().string(containsString("Onboarding")));
+
+		// Ontwerp 5a: titelfilter, ruimtepillen en sortering; een hoofdpagina heeft geen ruimte (streepje).
+		mvc.perform(get("/pages").param("q", "onb").param("sorteer", "bijgewerkt"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Alle ruimtes")))
+			.andExpect(content().string(containsString("Onboarding")));
+		mvc.perform(get("/pages").param("q", "zzz"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Geen pagina gevonden")))
+			.andExpect(content().string(not(containsString("/pages/" + page.getId()))));
 	}
 
 	@Test
@@ -164,7 +246,7 @@ class PageControllerTemplateTest {
 		mvc.perform(get("/tags"))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("Shopify")))
-			.andExpect(content().string(containsString(">2</span> pagina's")))
+			.andExpect(content().string(containsString(">2</span> <span>pagina's</span>")))
 			.andExpect(content().string(org.hamcrest.Matchers.not(containsString("/rename"))));
 	}
 
@@ -193,7 +275,7 @@ class PageControllerTemplateTest {
 		mvc.perform(get("/search").param("q", "shopify"))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("/pages/" + page.getId())))
-			.andExpect(content().string(containsString("Werkinstructies / Onboarding")))
+			.andExpect(content().string(containsString("in <span>Werkinstructies</span>")))
 			.andExpect(content().string(containsString("<mark>Shopify</mark>")))
 			.andExpect(content().string(containsString("tag=Werkinstructie")))
 			.andExpect(content().string(containsString("Volgende")));

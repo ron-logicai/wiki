@@ -39,6 +39,19 @@ class GlobalModelAdvice {
 		return auth == null ? null : auth.getName();
 	}
 
+	/** Rolnaam onder de gebruikersnaam in de zijbalk (ontwerp): Beheerder, Redacteur of Lezer. */
+	@ModelAttribute("rolLabel")
+	String rolLabel(Authentication auth) {
+		if (auth == null) {
+			return null;
+		}
+		Set<String> rollen = auth.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toSet());
+		if (rollen.contains("ROLE_ADMIN")) {
+			return "Beheerder";
+		}
+		return rollen.contains("ROLE_EDITOR") ? "Redacteur" : "Lezer";
+	}
+
 	/** The user's favorites for the sidebar, plus their ids so the tree can mark a starred page (spec U-03). */
 	@ModelAttribute
 	void favorieten(Authentication auth, Model model) {

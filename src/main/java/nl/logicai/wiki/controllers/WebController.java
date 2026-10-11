@@ -18,6 +18,9 @@ public class WebController {
 		this.pageService = pageService;
 	}
 
+	/** How many rows of "Recent bijgewerkt" are open on the home page; the rest sits behind the arrow button. */
+	static final int RECENT_ZICHTBAAR = 10;
+
 	/** A recently changed page with the space (root page) it belongs to, for the home list. */
 	public record RecentePagina(Page pagina, String ruimte) {
 	}
@@ -28,6 +31,7 @@ public class WebController {
 			.map(p -> new RecentePagina(p, ruimteVan(p)))
 			.toList();
 		model.addAttribute("recentePaginas", recent);
+		model.addAttribute("recentZichtbaar", RECENT_ZICHTBAAR);
 		return "index";
 	}
 

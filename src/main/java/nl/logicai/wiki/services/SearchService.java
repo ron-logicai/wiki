@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import nl.logicai.wiki.models.Page;
+import nl.logicai.wiki.models.Tag;
 import nl.logicai.wiki.repositories.PageRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,11 @@ public class SearchService {
 	public record Segment(String text, boolean hit) {
 	}
 
-	public record Hit(Page page, String path, List<Segment> snippet) {
+	public record Hit(Page page, String path, List<Segment> snippet, List<Tag> tags) {
+
+		public Hit(Page page, String path, List<Segment> snippet) {
+			this(page, path, snippet, List.of());
+		}
 	}
 
 	public record TagCount(String name, long count) {
@@ -49,10 +54,12 @@ public class SearchService {
 
 	private final PageRepository pages;
 	private final PageService pageService;
+	private final TagService tagService;
 
-	public SearchService(PageRepository pages, PageService pageService) {
+	public SearchService(PageRepository pages, PageService pageService, TagService tagService) {
 		this.pages = pages;
 		this.pageService = pageService;
+		this.tagService = tagService;
 	}
 
 	public Result search(String rawQuery, String rawTag, int pageNumber) {
@@ -68,7 +75,7 @@ public class SearchService {
 		List<Hit> hits = new ArrayList<>();
 		for (Page hit : found.getContent()) {
 			String path = pageService.ancestors(hit).stream().map(Page::getTitle).reduce((a, b) -> a + " / " + b).orElse("");
-			hits.add(new Hit(hit, path, snippet(hit.getSearchText(), terms)));
+			hits.add(new Hit(hit, path, snippet(hit.getSearchText(), terms), tagService.tagsOf(hit.getId())));
 		}
 		List<TagCount> tags = pages.countTagsInSearch(query).stream()
 			.map(row -> new TagCount((String) row[0], ((Number) row[1]).longValue()))

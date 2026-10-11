@@ -55,10 +55,13 @@ public class SecurityConfig {
 			.addFilterBefore(new ActiveUserFilter(users), AuthorizationFilter.class)
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/fonts/**", "/img/**", "/error").permitAll()
+				// The login page with every query string (?error, ?logout, ?deactivated); formLogin().permitAll() would
+				// only allow the exact URLs /login and /login?error, and send /login?logout back to /login.
+				.requestMatchers("/login", "/wachtwoord-vergeten").permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())
-			.formLogin(form -> form.defaultSuccessUrl("/", true))
+			.formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true))
 			.logout(logout -> logout.logoutSuccessUrl("/login?logout"))
 			.exceptionHandling(ex -> {
 				RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
@@ -73,7 +76,7 @@ public class SecurityConfig {
 
 		if (clientRegistrations.getIfAvailable() != null) {
 			// Only Entra accounts that match an active app_user get in (spec F-01).
-			http.oauth2Login(oauth -> oauth.userInfoEndpoint(info -> info.oidcUserService(new WikiOidcUserService(users))));
+			http.oauth2Login(oauth -> oauth.loginPage("/login").userInfoEndpoint(info -> info.oidcUserService(new WikiOidcUserService(users))));
 		}
 		return http.build();
 	}

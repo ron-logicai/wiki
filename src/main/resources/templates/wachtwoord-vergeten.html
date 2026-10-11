@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Wachtwoord vergeten · LogicAI Wiki</title>
+</head>
+<body class="inlog">
+
+<header class="inlog__kop">
+    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+    </a>
+    <span class="inlog__ondertitel">Interne kenniswiki</span>
+</header>
+
+<main class="inlog__vlak">
+    <div class="inlog__kaart">
+        <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
+        <p class="eyebrow">LogicAI Wiki</p>
+        <h1>Wachtwoord vergeten</h1>
+        <p class="intro">
+            Je kunt je wachtwoord niet zelf opnieuw instellen. Een beheerder zet een nieuw wachtwoord voor je;
+            dat werkt direct bij je volgende login.
+        </p>
+
+        <!-- Geen e-mailreset (spec F-01: alleen toegelaten gebruikers, beheerd op /admin/users). -->
+        <ol class="inlog__stappen">
+            <li>Vraag een beheerder van de wiki om een nieuw wachtwoord.</li>
+            <li>Log in met het wachtwoord dat je van de beheerder krijgt.</li>
+            <li>Heb je een Microsoft-account van het bedrijf? Dan kun je ook inloggen met Microsoft, zonder wachtwoord.</li>
+        </ol>
+
+        <div class="acties">
+            <a class="knop knop--primair knop--vol" th:href="@{/login}">Terug naar inloggen</a>
+            <a class="knop knop--navy knop--vol" th:if="${entra}" th:href="@{/oauth2/authorization/entra}">Inloggen met Microsoft</a>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

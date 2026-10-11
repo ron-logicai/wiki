@@ -7,12 +7,13 @@ import java.util.function.Function;
 
 import nl.logicai.wiki.models.AuditEvent;
 import nl.logicai.wiki.models.Page;
-import nl.logicai.wiki.repositories.AttachmentRepository;
+import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.repositories.AuditEventRepository;
 import nl.logicai.wiki.repositories.PageRepository;
 import nl.logicai.wiki.repositories.PageTemplateRepository;
 import nl.logicai.wiki.repositories.TagRepository;
 import nl.logicai.wiki.repositories.WikiUserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminService {
 
 	/** Counts for the summary tiles. */
-	public record Overview(long activePages, long trashedPages, long tags, long templates, long attachments,
-			long users, long activeUsers) {
+	public record Overview(long activePages, long trashedPages, long tags, long templates,
+			long users, long activeUsers, long admins) {
 	}
 
 	/** An audit event with the page it concerns ({@code page} is null when the page no longer exists). */
@@ -40,8 +41,11 @@ public class AdminService {
 				case AuditEvent.DELETE -> "Naar prullenbak";
 				case AuditEvent.RESTORE -> "Hersteld";
 				case AuditEvent.RESTORE_REVISION -> "Revisie teruggezet";
+				case AuditEvent.RELATION_ADD -> "Gerelateerde pagina toegevoegd";
+				case AuditEvent.RELATION_REMOVE -> "Gerelateerde pagina verwijderd";
 				case UserService.USER_CREATE -> "Gebruiker aangemaakt";
 				case UserService.USER_ROLE -> "Rol gewijzigd";
+				case UserService.USER_PASSWORD -> "Wachtwoord ingesteld";
 				case UserService.USER_ACTIVATE -> "Gebruiker geactiveerd";
 				case UserService.USER_DEACTIVATE -> "Gebruiker gedeactiveerd";
 				default -> event.getAction();
@@ -52,16 +56,14 @@ public class AdminService {
 	private final PageRepository pages;
 	private final TagRepository tags;
 	private final PageTemplateRepository templates;
-	private final AttachmentRepository attachments;
 	private final AuditEventRepository audit;
 	private final WikiUserRepository users;
 
 	public AdminService(PageRepository pages, TagRepository tags, PageTemplateRepository templates,
-			AttachmentRepository attachments, AuditEventRepository audit, WikiUserRepository users) {
+			AuditEventRepository audit, WikiUserRepository users) {
 		this.pages = pages;
 		this.tags = tags;
 		this.templates = templates;
-		this.attachments = attachments;
 		this.audit = audit;
 		this.users = users;
 	}
@@ -69,13 +71,17 @@ public class AdminService {
 	@PreAuthorize("hasRole('ADMIN')")
 	public Overview overview() {
 		return new Overview(pages.countByDeletedAtIsNull(), pages.countByDeletedAtIsNotNull(),
-				tags.count(), templates.count(), attachments.count(), users.count(), users.countByActiveTrue());
+				tags.count(), templates.count(), users.count(), users.countByActiveTrue(),
+				users.countByRoleAndActiveTrue(Role.ADMIN));
 	}
 
-	/** The 20 most recent audit events, newest first. */
+	/** How many audit events the admin overview loads at most; the view shows ten and folds the rest. */
+	public static final int RECENT_LIMIT = 50;
+
+	/** The most recent audit events (at most RECENT_LIMIT), newest first. */
 	@PreAuthorize("hasRole('ADMIN')")
 	public List<AuditRow> recentAudit() {
-		List<AuditEvent> events = audit.findTop20ByOrderByOccurredAtDesc();
+		List<AuditEvent> events = audit.findByOrderByOccurredAtDesc(PageRequest.of(0, RECENT_LIMIT));
 		List<UUID> ids = events.stream().map(AuditEvent::getPageId).filter(id -> id != null).distinct().toList();
 		Map<UUID, Page> byId = pages.findAllById(ids).stream().collect(java.util.stream.Collectors.toMap(Page::getId, Function.identity()));
 		return events.stream().map(e -> new AuditRow(e, byId.get(e.getPageId()))).toList();

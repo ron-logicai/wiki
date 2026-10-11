@@ -31,6 +31,7 @@ public class UserService {
 
 	public static final String USER_CREATE = "user.create";
 	public static final String USER_ROLE = "user.role";
+	public static final String USER_PASSWORD = "user.password";
 	public static final String USER_ACTIVATE = "user.activate";
 	public static final String USER_DEACTIVATE = "user.deactivate";
 
@@ -62,10 +63,8 @@ public class UserService {
 		if (username.isEmpty() || username.length() > WikiUser.USERNAME_MAX || !USERNAME.matcher(username).matches()) {
 			throw new InvalidUserException("Gebruikersnaam: alleen letters, cijfers en . _ @ - (maximaal 100 tekens).");
 		}
-		String displayName = form.getDisplayName() == null ? "" : form.getDisplayName().trim();
-		if (displayName.isEmpty() || displayName.length() > WikiUser.DISPLAY_NAME_MAX) {
-			throw new InvalidUserException("Naam is verplicht (maximaal 200 tekens).");
-		}
+		// The form has no separate name field: the username doubles as display name.
+		String displayName = username;
 		String email = normalize(form.getEmail());
 		if (email.isEmpty()) {
 			email = null;
@@ -76,10 +75,7 @@ public class UserService {
 		String password = form.getPassword() == null ? "" : form.getPassword();
 		String hash = null;
 		if (!password.isEmpty()) {
-			if (password.length() < PASSWORD_MIN) {
-				throw new InvalidUserException("Wachtwoord: minimaal " + PASSWORD_MIN + " tekens.");
-			}
-			hash = encoder.encode(password);
+			hash = hashPassword(password, form.getPasswordRepeat());
 		}
 		else if (email == null) {
 			throw new InvalidUserException("Geef een wachtwoord, of een e-mailadres voor login via Entra.");
@@ -139,11 +135,37 @@ public class UserService {
 		return user;
 	}
 
+	/**
+	 * Sets or replaces the password of a user, so an admin can repair a mistyped password or give an
+	 * Entra-only account form login. The new password works on the next login (spec F-01).
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	public WikiUser setPassword(UUID id, String password, String passwordRepeat, String actor) {
+		WikiUser user = get(id);
+		if (password == null || password.isEmpty()) {
+			throw new InvalidUserException("Geef een nieuw wachtwoord.");
+		}
+		user.changePassword(hashPassword(password, passwordRepeat));
+		audit.save(AuditEvent.of(USER_PASSWORD, null, actor, clock.instant(), user.getUsername()));
+		return user;
+	}
+
 	/** Records the login time for password and Entra logins. */
 	@EventListener
 	public void onLogin(AuthenticationSuccessEvent event) {
 		users.findByUsernameIgnoreCase(event.getAuthentication().getName())
 			.ifPresent(user -> user.recordLogin(clock.instant()));
+	}
+
+	/** Length check and the repeat field, so a typo at creation does not lock the new user out. */
+	private String hashPassword(String password, String passwordRepeat) {
+		if (password.length() < PASSWORD_MIN) {
+			throw new InvalidUserException("Wachtwoord: minimaal " + PASSWORD_MIN + " tekens.");
+		}
+		if (!password.equals(passwordRepeat)) {
+			throw new InvalidUserException("De wachtwoorden zijn niet gelijk; typ twee keer hetzelfde wachtwoord.");
+		}
+		return encoder.encode(password);
 	}
 
 	private void refuseIfLastActiveAdmin(WikiUser user) {

@@ -51,7 +51,7 @@ class TagFlowIntegrationTest {
 		assertThat(page).contains("name=\"name\"");
 
 		String overview = body(get("/tags"));
-		assertThat(overview).containsOnlyOnce("Shopify").contains(">1</span> pagina's");
+		assertThat(overview).containsOnlyOnce("Shopify").contains(">1</span> <span>pagina</span>");
 		assertThat(overview).doesNotContain("/rename");
 
 		mvc.perform(post("/pages/{id}/tags", id).with(csrf()).param("name", "   "))
@@ -74,17 +74,26 @@ class TagFlowIntegrationTest {
 		assertThat(overview).contains("/rename").contains("/delete");
 		UUID concept = tagIdFrom(overview, "Ontwerp");
 
+		// Het potlood opent de kaart "Tag hernoemen" rechts; het zoekveld filtert op naam (ontwerp 6a).
+		assertThat(body(get("/tags/{id}/rename", concept))).contains("Tag hernoemen").contains("Geselecteerd:");
+		assertThat(body(get("/tags").param("q", "kla"))).contains(">Klaar</span>").doesNotContain(">Ontwerp</span>");
+
 		mvc.perform(post("/tags/{id}/rename", concept).with(csrf()).param("name", "klaar"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(flash().attribute("fout", containsString("bestaat al")));
 
 		mvc.perform(post("/tags/{id}/rename", concept).with(csrf()).param("name", "Definitief"))
 			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/tags"))
 			.andExpect(flash().attribute("melding", "Tag hernoemd."));
 		assertThat(body(get("/pages/{id}", id))).contains("Definitief").doesNotContain("Ontwerp");
 
-		mvc.perform(post("/tags/{id}/delete", concept).with(csrf()))
-			.andExpect(status().is3xxRedirection());
+		// Via de Tags-tab op Beheer (/admin/tags) komt de beheerder na een actie weer op die tab terug.
+		assertThat(body(get("/admin/tags/{id}/rename", concept))).contains("Tag hernoemen")
+			.contains("action=\"/admin/tags/" + concept + "/rename\"");
+		mvc.perform(post("/admin/tags/{id}/delete", concept).with(csrf()))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/admin/tags"));
 		mvc.perform(get("/pages/{id}", id))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("<h1>Beheerde pagina</h1>")))

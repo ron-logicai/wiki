@@ -22,6 +22,9 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 
 	List<Page> findTop10ByDeletedAtIsNullOrderByUpdatedAtDesc();
 
+	/** Most recently changed active pages, limited by the pageable (home list, spec section 9: no unbounded lists). */
+	List<Page> findByDeletedAtIsNullOrderByUpdatedAtDesc(Pageable pageable);
+
 	/** Title substring match for link suggestions (spec U-06); Spring Data escapes % and _ in the argument. */
 	List<Page> findTop10ByDeletedAtIsNullAndTitleContainingIgnoreCaseOrderByTitleAsc(String title);
 

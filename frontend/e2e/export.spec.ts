@@ -28,7 +28,8 @@ test("download icon opens a menu with Markdown and PDF", async ({ page }) => {
   await login(page, "editor");
   const id = await createPage(page, `Export ${Date.now()}`);
 
-  const menu = page.locator("details.menu");
+  // Het exportmenu in de knopgroep; de rechterkolom heeft een eigen details.menu (plus-knop bij "Gerelateerd").
+  const menu = page.locator(".knopgroep details.menu");
   const items = menu.locator(".menu__item");
   await expect(items.first()).toBeHidden();
 

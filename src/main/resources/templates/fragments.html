@@ -34,6 +34,11 @@
     <th:block th:case="'download'"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></th:block>
     <th:block th:case="'verplaatsen'"><path d="m5 9-3 3 3 3"/><path d="m9 5 3-3 3 3"/><path d="m15 19-3 3-3-3"/><path d="m19 9 3 3-3 3"/><path d="M2 12h20"/><path d="M12 2v20"/></th:block>
     <th:block th:case="'ster'"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"/></th:block>
+    <th:block th:case="'tandwiel'"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></th:block>
+    <th:block th:case="'meer'"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></th:block>
+    <th:block th:case="'code'"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></th:block>
+    <th:block th:case="'genummerd'"><path d="M10 6h11"/><path d="M10 12h11"/><path d="M10 18h11"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></th:block>
+    <th:block th:case="'mail'"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></th:block>
 </svg>
 
 <!--
@@ -81,6 +86,10 @@
         <span class="icoon" th:insert="~{fragments :: icoon('sjabloon')}"></span>
         <span class="zij__label">Templates</span>
     </a>
+    <a class="zij__rij" sec:authorize="hasRole('ADMIN')" th:classappend="${actief == 'beheer'} ? 'zij__rij--aan'" th:href="@{/admin}">
+        <span class="icoon" th:insert="~{fragments :: icoon('tandwiel')}"></span>
+        <span class="zij__label">Beheer</span>
+    </a>
 
     <!-- Persoonlijke favorieten (spec U-03): alleen actieve pagina's, per gebruiker. -->
     <div class="zij__sectie">Favorieten</div>
@@ -107,16 +116,12 @@
             <span class="icoon" th:insert="~{fragments :: icoon('prullenbak')}"></span>
             <span class="zij__label">Prullenbak</span>
         </a>
-        <!-- Gebruikersblok: avatar, naam en uitloggen. Voor beheerders is de naam de ingang naar de beheerpagina (/admin). -->
+        <!-- Gebruikersblok: avatar, naam met de rol eronder, en uitloggen. Beheer heeft hierboven een eigen rij. -->
         <div class="zij__gebruiker" th:if="${gebruiker != null}">
             <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.substring(gebruiker, 0, 1)}">g</span>
-            <a class="zij__rij" sec:authorize="hasRole('ADMIN')" th:classappend="${actief == 'beheer'} ? 'zij__rij--aan'" th:href="@{/admin}" title="Beheer">
-                <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
-                <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
-            </a>
-            <div class="zij__rij" sec:authorize="!hasRole('ADMIN')">
-                <span class="icoon" th:insert="~{fragments :: icoon('gebruiker')}"></span>
-                <span class="zij__label" th:text="${gebruiker}">gebruiker</span>
+            <div class="zij__wie">
+                <div class="zij__naam" th:text="${gebruiker}">gebruiker</div>
+                <div class="zij__rol" th:if="${rolLabel != null}" th:text="${rolLabel}">Rol</div>
             </div>
             <form th:action="@{/logout}" method="post">
                 <button type="submit" class="zij__uitloggen" title="Uitloggen" aria-label="Uitloggen">
@@ -163,13 +168,51 @@
     </th:block>
 </th:block>
 
-<!-- Kruimelpad in de bovenbalk: van ruimte tot huidige pagina (spec F-05). -->
+<!-- Kruimelpad in de bovenbalk (spec F-05): Home / ruimte / … / huidige pagina, zoals in het ontwerp. -->
 <nav th:fragment="kruimels(ouders, pagina)" aria-label="Locatie">
     <ol class="kruimels">
+        <li><a th:href="@{/}">Home</a></li>
         <li th:each="o : ${ouders}"><a th:href="@{/pages/{id}(id=${o.id})}" th:text="${o.title}">Ouder</a></li>
         <li aria-current="page" th:text="${pagina.title}">Huidige pagina</li>
     </ol>
 </nav>
+
+<!-- Kruimelpad voor een vaste pagina (Alle pagina's, Tags, …): Home / titel. -->
+<nav th:fragment="kruimel(titel)" aria-label="Locatie">
+    <ol class="kruimels">
+        <li><a th:href="@{/}">Home</a></li>
+        <li aria-current="page" th:text="${titel}">Titel</li>
+    </ol>
+</nav>
+
+<!-- Tab-pillen op de beheerpagina's (ontwerp 3a): Overzicht, Gebruikers, Tags, Templates. -->
+<nav th:fragment="beheertabs(actief)" class="tabs" aria-label="Beheer">
+    <a class="tab" th:classappend="${actief == 'overzicht'} ? 'tab--aan'" th:href="@{/admin}">Overzicht</a>
+    <a class="tab" th:classappend="${actief == 'gebruikers'} ? 'tab--aan'" th:href="@{/admin/users}">Gebruikers</a>
+    <a class="tab" th:classappend="${actief == 'tags'} ? 'tab--aan'" th:href="@{/admin/tags}">Tags</a>
+    <a class="tab" th:classappend="${actief == 'templates'} ? 'tab--aan'" th:href="@{/admin/templates}">Templates</a>
+</nav>
+
+<!-- Pijlknop onder een lijst of tabel: toont de rijen met class "uitklap__rij" (verborgen bij laden) en klapt ze weer in. -->
+<button th:fragment="uitklapknop(doel, aantal)" type="button" class="lijst__meer"
+        aria-expanded="false" th:attr="aria-controls=${doel}, data-meer=|Nog ${aantal} tonen|, data-minder='Minder tonen'">
+    <span class="icoon" th:insert="~{fragments :: icoon('chevron')}"></span>
+    <span class="lijst__meer-tekst" th:text="|Nog ${aantal} tonen|">Meer tonen</span>
+</button>
+
+<script th:fragment="uitklapscript">
+    document.querySelectorAll('.lijst__meer').forEach(function (knop) {
+        knop.addEventListener('click', function () {
+            var open = knop.getAttribute('aria-expanded') !== 'true';
+            var doel = document.getElementById(knop.getAttribute('aria-controls'));
+            doel.querySelectorAll('.uitklap__rij').forEach(function (rij) {
+                rij.hidden = !open;
+            });
+            knop.setAttribute('aria-expanded', open ? 'true' : 'false');
+            knop.querySelector('.lijst__meer-tekst').textContent = open ? knop.dataset.minder : knop.dataset.meer;
+        });
+    });
+</script>
 
 </body>
 </html>

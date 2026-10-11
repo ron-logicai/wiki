@@ -11,10 +11,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -30,6 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 class UserAdminFlowIntegrationTest {
 
+	/** An admin that is not in app_user (passes through ActiveUserFilter), for tests without @WithMockUser. */
+	private static final RequestPostProcessor ADMIN = user("admin").roles("ADMIN");
+
 	@Autowired
 	private MockMvc mvc;
 
@@ -41,9 +49,9 @@ class UserAdminFlowIntegrationTest {
 	void adminCreatesUserAndSeesItListedWithAuditEntry() throws Exception {
 		mvc.perform(post("/admin/users").with(csrf())
 				.param("username", "  Nieuwe.Admin ")
-				.param("displayName", "Nieuwe Admin")
 				.param("email", "nieuwe.admin@example.com")
 				.param("password", "geheim123")
+				.param("passwordRepeat", "geheim123")
 				.param("role", "ADMIN"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(header().string("Location", "/admin/users"))
@@ -66,7 +74,6 @@ class UserAdminFlowIntegrationTest {
 	void invalidFormIsRenderedAgainWithMessage() throws Exception {
 		mvc.perform(post("/admin/users").with(csrf())
 				.param("username", "zonder.login")
-				.param("displayName", "Zonder login")
 				.param("role", "VIEWER"))
 			.andExpect(status().isOk())
 			.andExpect(model().attributeExists("fout"))
@@ -75,11 +82,85 @@ class UserAdminFlowIntegrationTest {
 		create("dubbel", "VIEWER");
 		mvc.perform(post("/admin/users").with(csrf())
 				.param("username", "DUBBEL")
-				.param("displayName", "Nog een")
 				.param("password", "geheim123")
+				.param("passwordRepeat", "geheim123")
 				.param("role", "VIEWER"))
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("bestaat al")));
+
+		// A typo in one of the two password fields is refused, so the new user is never locked out.
+		mvc.perform(post("/admin/users").with(csrf())
+				.param("username", "typefout")
+				.param("password", "geheim123")
+				.param("passwordRepeat", "geheim124")
+				.param("role", "VIEWER"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("niet gelijk")));
+	}
+
+	// The two login tests run without @WithMockUser: a mock principal would shadow the session that
+	// authenticated()/unauthenticated() read after the real form login, so the admin is given per request.
+
+	@Test
+	void createdUserCanLogInWithTheirPassword() throws Exception {
+		create("ron1234", "ADMIN", ADMIN);
+
+		mvc.perform(formLogin().user("ron1234").password("geheim123"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/"))
+			.andExpect(authenticated().withUsername("ron1234").withRoles("ADMIN"));
+		// Username lookup ignores case, so "Ron1234" logs in too.
+		mvc.perform(formLogin().user("Ron1234").password("geheim123"))
+			.andExpect(authenticated().withUsername("ron1234"));
+		mvc.perform(formLogin().user("ron1234").password("verkeerd!"))
+			.andExpect(unauthenticated());
+	}
+
+	@Test
+	void adminSetsNewPasswordAndUserLogsInWithIt() throws Exception {
+		UUID id = create("vergeten", "EDITOR", ADMIN);
+
+		mvc.perform(post("/admin/users/{id}/password", id).with(csrf()).with(ADMIN)
+				.param("password", "nieuw-ww-1").param("passwordRepeat", "anders-ww"))
+			.andExpect(flash().attribute("fout", containsString("niet gelijk")));
+		mvc.perform(post("/admin/users/{id}/password", id).with(csrf()).with(ADMIN)
+				.param("password", "kort").param("passwordRepeat", "kort"))
+			.andExpect(flash().attribute("fout", containsString("minimaal 8")));
+
+		mvc.perform(post("/admin/users/{id}/password", id).with(csrf()).with(ADMIN)
+				.param("password", "nieuw-ww-1").param("passwordRepeat", "nieuw-ww-1"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/admin/users"))
+			.andExpect(flash().attribute("melding", containsString("ingesteld")));
+
+		mvc.perform(formLogin().user("vergeten").password("geheim123")).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("vergeten").password("nieuw-ww-1"))
+			.andExpect(authenticated().withUsername("vergeten").withRoles("EDITOR"));
+
+		mvc.perform(get("/admin").with(ADMIN))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Wachtwoord ingesteld")));
+
+		// An Entra-only account gets form login once a password is set.
+		mvc.perform(post("/admin/users").with(csrf()).with(ADMIN)
+				.param("username", "entra.only")
+				.param("email", "entra.only@example.com").param("role", "VIEWER"))
+			.andExpect(status().is3xxRedirection());
+		UUID entra = jdbc.queryForObject("select id from app_user where username = ?", UUID.class, "entra.only");
+		mvc.perform(formLogin().user("entra.only").password("nieuw-ww-1")).andExpect(unauthenticated());
+		mvc.perform(post("/admin/users/{id}/password", entra).with(csrf()).with(ADMIN)
+				.param("password", "nieuw-ww-1").param("passwordRepeat", "nieuw-ww-1"))
+			.andExpect(flash().attributeExists("melding"));
+		mvc.perform(formLogin().user("entra.only").password("nieuw-ww-1"))
+			.andExpect(authenticated().withUsername("entra.only"));
+	}
+
+	@Test
+	@WithMockUser(username = "editor", roles = "EDITOR")
+	void editorCannotSetPasswords() throws Exception {
+		mvc.perform(post("/admin/users/{id}/password", UUID.randomUUID()).with(csrf())
+				.param("password", "nieuw-ww-1").param("passwordRepeat", "nieuw-ww-1"))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -87,7 +168,7 @@ class UserAdminFlowIntegrationTest {
 	void editorIsRefused() throws Exception {
 		mvc.perform(get("/admin/users")).andExpect(status().isForbidden());
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "sluip").param("displayName", "x").param("password", "geheim123").param("role", "ADMIN"))
+				.param("username", "sluip").param("password", "geheim123").param("passwordRepeat", "geheim123").param("role", "ADMIN"))
 			.andExpect(status().isForbidden());
 	}
 
@@ -156,12 +237,16 @@ class UserAdminFlowIntegrationTest {
 			.andExpect(flash().attribute("fout", containsString("laatste actieve beheerder")));
 	}
 
-	private UUID create(String username, String role) throws Exception {
-		mvc.perform(post("/admin/users").with(csrf())
+	private UUID create(String username, String role, RequestPostProcessor... as) throws Exception {
+		MockHttpServletRequestBuilder request = post("/admin/users").with(csrf())
 				.param("username", username)
-				.param("displayName", username)
 				.param("password", "geheim123")
-				.param("role", role))
+				.param("passwordRepeat", "geheim123")
+				.param("role", role);
+		for (RequestPostProcessor as1 : as) {
+			request.with(as1);
+		}
+		mvc.perform(request)
 			.andExpect(status().is3xxRedirection())
 			.andExpect(flash().attributeExists("melding"));
 		return jdbc.queryForObject("select id from app_user where username = ?", UUID.class, username);

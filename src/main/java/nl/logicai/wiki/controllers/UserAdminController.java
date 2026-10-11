@@ -1,10 +1,13 @@
 package nl.logicai.wiki.controllers;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import nl.logicai.wiki.exceptions.InvalidUserException;
 import nl.logicai.wiki.models.NewUserForm;
 import nl.logicai.wiki.models.Role;
+import nl.logicai.wiki.models.WikiUser;
+import nl.logicai.wiki.services.AdminService;
 import nl.logicai.wiki.services.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -21,13 +24,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class UserAdminController {
 
 	private final UserService userService;
+	private final AdminService adminService;
 
-	public UserAdminController(UserService userService) {
+	public UserAdminController(UserService userService, AdminService adminService) {
 		this.userService = userService;
+		this.adminService = adminService;
 	}
 
+	/** De gebruikerslijst, optioneel gefilterd op naam/e-mail ('q') en rol ('rol') zoals in het ontwerp. */
 	@GetMapping("/admin/users")
-	public String overzicht(@ModelAttribute("form") NewUserForm form, Model model) {
+	public String overzicht(@ModelAttribute("form") NewUserForm form, @RequestParam(required = false) String q,
+			@RequestParam(required = false) Role rol, Model model) {
+		model.addAttribute("q", q == null ? "" : q.strip());
+		model.addAttribute("rolFilter", rol);
 		return lijst(model);
 	}
 
@@ -42,8 +51,22 @@ public class UserAdminController {
 		catch (InvalidUserException ex) {
 			model.addAttribute("fout", ex.getMessage());
 			form.setPassword("");
+			form.setPasswordRepeat("");
 			return lijst(model);
 		}
+	}
+
+	@PostMapping("/admin/users/{id}/password")
+	public String wachtwoord(@PathVariable UUID id, @RequestParam String password,
+			@RequestParam(defaultValue = "") String passwordRepeat, Authentication auth, RedirectAttributes redirect) {
+		try {
+			var user = userService.setPassword(id, password, passwordRepeat, auth.getName());
+			redirect.addFlashAttribute("melding", "Wachtwoord van “" + user.getUsername() + "” is ingesteld; inloggen kan direct.");
+		}
+		catch (InvalidUserException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/admin/users";
 	}
 
 	@PostMapping("/admin/users/{id}/role")
@@ -72,9 +95,21 @@ public class UserAdminController {
 	}
 
 	private String lijst(Model model) {
-		model.addAttribute("gebruikers", userService.all());
+		String q = model.getAttribute("q") instanceof String s ? s.toLowerCase(Locale.ROOT) : "";
+		Role rol = model.getAttribute("rolFilter") instanceof Role r ? r : null;
+		model.addAttribute("gebruikers", userService.all().stream()
+			.filter(u -> rol == null || u.getRole() == rol)
+			.filter(u -> q.isEmpty() || matches(u, q))
+			.toList());
 		model.addAttribute("rollen", Role.values());
+		model.addAttribute("overzicht", adminService.overview());
 		return "gebruikers";
+	}
+
+	private static boolean matches(WikiUser u, String q) {
+		return u.getUsername().toLowerCase(Locale.ROOT).contains(q)
+				|| (u.getDisplayName() != null && u.getDisplayName().toLowerCase(Locale.ROOT).contains(q))
+				|| (u.getEmail() != null && u.getEmail().toLowerCase(Locale.ROOT).contains(q));
 	}
 
 }

@@ -11,9 +11,7 @@
 
     <div class="hoofd">
         <div class="top">
-            <span class="gedempt">Prullenbak</span>
-            <span class="sep">/</span>
-            <span th:text="${pagina.title}">Titel</span>
+            <nav aria-label="Locatie"><ol class="kruimels"><li><a th:href="@{/}">Home</a></li><li><a sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:href="@{/trash}">Prullenbak</a><span sec:authorize="!hasAnyRole('EDITOR', 'ADMIN')">Prullenbak</span></li><li aria-current="page" th:text="${pagina.title}">Titel</li></ol></nav>
             <span class="top__ruimte"></span>
             <a class="knop" sec:authorize="hasAnyRole('EDITOR', 'ADMIN')" th:href="@{/trash}">Naar de prullenbak</a>
         </div>

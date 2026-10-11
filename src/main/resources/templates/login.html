@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Inloggen · LogicAI Wiki</title>
+</head>
+<body class="inlog">
+
+<!-- Bovenbalk in de kleur van de zijbalk, met het logo links (zelfde maat als in de zijbalk). -->
+<header class="inlog__kop">
+    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+    </a>
+    <span class="inlog__ondertitel">Interne kenniswiki</span>
+</header>
+
+<main class="inlog__vlak">
+    <div class="inlog__kaart">
+        <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
+        <p class="eyebrow">LogicAI Wiki</p>
+        <h1>Inloggen</h1>
+        <p class="intro">Log in met je account om de wiki te openen.</p>
+
+        <!-- Meldingen: Spring Security stuurt naar ?error en ?logout, ActiveUserFilter naar ?deactivated (spec F-02). -->
+        <p class="melding" role="alert" th:if="${param.error != null}">
+            Inloggen is niet gelukt. Controleer je gebruikersnaam en wachtwoord, of vraag de beheerder of je account toegang heeft.
+        </p>
+        <p class="melding" role="alert" th:if="${param.deactivated != null}">
+            Je account is gedeactiveerd. Neem contact op met de beheerder als je weer toegang nodig hebt.
+        </p>
+        <p class="melding melding--info" role="status" th:if="${param.logout != null}">
+            Je bent uitgelogd.
+        </p>
+
+        <form class="formulier" th:action="@{/login}" method="post">
+            <div class="veld">
+                <label for="username">Gebruikersnaam</label>
+                <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
+                       spellcheck="false" required autofocus>
+            </div>
+            <div class="veld">
+                <label for="password">Wachtwoord</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <a class="inlog__vergeten" th:href="@{/wachtwoord-vergeten}">Wachtwoord vergeten?</a>
+            </div>
+            <div class="acties">
+                <button type="submit" class="knop knop--primair knop--vol">Inloggen</button>
+            </div>
+        </form>
+
+        <!-- Bedrijfslogin via Microsoft Entra ID (spec F-01), alleen als die is geconfigureerd. -->
+        <th:block th:if="${entra}">
+            <div class="inlog__of"><span>of</span></div>
+            <a class="knop knop--navy knop--vol" th:href="@{/oauth2/authorization/entra}">
+                <svg class="inlog__ms" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21" width="16" height="16" aria-hidden="true" focusable="false">
+                    <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                </svg>
+                Inloggen met Microsoft
+            </a>
+        </th:block>
+
+        <p class="inlog__voet gedempt klein">
+            Alleen toegelaten medewerkers kunnen inloggen. Geen account? Vraag een beheerder om toegang.
+        </p>
+    </div>
+</main>
+
+</body>
+</html>

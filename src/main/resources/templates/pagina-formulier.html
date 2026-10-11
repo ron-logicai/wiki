@@ -11,9 +11,13 @@
 
     <div class="hoofd">
         <div class="top">
-            <span th:if="${ouder != null}" class="gedempt" th:text="${ouder.title}">Ouder</span>
-            <span th:if="${ouder != null}" class="sep">/</span>
-            <span>Nieuwe pagina</span>
+            <nav aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li th:if="${ouder != null}"><a th:href="@{/pages/{id}(id=${ouder.id})}" th:text="${ouder.title}">Ouder</a></li>
+                    <li aria-current="page">Nieuwe pagina</li>
+                </ol>
+            </nav>
             <span class="top__ruimte"></span>
         </div>
 
@@ -28,6 +32,12 @@
 
                 <form th:action="@{/pages}" th:object="${form}" method="post" class="formulier">
                     <div class="veld">
+                        <label for="title">Titel</label>
+                        <input id="title" type="text" th:field="*{title}" required autofocus placeholder="Bijv. Vakantie aanvragen"
+                               th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
+                        <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
+                    </div>
+                    <div class="veld">
                         <label for="parentId">Plek</label>
                         <select id="parentId" th:field="*{parentId}">
                             <option value="">Hoofdniveau (nieuwe ruimte)</option>
@@ -35,20 +45,31 @@
                                     th:text="${#strings.repeat('— ', p.depth)} + ${p.page.title}">Pagina</option>
                         </select>
                     </div>
-                    <div class="veld">
-                        <label for="title">Titel</label>
-                        <input id="title" type="text" th:field="*{title}" required autofocus placeholder="Bijv. Vakantie aanvragen"
-                               th:attr="aria-invalid=${#fields.hasErrors('title')} ? 'true' : null">
-                        <p class="veld__fout" th:each="e : ${#fields.errors('title')}" th:text="${e}">Fout</p>
-                    </div>
-                    <div class="veld">
-                        <label for="templateId">Template</label>
-                        <select id="templateId" th:field="*{templateId}">
-                            <option value="">Leeg</option>
-                            <option th:each="t : ${templates}" th:value="${t.id}" th:text="${t.title}">Template</option>
-                        </select>
+                    <!-- Template als keuzekaarten (ontwerp 4a): "Leeg" eerst, daarna elk template met zijn omschrijving. -->
+                    <fieldset class="veld sjabloonveld">
+                        <legend>Template</legend>
+                        <div class="sjabloonkeuze">
+                            <label class="sjabloonkaart">
+                                <input type="radio" name="templateId" value="" class="verborgen" th:checked="${form.templateId == null}">
+                                <span class="sjabloonkaart__icoon"><span class="icoon" th:insert="~{fragments :: icoon('bestand')}"></span></span>
+                                <span class="sjabloonkaart__tekst">
+                                    <span class="sjabloonkaart__titel">Leeg</span>
+                                    <span class="sjabloonkaart__sub">Begin met een lege pagina.</span>
+                                </span>
+                            </label>
+                            <!-- Icoon per template zoals in het ontwerp: code voor onboarding, map voor project, genummerde lijst voor werkinstructie -->
+                            <label class="sjabloonkaart" th:each="t : ${templates}"
+                                   th:with="ikoon=${#strings.containsIgnoreCase(t.title, 'onboarding')} ? 'code' : (${#strings.containsIgnoreCase(t.title, 'project')} ? 'map' : (${#strings.containsIgnoreCase(t.title, 'werkinstructie')} ? 'genummerd' : 'sjabloon'))">
+                                <input type="radio" name="templateId" th:value="${t.id}" class="verborgen" th:checked="${form.templateId == t.id}">
+                                <span class="sjabloonkaart__icoon"><span class="icoon" th:insert="~{fragments :: icoon(${ikoon})}"></span></span>
+                                <span class="sjabloonkaart__tekst">
+                                    <span class="sjabloonkaart__titel" th:text="${t.title}">Template</span>
+                                    <span class="sjabloonkaart__sub" th:if="${!#strings.isEmpty(t.description)}" th:text="${t.description}">Omschrijving</span>
+                                </span>
+                            </label>
+                        </div>
                         <p class="gedempt klein" th:unless="${#lists.isEmpty(templates)}">De pagina begint met de opzet van het template en krijgt een eigen kopie.</p>
-                    </div>
+                    </fieldset>
                     <div class="acties">
                         <button type="submit" class="knop knop--primair">Pagina aanmaken</button>
                         <a class="knop" th:href="${ouder != null} ? @{/pages/{id}(id=${ouder.id})} : @{/pages}">Annuleren</a>

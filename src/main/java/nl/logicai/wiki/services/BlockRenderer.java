@@ -22,17 +22,40 @@ public class BlockRenderer {
 		this.mapper = mapper;
 	}
 
+	/** A heading in the rendered document, for the "Op deze pagina" list on the read view. */
+	public record Heading(int level, String id, String text) {
+	}
+
+	/** Rendered HTML plus the headings it contains (the headings carry {@code id} anchors). */
+	public record Rendered(String html, List<Heading> outline) {
+	}
+
 	public String render(String documentJson) {
 		return render(mapper.readTree(documentJson));
 	}
 
 	public String render(JsonNode blocks) {
 		StringBuilder html = new StringBuilder();
-		renderBlocks(blocks, html);
+		renderBlocks(blocks, html, null);
 		return html.toString();
 	}
 
-	private void renderBlocks(JsonNode blocks, StringBuilder html) {
+	public Rendered renderWithOutline(String documentJson) {
+		return renderWithOutline(mapper.readTree(documentJson));
+	}
+
+	/**
+	 * Like {@link #render(JsonNode)}, but every heading gets a sequential {@code id="kop-n"} and is
+	 * collected in the outline. The plain {@code render} output stays unchanged (exports, revisions).
+	 */
+	public Rendered renderWithOutline(JsonNode blocks) {
+		StringBuilder html = new StringBuilder();
+		List<Heading> outline = new ArrayList<>();
+		renderBlocks(blocks, html, outline);
+		return new Rendered(html.toString(), List.copyOf(outline));
+	}
+
+	private void renderBlocks(JsonNode blocks, StringBuilder html, List<Heading> outline) {
 		if (blocks == null || !blocks.isArray()) {
 			return;
 		}
@@ -48,25 +71,33 @@ public class BlockRenderer {
 				}
 				html.append('>');
 				while (i < list.size() && type.equals(typeOf(list.get(i)))) {
-					renderListItem(list.get(i), html);
+					renderListItem(list.get(i), html, outline);
 					i++;
 				}
 				html.append("</").append(tag).append('>');
 			}
 			else {
-				renderBlock(list.get(i), html);
+				renderBlock(list.get(i), html, outline);
 				i++;
 			}
 		}
 	}
 
-	private void renderBlock(JsonNode block, StringBuilder html) {
+	private void renderBlock(JsonNode block, StringBuilder html, List<Heading> outline) {
 		String type = typeOf(block);
 		JsonNode content = block.path("content");
 		switch (type) {
 			case "heading" -> {
 				int level = Math.clamp(block.path("props").path("level").asInt(1), 1, 6);
-				html.append("<h").append(level).append('>');
+				html.append("<h").append(level);
+				if (outline != null) {
+					String id = "kop-" + (outline.size() + 1);
+					StringBuilder text = new StringBuilder();
+					renderPlainText(content, text);
+					outline.add(new Heading(level, id, HtmlUtils.htmlUnescape(text.toString())));
+					html.append(" id=\"").append(id).append('"');
+				}
+				html.append('>');
 				renderInline(content, html);
 				html.append("</h").append(level).append('>');
 			}
@@ -96,7 +127,7 @@ public class BlockRenderer {
 				renderVideoEmbed(content, html);
 			}
 		}
-		renderChildren(block, html);
+		renderChildren(block, html, outline);
 	}
 
 	/**
@@ -199,7 +230,7 @@ public class BlockRenderer {
 		return link;
 	}
 
-	private void renderListItem(JsonNode block, StringBuilder html) {
+	private void renderListItem(JsonNode block, StringBuilder html, List<Heading> outline) {
 		html.append("<li>");
 		if ("checkListItem".equals(typeOf(block))) {
 			boolean checked = block.path("props").path("checked").asBoolean(false);
@@ -210,15 +241,15 @@ public class BlockRenderer {
 			html.append("> ");
 		}
 		renderInline(block.path("content"), html);
-		renderChildren(block, html);
+		renderChildren(block, html, outline);
 		html.append("</li>");
 	}
 
-	private void renderChildren(JsonNode block, StringBuilder html) {
+	private void renderChildren(JsonNode block, StringBuilder html, List<Heading> outline) {
 		JsonNode children = block.path("children");
 		if (children.isArray() && !children.isEmpty()) {
 			html.append("<div class=\"block-children\">");
-			renderBlocks(children, html);
+			renderBlocks(children, html, outline);
 			html.append("</div>");
 		}
 	}

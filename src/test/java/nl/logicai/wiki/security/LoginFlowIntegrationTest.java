@@ -60,6 +60,34 @@ class LoginFlowIntegrationTest {
 		assertThat(api.headers().firstValue("Location")).isEmpty();
 	}
 
+	/** The custom login page (spec F-01) is open with every query string, so its Dutch messages render. */
+	@Test
+	void loginPageRendersMessagesForEveryQueryVariant() {
+		BrowserSession browser = new BrowserSession(port);
+
+		HttpResponse<String> plain = browser.get("/login");
+		assertThat(plain.statusCode()).isEqualTo(200);
+		assertThat(plain.body()).contains("name=\"username\"").contains("name=\"password\"").doesNotContain("class=\"melding");
+
+		HttpResponse<String> error = browser.get("/login?error");
+		assertThat(error.statusCode()).isEqualTo(200);
+		assertThat(error.body()).contains("Inloggen is niet gelukt");
+
+		HttpResponse<String> logout = browser.get("/login?logout");
+		assertThat(logout.statusCode()).isEqualTo(200);
+		assertThat(logout.body()).contains("Je bent uitgelogd");
+
+		HttpResponse<String> deactivated = browser.get("/login?deactivated");
+		assertThat(deactivated.statusCode()).isEqualTo(200);
+		assertThat(deactivated.body()).contains("Je account is gedeactiveerd");
+
+		// "Wachtwoord vergeten?" leads to an open page that explains an admin sets a new password.
+		assertThat(plain.body()).contains("/wachtwoord-vergeten");
+		HttpResponse<String> vergeten = browser.get("/wachtwoord-vergeten");
+		assertThat(vergeten.statusCode()).isEqualTo(200);
+		assertThat(vergeten.body()).contains("Vraag een beheerder");
+	}
+
 	@Test
 	void passwordLoginRotatesHardenedSessionCookieAndLogoutEndsIt() {
 		String username = create("ron.flow", PASSWORD, Role.EDITOR);
