@@ -40,6 +40,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  *       is configured (profile {@code entra}); the account must match an active app_user.</li>
  *   <li>Password login checks app_user through {@code WikiUserDetailsService}; profile {@code local}
  *       seeds the three test users, and {@code WIKI_BOOTSTRAP_ADMIN_*} creates the first admin.</li>
+ *   <li>"Wachtwoord vergeten" is open without a session: {@code /wachtwoord-vergeten} mails a single-use
+ *       link to {@code /wachtwoord-herstellen} ({@code PasswordResetService}); a logged-in user changes
+ *       their own password on {@code /account/wachtwoord}.</li>
  * </ul>
  */
 @Configuration
@@ -57,7 +60,8 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/fonts/**", "/img/**", "/error").permitAll()
 				// The login page with every query string (?error, ?logout, ?deactivated); formLogin().permitAll() would
 				// only allow the exact URLs /login and /login?error, and send /login?logout back to /login.
-				.requestMatchers("/login", "/wachtwoord-vergeten").permitAll()
+				// "Wachtwoord vergeten" (request form) and the reset link from the mail are open as well.
+				.requestMatchers("/login", "/wachtwoord-vergeten", "/wachtwoord-herstellen").permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())

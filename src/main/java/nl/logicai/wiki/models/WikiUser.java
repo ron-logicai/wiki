@@ -85,6 +85,11 @@ public class WikiUser {
 		this.passwordHash = passwordHash;
 	}
 
+	/** Sets the e-mail address (lower-cased by the caller); used by the local seed to give test users an address. */
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
 	public void recordLogin(Instant now) {
 		this.lastLoginAt = now;
 	}

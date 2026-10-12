@@ -140,6 +140,8 @@ Alle instellingen komen uit omgevingsvariabelen; zie `.env.example`. Er staan ge
 | `WIKI_ATTACHMENTS_DIR` | Map voor geüploade bestanden (standaard `./data/attachments`; in Compose het volume `wiki-attachments`) |
 | `WIKI_UPLOAD_MAX_FILE_SIZE` | Maximale grootte per afbeelding (PNG, JPEG) of PDF (standaard `10MB`, spec U-01) |
 | `WIKI_UPLOAD_MAX_VIDEO_SIZE` | Maximale grootte per video (MP4, WebM; standaard `100MB`) |
+| `WIKI_BASE_URL` | Publieke URL van de wiki, voor de links in e-mail (standaard `http://localhost:8080`) |
+| `WIKI_MAIL_HOST`, `WIKI_MAIL_PORT`, `WIKI_MAIL_USERNAME`, `WIKI_MAIL_PASSWORD`, `WIKI_MAIL_FROM` | SMTP voor "wachtwoord vergeten"; zonder `WIKI_MAIL_HOST` wordt de herstel-link in de log geschreven in plaats van gemaild |
 
 Geüploade bestanden staan niet in de database. Een back-up bestaat daarom uit de database **en** de
 map `WIKI_ATTACHMENTS_DIR`; herstel beide samen.

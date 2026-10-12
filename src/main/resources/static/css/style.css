@@ -2194,6 +2194,17 @@ tr.gedempt td {
     font-size: 12px;
 }
 
+/* Naam en rol zijn een link naar /account/wachtwoord; zelfde kleuren, naam kleurt teal bij hover */
+a.zij__wie {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.zij__wie:hover .zij__naam,
+a.zij__wie:focus-visible .zij__naam {
+    color: var(--teal);
+}
+
 /* Paginaweergave met rechterkolom (ontwerp 2a): artikel links, "Op deze pagina" en "Gerelateerd" rechts */
 .pagina--met-zijkant {
     display: grid;

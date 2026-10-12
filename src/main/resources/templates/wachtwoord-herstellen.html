@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <!-- Het token staat in de URL van de eerste GET; nooit doorgeven aan andere sites. -->
+    <meta name="referrer" content="no-referrer">
+    <title>Nieuw wachtwoord · LogicAI Wiki</title>
+</head>
+<body class="inlog">
+
+<header class="inlog__kop">
+    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+    </a>
+    <span class="inlog__ondertitel">Interne kenniswiki</span>
+</header>
+
+<main class="inlog__vlak">
+    <div class="inlog__kaart">
+        <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
+        <p class="eyebrow">LogicAI Wiki</p>
+        <h1>Nieuw wachtwoord</h1>
+
+        <!-- Link onbekend, al gebruikt of verlopen -->
+        <th:block th:if="${ongeldig}">
+            <p class="melding" role="alert">Deze link is ongeldig of verlopen. Vraag een nieuwe link aan.</p>
+            <div class="acties">
+                <a class="knop knop--primair knop--vol" th:href="@{/wachtwoord-vergeten}">Nieuwe link aanvragen</a>
+                <a class="knop knop--vol" th:href="@{/login}">Terug naar inloggen</a>
+            </div>
+        </th:block>
+
+        <th:block th:unless="${ongeldig}">
+            <p class="intro">Kies een nieuw wachtwoord van minimaal 8 tekens.</p>
+
+            <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+            <form class="formulier" th:action="@{/wachtwoord-herstellen}" method="post">
+                <input type="hidden" name="token" th:value="${token}">
+                <div class="veld">
+                    <label for="password">Nieuw wachtwoord</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required autofocus>
+                </div>
+                <div class="veld">
+                    <label for="passwordRepeat">Herhaal wachtwoord</label>
+                    <input id="passwordRepeat" name="passwordRepeat" type="password" autocomplete="new-password" minlength="8" required>
+                </div>
+                <div class="acties">
+                    <button type="submit" class="knop knop--primair knop--vol">Wachtwoord opslaan</button>
+                </div>
+            </form>
+        </th:block>
+    </div>
+</main>
+
+</body>
+</html>

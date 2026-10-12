@@ -34,6 +34,12 @@ public class UserService {
 	public static final String USER_PASSWORD = "user.password";
 	public static final String USER_ACTIVATE = "user.activate";
 	public static final String USER_DEACTIVATE = "user.deactivate";
+	/** A user changed their own password on /account/wachtwoord. */
+	public static final String USER_PASSWORD_CHANGE = "user.password.change";
+	/** A reset link was created for "wachtwoord vergeten" ({@link PasswordResetService}). */
+	public static final String USER_PASSWORD_RESET_REQUEST = "user.password.reset-request";
+	/** A user set a new password through a reset link. */
+	public static final String USER_PASSWORD_RESET = "user.password.reset";
 
 	static final int PASSWORD_MIN = 8;
 	private static final Pattern USERNAME = Pattern.compile("[a-z0-9._@-]+");
@@ -150,6 +156,28 @@ public class UserService {
 		return user;
 	}
 
+	/**
+	 * A logged-in user changes their own password (route /account/wachtwoord). The username must come
+	 * from the {@code Authentication}, never from the form; the current password is checked first.
+	 */
+	@PreAuthorize("isAuthenticated()")
+	public WikiUser changeOwnPassword(String username, String currentPassword, String password, String passwordRepeat) {
+		WikiUser user = users.findByUsernameIgnoreCase(username)
+			.orElseThrow(() -> new InvalidUserException("Gebruiker niet gevonden."));
+		if (!user.hasPassword()) {
+			throw new InvalidUserException("Je account logt in via Microsoft en heeft geen wiki-wachtwoord.");
+		}
+		if (currentPassword == null || currentPassword.isEmpty() || !encoder.matches(currentPassword, user.getPasswordHash())) {
+			throw new InvalidUserException("Het huidige wachtwoord klopt niet.");
+		}
+		if (password == null || password.isEmpty()) {
+			throw new InvalidUserException("Geef een nieuw wachtwoord.");
+		}
+		user.changePassword(hashPassword(password, passwordRepeat));
+		audit.save(AuditEvent.of(USER_PASSWORD_CHANGE, null, user.getUsername(), clock.instant(), user.getUsername()));
+		return user;
+	}
+
 	/** Records the login time for password and Entra logins. */
 	@EventListener
 	public void onLogin(AuthenticationSuccessEvent event) {
@@ -157,8 +185,11 @@ public class UserService {
 			.ifPresent(user -> user.recordLogin(clock.instant()));
 	}
 
-	/** Length check and the repeat field, so a typo at creation does not lock the new user out. */
-	private String hashPassword(String password, String passwordRepeat) {
+	/**
+	 * Length check and the repeat field, so a typo at creation does not lock the new user out.
+	 * Package-private so {@link PasswordResetService} applies the same rules.
+	 */
+	String hashPassword(String password, String passwordRepeat) {
 		if (password.length() < PASSWORD_MIN) {
 			throw new InvalidUserException("Wachtwoord: minimaal " + PASSWORD_MIN + " tekens.");
 		}

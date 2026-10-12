@@ -51,6 +51,10 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    mail:
+      # An unreachable SMTP server must not make /actuator/health DOWN (Docker HEALTHCHECK, CI readiness).
+      enabled: false
 
 wiki:
   # First admin on a fresh installation: created once, only while app_user is empty. Password for
@@ -59,6 +63,21 @@ wiki:
     username: ${WIKI_BOOTSTRAP_ADMIN_USERNAME:}
     password: ${WIKI_BOOTSTRAP_ADMIN_PASSWORD:}
     email: ${WIKI_BOOTSTRAP_ADMIN_EMAIL:}
+  # Public URL of the wiki, used for links in e-mail. Never taken from request headers (spec N-02).
+  base-url: ${WIKI_BASE_URL:http://localhost:8080}
+  mail:
+    # SMTP for "wachtwoord vergeten". An empty host means no SMTP: reset links are logged (WARN) instead
+    # of mailed, which is what profile local and the tests use. Never put the password in Git (spec N-04).
+    host: ${WIKI_MAIL_HOST:}
+    port: ${WIKI_MAIL_PORT:587}
+    username: ${WIKI_MAIL_USERNAME:}
+    password: ${WIKI_MAIL_PASSWORD:}
+    starttls: ${WIKI_MAIL_STARTTLS:true}
+    from: ${WIKI_MAIL_FROM:wiki@logicai.nl}
+  password-reset:
+    # How long a reset link stays valid, and how long a user waits before a new link is sent.
+    ttl: ${WIKI_PASSWORD_RESET_TTL:1h}
+    cooldown: 2m
   limits:
     title-max-length: 200
     document-max-bytes: 2097152

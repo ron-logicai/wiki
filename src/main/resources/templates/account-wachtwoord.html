@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Wachtwoord wijzigen · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('account')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <nav aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li aria-current="page">Wachtwoord wijzigen</li>
+                </ol>
+            </nav>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom kolom--smal">
+                <div class="kop">
+                    <p class="eyebrow">Account</p>
+                    <h1>Wachtwoord wijzigen</h1>
+                    <p class="intro" th:if="${heeftWachtwoord}">
+                        Kies een nieuw wachtwoord van minimaal 8 tekens. Het werkt direct bij je volgende login.
+                    </p>
+                    <p class="intro" th:unless="${heeftWachtwoord}">
+                        Je logt in met Microsoft en hebt geen wiki-wachtwoord; je wachtwoord beheer je bij Microsoft.
+                    </p>
+                </div>
+
+                <p class="melding melding--info" role="status" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <form class="formulier kaart" th:if="${heeftWachtwoord}" th:action="@{/account/wachtwoord}" method="post">
+                    <div class="veld">
+                        <label for="currentPassword">Huidig wachtwoord</label>
+                        <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required autofocus>
+                    </div>
+                    <div class="veld">
+                        <label for="password">Nieuw wachtwoord</label>
+                        <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <div class="veld">
+                        <label for="passwordRepeat">Herhaal nieuw wachtwoord</label>
+                        <input id="passwordRepeat" name="passwordRepeat" type="password" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <div class="acties">
+                        <button type="submit" class="knop knop--primair">Wachtwoord wijzigen</button>
+                        <a class="knop" th:href="@{/}">Annuleren</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

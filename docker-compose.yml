@@ -31,6 +31,12 @@ services:
       WIKI_ENTRA_CLIENT_ID: ${WIKI_ENTRA_CLIENT_ID:-}
       WIKI_ENTRA_CLIENT_SECRET: ${WIKI_ENTRA_CLIENT_SECRET:-}
       WIKI_ATTACHMENTS_DIR: /app/data/attachments
+      WIKI_BASE_URL: ${WIKI_BASE_URL:-http://localhost:8080}
+      WIKI_MAIL_HOST: ${WIKI_MAIL_HOST:-}
+      WIKI_MAIL_PORT: ${WIKI_MAIL_PORT:-587}
+      WIKI_MAIL_USERNAME: ${WIKI_MAIL_USERNAME:-}
+      WIKI_MAIL_PASSWORD: ${WIKI_MAIL_PASSWORD:-}
+      WIKI_MAIL_FROM: ${WIKI_MAIL_FROM:-wiki@logicai.nl}
     volumes:
       - wiki-attachments:/app/data
     ports:

@@ -31,6 +31,9 @@
         <p class="melding melding--info" role="status" th:if="${param.logout != null}">
             Je bent uitgelogd.
         </p>
+        <p class="melding melding--info" role="status" th:if="${param.reset != null}">
+            Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
+        </p>
 
         <form class="formulier" th:action="@{/login}" method="post">
             <div class="veld">

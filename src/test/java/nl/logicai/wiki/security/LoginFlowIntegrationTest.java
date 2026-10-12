@@ -81,11 +81,15 @@ class LoginFlowIntegrationTest {
 		assertThat(deactivated.statusCode()).isEqualTo(200);
 		assertThat(deactivated.body()).contains("Je account is gedeactiveerd");
 
-		// "Wachtwoord vergeten?" leads to an open page that explains an admin sets a new password.
+		// "Wachtwoord vergeten?" leads to the open request form of the e-mail reset (PasswordResetFlowIntegrationTest).
 		assertThat(plain.body()).contains("/wachtwoord-vergeten");
 		HttpResponse<String> vergeten = browser.get("/wachtwoord-vergeten");
 		assertThat(vergeten.statusCode()).isEqualTo(200);
-		assertThat(vergeten.body()).contains("Vraag een beheerder");
+		assertThat(vergeten.body()).contains("name=\"email\"");
+
+		HttpResponse<String> reset = browser.get("/login?reset");
+		assertThat(reset.statusCode()).isEqualTo(200);
+		assertThat(reset.body()).contains("Je wachtwoord is gewijzigd");
 	}
 
 	@Test

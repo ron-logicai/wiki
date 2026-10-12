@@ -18,22 +18,44 @@
         <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
         <p class="eyebrow">LogicAI Wiki</p>
         <h1>Wachtwoord vergeten</h1>
-        <p class="intro">
-            Je kunt je wachtwoord niet zelf opnieuw instellen. Een beheerder zet een nieuw wachtwoord voor je;
-            dat werkt direct bij je volgende login.
-        </p>
 
-        <!-- Geen e-mailreset (spec F-01: alleen toegelaten gebruikers, beheerd op /admin/users). -->
-        <ol class="inlog__stappen">
-            <li>Vraag een beheerder van de wiki om een nieuw wachtwoord.</li>
-            <li>Log in met het wachtwoord dat je van de beheerder krijgt.</li>
-            <li>Heb je een Microsoft-account van het bedrijf? Dan kun je ook inloggen met Microsoft, zonder wachtwoord.</li>
-        </ol>
+        <!-- Na een geslaagde aanvraag (redirect naar ?verzonden): alleen de melding, geen formulier. -->
+        <th:block th:if="${param.verzonden != null}">
+            <p class="melding melding--info" role="status">
+                Wij hebben een mail gestuurd met een link om een nieuw wachtwoord te kiezen. De link is één uur geldig.
+            </p>
+            <div class="acties">
+                <a class="knop knop--primair knop--vol" th:href="@{/login}">Terug naar inloggen</a>
+            </div>
+        </th:block>
 
-        <div class="acties">
-            <a class="knop knop--primair knop--vol" th:href="@{/login}">Terug naar inloggen</a>
-            <a class="knop knop--navy knop--vol" th:if="${entra}" th:href="@{/oauth2/authorization/entra}">Inloggen met Microsoft</a>
-        </div>
+        <th:block th:unless="${param.verzonden != null}">
+            <p class="intro">Vul het e-mailadres van je account in. Je krijgt een mail met een link om een nieuw wachtwoord te kiezen.</p>
+
+            <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+            <form class="formulier" th:action="@{/wachtwoord-vergeten}" method="post">
+                <div class="veld">
+                    <label for="email">E-mailadres</label>
+                    <input id="email" name="email" type="email" autocomplete="email" spellcheck="false" required autofocus
+                           th:value="${email}">
+                </div>
+                <div class="acties">
+                    <button type="submit" class="knop knop--primair knop--vol">Stuur herstel-link</button>
+                    <a class="knop knop--vol" th:href="@{/login}">Terug naar inloggen</a>
+                </div>
+            </form>
+
+            <!-- Bedrijfslogin via Microsoft Entra ID (spec F-01), alleen als die is geconfigureerd. -->
+            <th:block th:if="${entra}">
+                <div class="inlog__of"><span>of</span></div>
+                <a class="knop knop--navy knop--vol" th:href="@{/oauth2/authorization/entra}">Inloggen met Microsoft</a>
+            </th:block>
+
+            <p class="inlog__voet gedempt klein">
+                Log je in met Microsoft? Dan heb je geen wiki-wachtwoord. Geen e-mailadres bij je account? Vraag een beheerder om een nieuw wachtwoord.
+            </p>
+        </th:block>
     </div>
 </main>
 

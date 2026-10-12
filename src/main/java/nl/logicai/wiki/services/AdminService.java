@@ -46,6 +46,9 @@ public class AdminService {
 				case UserService.USER_CREATE -> "Gebruiker aangemaakt";
 				case UserService.USER_ROLE -> "Rol gewijzigd";
 				case UserService.USER_PASSWORD -> "Wachtwoord ingesteld";
+				case UserService.USER_PASSWORD_CHANGE -> "Wachtwoord gewijzigd";
+				case UserService.USER_PASSWORD_RESET_REQUEST -> "Wachtwoordreset aangevraagd";
+				case UserService.USER_PASSWORD_RESET -> "Wachtwoord hersteld";
 				case UserService.USER_ACTIVATE -> "Gebruiker geactiveerd";
 				case UserService.USER_DEACTIVATE -> "Gebruiker gedeactiveerd";
 				default -> event.getAction();

@@ -28,9 +28,16 @@ class LocalUsersConfig {
 		return args -> {
 			for (Role role : Role.values()) {
 				String username = role.getLabel().toLowerCase();
-				if (users.findByUsernameIgnoreCase(username).isEmpty()) {
-					users.save(WikiUser.create(username, "Test " + role.getLabel(), null, encoder.encode(PASSWORD),
+				// An address per test user, so "wachtwoord vergeten" can be tried locally (the link is logged).
+				String email = username + "@wiki.local";
+				WikiUser existing = users.findByUsernameIgnoreCase(username).orElse(null);
+				if (existing == null) {
+					users.save(WikiUser.create(username, "Test " + role.getLabel(), email, encoder.encode(PASSWORD),
 							role, "local-profile", clock.instant()));
+				}
+				else if (existing.getEmail() == null && users.findByEmailIgnoreCase(email).isEmpty()) {
+					existing.setEmail(email);
+					users.save(existing);
 				}
 			}
 		};

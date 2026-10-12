@@ -42,9 +42,10 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( F-01 )   Eigen loginpagina in de huisstijl (`login.html`, `LoginController`): navy bovenbalk met het logo links, kaart met gebruikersnaam en wachtwoord, knop "Inloggen met Microsoft" zodra Entra is geconfigureerd, en Nederlandse meldingen voor `?error`, `?logout` en `?deactivated` ( F-01, F-02, N-02 )
 
+( F-01 )   Wachtwoord vergeten en eigen wachtwoord wijzigen: "Wachtwoord vergeten?" op de loginpagina vraagt een e-mailadres (`/wachtwoord-vergeten`), bekend actief account met wachtwoord krijgt een mail met een eenmalige link (`/wachtwoord-herstellen?token=`, één uur geldig, alleen de SHA-256-hash in tabel `password_reset_token` V12, wachttijd van 2 minuten tussen aanvragen); onbekend adres geeft "Uw account bestaat niet"; SMTP via `WIKI_MAIL_*`, zonder `WIKI_MAIL_HOST` wordt de link gelogd (`LogResetMailSender`), link gebouwd uit `WIKI_BASE_URL`; ingelogde gebruikers wijzigen hun wachtwoord op `/account/wachtwoord` (naam in de zijbalk) met controle van het huidige wachtwoord; audit `user.password.reset-request`, `user.password.reset` en `user.password.change` ( F-01, N-02, N-04 )
+
 ## Volgende stappen
 
-- Eigen wachtwoord wijzigen (nu zet alleen een admin een wachtwoord, bij het aanmaken of via "Wachtwoord instellen" op `/admin/users`).
 - Backlinks: op een pagina tonen welke pagina's ernaar verwijzen (tweede helft van U-06).
 
 
