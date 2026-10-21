@@ -42,6 +42,9 @@ Met het profiel `local` bestaan drie testgebruikers, allemaal met wachtwoord `wi
 ontbreken; buiten dit profiel gebeurt dat nooit, dus in productie bestaan ze niet.
 
 Gebruikers en rollen beheer je als admin op `/admin/users` (klik onderin de zijbalk op je eigen naam).
+Een nieuwe gebruiker nodig je uit per e-mail: je vult alleen het adres en de rol in, de genodigde kiest
+zelf een gebruikersnaam en wachtwoord via de link in de mail (`/accountaanmaken?token=`, één uur geldig,
+eenmalig). Zonder `WIKI_MAIL_HOST` staat die link in de log.
 Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_ADMIN_USERNAME` nodig
 (met `WIKI_BOOTSTRAP_ADMIN_PASSWORD` en/of `WIKI_BOOTSTRAP_ADMIN_EMAIL` voor Entra); die admin wordt
 alleen aangemaakt zolang de gebruikerstabel leeg is. Entra-accounts komen alleen binnen als hun
@@ -141,7 +144,36 @@ Alle instellingen komen uit omgevingsvariabelen; zie `.env.example`. Er staan ge
 | `WIKI_UPLOAD_MAX_FILE_SIZE` | Maximale grootte per afbeelding (PNG, JPEG) of PDF (standaard `10MB`, spec U-01) |
 | `WIKI_UPLOAD_MAX_VIDEO_SIZE` | Maximale grootte per video (MP4, WebM; standaard `100MB`) |
 | `WIKI_BASE_URL` | Publieke URL van de wiki, voor de links in e-mail (standaard `http://localhost:8080`) |
-| `WIKI_MAIL_HOST`, `WIKI_MAIL_PORT`, `WIKI_MAIL_USERNAME`, `WIKI_MAIL_PASSWORD`, `WIKI_MAIL_FROM` | SMTP voor "wachtwoord vergeten"; zonder `WIKI_MAIL_HOST` wordt de herstel-link in de log geschreven in plaats van gemaild |
+| `WIKI_INVITATION_TTL` | Geldigheid van een uitnodigingslink (standaard `1h`) |
+| `WIKI_MAIL_GRAPH_SENDER` | Mail via Microsoft Graph: de mailbox waaruit de wiki "wachtwoord vergeten" en uitnodigingen verstuurt, als applicatie met de Entra-appregistratie (`WIKI_ENTRA_*`); geen mailboxwachtwoord nodig en gaat vóór SMTP |
+| `WIKI_MAIL_HOST`, `WIKI_MAIL_PORT`, `WIKI_MAIL_STARTTLS`, `WIKI_MAIL_USERNAME`, `WIKI_MAIL_PASSWORD`, `WIKI_MAIL_FROM` | SMTP als alternatief (Gmail of een andere server, voorbeelden in `.env.example`); zonder `WIKI_MAIL_GRAPH_SENDER` én zonder `WIKI_MAIL_HOST` wordt de link in de log geschreven in plaats van gemaild |
+
+Met profiel `local` leest de app `.env` zelf (`spring.config.import` in `application.yaml`), dus `./mvnw spring-boot:run`
+en IntelliJ gebruiken dezelfde waarden als Docker Compose. De tests draaien zonder profiel en lezen `.env` niet.
+
+### Mail via Microsoft Graph (Microsoft 365)
+
+De wiki mailt als applicatie vanuit één mailbox, bijvoorbeeld een gedeelde mailbox `wiki@logicai.nl` (gratis,
+zonder licentie en zonder wachtwoord). Het enige geheim is het client secret van de Entra-appregistratie, dat voor
+"Inloggen met Microsoft" toch al nodig is. Inrichting door de tenantbeheerder, eenmalig:
+
+1. Gedeelde mailbox aanmaken (Microsoft 365-beheer → Teams en groepen → Gedeelde postvakken).
+2. Op de appregistratie: API-machtigingen → Machtiging toevoegen → Microsoft Graph → **Toepassingsmachtigingen**
+   → `Mail.Send` → Beheerderstoestemming verlenen.
+3. De app beperken tot die ene mailbox, anders mag ze uit elke mailbox van de tenant versturen (Exchange Online
+   PowerShell; de policy werkt na ongeveer 30 minuten):
+   ```powershell
+   Connect-ExchangeOnline
+   New-ApplicationAccessPolicy -AppId <client-id> -PolicyScopeGroupId wiki@logicai.nl -AccessRight RestrictAccess -Description "LogicAI Wiki mailt alleen als wiki@logicai.nl"
+   Test-ApplicationAccessPolicy -AppId <client-id> -Identity wiki@logicai.nl   # AccessCheckResult: Granted
+   ```
+4. In `.env`: `WIKI_ENTRA_TENANT_ID`, `WIKI_ENTRA_CLIENT_ID`, `WIKI_ENTRA_CLIENT_SECRET` en `WIKI_MAIL_GRAPH_SENDER=wiki@logicai.nl`.
+   Bij het opstarten logt de app "Mail via Microsoft Graph als wiki@logicai.nl".
+
+Inloggen met wachtwoord op `smtp.office365.com` werkt alleen nog tot eind december 2026 (bericht MC786329) en
+vraagt het wachtwoord van een mailbox in `.env`; daarom is Graph de standaard. Kan een uitnodiging niet worden
+verstuurd (bijvoorbeeld `ErrorAccessDenied` als de machtiging of de access policy ontbreekt), dan toont
+`/admin/users` een rode melding met de reden van Entra of Graph en wordt niets bewaard.
 
 Geüploade bestanden staan niet in de database. Een back-up bestaat daarom uit de database **en** de
 map `WIKI_ATTACHMENTS_DIR`; herstel beide samen.

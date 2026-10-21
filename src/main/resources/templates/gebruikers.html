@@ -19,7 +19,7 @@
                 </ol>
             </nav>
             <span class="top__ruimte"></span>
-            <a class="knop knop--primair" href="#nieuwe-gebruiker">+ Nieuwe gebruiker</a>
+            <a class="knop knop--primair" href="#nieuwe-gebruiker">+ Gebruiker uitnodigen</a>
         </div>
 
         <main class="pagina">
@@ -64,7 +64,7 @@
                         </form>
 
                         <p class="leeg" th:if="${gebruikers.isEmpty()}">
-                            <th:block th:if="${#strings.isEmpty(q) and rolFilter == null}">Er zijn nog geen gebruikers. Maak hiernaast de eerste aan.</th:block>
+                            <th:block th:if="${#strings.isEmpty(q) and rolFilter == null}">Er zijn nog geen gebruikers. Nodig hiernaast de eerste uit.</th:block>
                             <th:block th:unless="${#strings.isEmpty(q) and rolFilter == null}">Geen gebruikers gevonden. <a th:href="@{/admin/users}">Alle gebruikers tonen</a>.</th:block>
                         </p>
                         <table class="tabel tabel--gebruikers" th:unless="${gebruikers.isEmpty()}">
@@ -131,26 +131,14 @@
                     </div>
 
                     <div class="zijkolom">
-                        <!-- Rechts (ontwerp 3a): nieuwe gebruiker aanmaken en de rollen in het kort -->
+                        <!-- Rechts (ontwerp 3a): nieuwe gebruiker uitnodigen en de rollen in het kort.
+                             Alleen e-mail en rol: de genodigde kiest zelf gebruikersnaam en wachtwoord via de link in de mail. -->
                         <form id="nieuwe-gebruiker" th:action="@{/admin/users}" th:object="${form}" method="post" class="formulier kaart" autocomplete="off">
-                            <h2>Nieuwe gebruiker</h2>
-                            <div class="veld">
-                                <label for="username">Gebruikersnaam</label>
-                                <input id="username" type="text" th:field="*{username}" maxlength="100" required autocomplete="off">
-                            </div>
+                            <h2>Nieuwe gebruiker uitnodigen</h2>
                             <div class="veld">
                                 <label for="email">E-mail</label>
-                                <input id="email" type="email" th:field="*{email}" maxlength="200" placeholder="naam@logicai.nl">
-                            </div>
-                            <div class="veld">
-                                <label for="password">Wachtwoord</label>
-                                <input id="password" type="password" name="password" minlength="8" autocomplete="new-password">
-                                <p class="gedempt klein">Minimaal 8 tekens.</p>
-                            </div>
-                            <div class="veld">
-                                <label for="passwordRepeat">Herhaal wachtwoord</label>
-                                <input id="passwordRepeat" type="password" name="passwordRepeat" minlength="8" autocomplete="new-password">
-                                <p class="gedempt klein">Typ hetzelfde wachtwoord nog een keer.</p>
+                                <input id="email" type="email" th:field="*{email}" maxlength="200" required placeholder="naam@logicai.nl">
+                                <p class="gedempt klein">De gebruiker krijgt een mail met een link om een gebruikersnaam en wachtwoord te kiezen. De link is één uur geldig.</p>
                             </div>
                             <div class="veld">
                                 <label for="role">Rol</label>
@@ -159,7 +147,7 @@
                                 </select>
                             </div>
                             <div class="acties">
-                                <button type="submit" class="knop knop--primair knop--vol">Aanmaken</button>
+                                <button type="submit" class="knop knop--primair knop--vol">Uitnodiging versturen</button>
                             </div>
                         </form>
 

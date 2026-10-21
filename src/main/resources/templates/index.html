@@ -29,7 +29,11 @@
                     <form class="hero__zoek" th:action="@{/search}" method="get" role="search">
                         <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
                         <label class="verborgen" for="home-q">Zoeken</label>
-                        <input id="home-q" name="q" type="search" placeholder="Waar ben je naar op zoek?">
+                        <input id="home-q" name="q" type="search" placeholder="Waar ben je naar op zoek?"
+                               autocomplete="off" aria-autocomplete="list" aria-controls="home-suggesties" aria-expanded="false"
+                               th:attr="data-suggest-url=@{/api/pages/suggest}">
+                        <!-- Titelsuggesties tijdens het typen (fragment zoeksuggestiescript onderaan) -->
+                        <ul id="home-suggesties" class="zoek__suggesties" role="listbox" aria-label="Paginasuggesties" hidden></ul>
                     </form>
                 </section>
                 <p class="melding melding--info" th:if="${melding != null}" th:text="${melding}">Melding</p>
@@ -98,5 +102,6 @@
 </div>
 
 <script th:replace="~{fragments :: uitklapscript}"></script>
+<script th:replace="~{fragments :: zoeksuggestiescript}"></script>
 </body>
 </html>

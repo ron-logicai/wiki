@@ -1,19 +1,24 @@
 package nl.logicai.wiki.controllers;
 
+import java.time.Clock;
 import java.util.UUID;
 
 import nl.logicai.wiki.TestcontainersConfiguration;
+import nl.logicai.wiki.models.Role;
+import nl.logicai.wiki.models.WikiUser;
+import nl.logicai.wiki.repositories.WikiUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
@@ -44,58 +49,61 @@ class UserAdminFlowIntegrationTest {
 	@Autowired
 	private JdbcTemplate jdbc;
 
+	@Autowired
+	private WikiUserRepository users;
+
+	@Autowired
+	private PasswordEncoder encoder;
+
+	@Autowired
+	private Clock clock;
+
+	/** The admin form only invites (spec F-01, no public registration); the account itself is made on /accountaanmaken. */
 	@Test
 	@WithMockUser(username = "admin", roles = "ADMIN")
-	void adminCreatesUserAndSeesItListedWithAuditEntry() throws Exception {
+	void adminInvitesUserAndSeesAuditEntryWithoutAnAccountYet() throws Exception {
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "  Nieuwe.Admin ")
-				.param("email", "nieuwe.admin@example.com")
-				.param("password", "geheim123")
-				.param("passwordRepeat", "geheim123")
+				.param("email", "  Nieuwe.Admin@example.com ")
 				.param("role", "ADMIN"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(header().string("Location", "/admin/users"))
-			.andExpect(flash().attributeExists("melding"));
+			.andExpect(flash().attribute("melding", containsString("Uitnodiging verstuurd naar “nieuwe.admin@example.com”")));
 
-		mvc.perform(get("/admin/users"))
-			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("nieuwe.admin")))
-			.andExpect(content().string(containsString("nieuwe.admin@example.com")))
-			.andExpect(content().string(containsString("Wachtwoord")));
+		Integer accounts = jdbc.queryForObject("select count(*) from app_user where email = ?", Integer.class,
+				"nieuwe.admin@example.com");
+		assertThat(accounts).isZero();
+		Integer invitations = jdbc.queryForObject("select count(*) from user_invitation where email = ? and role = 'ADMIN'",
+				Integer.class, "nieuwe.admin@example.com");
+		assertThat(invitations).isEqualTo(1);
 
 		mvc.perform(get("/admin"))
 			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("Gebruiker aangemaakt")))
-			.andExpect(content().string(containsString("nieuwe.admin als Admin")));
+			.andExpect(content().string(containsString("Gebruiker uitgenodigd")))
+			.andExpect(content().string(containsString("nieuwe.admin@example.com als Admin")));
 	}
 
 	@Test
 	@WithMockUser(username = "admin", roles = "ADMIN")
 	void invalidFormIsRenderedAgainWithMessage() throws Exception {
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "zonder.login")
+				.param("email", "geen-adres")
 				.param("role", "VIEWER"))
 			.andExpect(status().isOk())
 			.andExpect(model().attributeExists("fout"))
-			.andExpect(content().string(containsString("Geef een wachtwoord, of een e-mailadres")));
+			.andExpect(content().string(containsString("E-mailadres is ongeldig.")));
 
-		create("dubbel", "VIEWER");
+		create("dubbel", "VIEWER", "dubbel@example.com");
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "DUBBEL")
-				.param("password", "geheim123")
-				.param("passwordRepeat", "geheim123")
+				.param("email", "DUBBEL@example.com")
 				.param("role", "VIEWER"))
 			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("bestaat al")));
+			.andExpect(content().string(containsString("al in gebruik")));
 
-		// A typo in one of the two password fields is refused, so the new user is never locked out.
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "typefout")
-				.param("password", "geheim123")
-				.param("passwordRepeat", "geheim124")
-				.param("role", "VIEWER"))
+				.param("email", "zonder.rol@example.com")
+				.param("role", ""))
 			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("niet gelijk")));
+			.andExpect(content().string(containsString("Kies een rol.")));
 	}
 
 	// The two login tests run without @WithMockUser: a mock principal would shadow the session that
@@ -103,7 +111,7 @@ class UserAdminFlowIntegrationTest {
 
 	@Test
 	void createdUserCanLogInWithTheirPassword() throws Exception {
-		create("ron1234", "ADMIN", ADMIN);
+		create("ron1234", "ADMIN");
 
 		mvc.perform(formLogin().user("ron1234").password("geheim123"))
 			.andExpect(status().is3xxRedirection())
@@ -118,7 +126,7 @@ class UserAdminFlowIntegrationTest {
 
 	@Test
 	void adminSetsNewPasswordAndUserLogsInWithIt() throws Exception {
-		UUID id = create("vergeten", "EDITOR", ADMIN);
+		UUID id = create("vergeten", "EDITOR");
 
 		mvc.perform(post("/admin/users/{id}/password", id).with(csrf()).with(ADMIN)
 				.param("password", "nieuw-ww-1").param("passwordRepeat", "anders-ww"))
@@ -141,12 +149,9 @@ class UserAdminFlowIntegrationTest {
 			.andExpect(status().isOk())
 			.andExpect(content().string(containsString("Wachtwoord ingesteld")));
 
-		// An Entra-only account gets form login once a password is set.
-		mvc.perform(post("/admin/users").with(csrf()).with(ADMIN)
-				.param("username", "entra.only")
-				.param("email", "entra.only@example.com").param("role", "VIEWER"))
-			.andExpect(status().is3xxRedirection());
-		UUID entra = jdbc.queryForObject("select id from app_user where username = ?", UUID.class, "entra.only");
+		// An Entra-only account (no password hash) gets form login once a password is set.
+		UUID entra = users.save(WikiUser.create("entra.only", "entra.only", "entra.only@example.com", null,
+				Role.VIEWER, "test", clock.instant())).getId();
 		mvc.perform(formLogin().user("entra.only").password("nieuw-ww-1")).andExpect(unauthenticated());
 		mvc.perform(post("/admin/users/{id}/password", entra).with(csrf()).with(ADMIN)
 				.param("password", "nieuw-ww-1").param("passwordRepeat", "nieuw-ww-1"))
@@ -168,7 +173,7 @@ class UserAdminFlowIntegrationTest {
 	void editorIsRefused() throws Exception {
 		mvc.perform(get("/admin/users")).andExpect(status().isForbidden());
 		mvc.perform(post("/admin/users").with(csrf())
-				.param("username", "sluip").param("password", "geheim123").param("passwordRepeat", "geheim123").param("role", "ADMIN"))
+				.param("email", "sluip@example.com").param("role", "ADMIN"))
 			.andExpect(status().isForbidden());
 	}
 
@@ -237,19 +242,14 @@ class UserAdminFlowIntegrationTest {
 			.andExpect(flash().attribute("fout", containsString("laatste actieve beheerder")));
 	}
 
-	private UUID create(String username, String role, RequestPostProcessor... as) throws Exception {
-		MockHttpServletRequestBuilder request = post("/admin/users").with(csrf())
-				.param("username", username)
-				.param("password", "geheim123")
-				.param("passwordRepeat", "geheim123")
-				.param("role", role);
-		for (RequestPostProcessor as1 : as) {
-			request.with(as1);
-		}
-		mvc.perform(request)
-			.andExpect(status().is3xxRedirection())
-			.andExpect(flash().attributeExists("melding"));
-		return jdbc.queryForObject("select id from app_user where username = ?", UUID.class, username);
+	/** A user with password "geheim123", straight into the table: the admin form no longer creates accounts. */
+	private UUID create(String username, String role) {
+		return create(username, role, null);
+	}
+
+	private UUID create(String username, String role, String email) {
+		return users.save(WikiUser.create(username, username, email, encoder.encode("geheim123"),
+				Role.valueOf(role), "test", clock.instant())).getId();
 	}
 
 }

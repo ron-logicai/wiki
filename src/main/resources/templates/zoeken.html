@@ -22,11 +22,15 @@
                 <form class="zoek__balk" th:action="@{/search}" method="get" role="search">
                     <span class="icoon" th:insert="~{fragments :: icoon('zoeken')}"></span>
                     <label class="verborgen" for="q">Zoek pagina's en werkinstructies</label>
-                    <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Waar ben je naar op zoek?" autofocus>
+                    <input id="q" name="q" type="search" th:value="${resultaat.query}" placeholder="Waar ben je naar op zoek?" autofocus
+                           autocomplete="off" aria-autocomplete="list" aria-controls="zoek-suggesties" aria-expanded="false"
+                           th:attr="data-suggest-url=@{/api/pages/suggest}">
                     <input type="hidden" name="tag" th:value="${resultaat.tag ?: ''}">
                     <input type="hidden" name="page" value="1">
                     <a class="zoek__wis" th:unless="${leeg}" th:href="@{/search}" title="Wissen" aria-label="Zoekopdracht wissen">&times;</a>
                     <button type="submit" class="knop knop--rand">Zoeken</button>
+                    <!-- Titelsuggesties tijdens het typen, gevuld door het script onderaan via /api/pages/suggest (dezelfde lookup als de linkpopover) -->
+                    <ul id="zoek-suggesties" class="zoek__suggesties" role="listbox" aria-label="Paginasuggesties" hidden></ul>
                 </form>
                 <p class="zoek__hint">Typ een woord uit een titel of tekst. Hele woorden worden gevonden, ook technische termen zoals "Spring Boot".</p>
 
@@ -89,5 +93,6 @@
     </div>
 </div>
 
+<script th:replace="~{fragments :: zoeksuggestiescript}"></script>
 </body>
 </html>

@@ -34,6 +34,9 @@
         <p class="melding melding--info" role="status" th:if="${param.reset != null}">
             Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
+        <p class="melding melding--info" role="status" th:if="${param.aangemaakt != null}">
+            Je account is aangemaakt. Log in met je gebruikersnaam en wachtwoord.
+        </p>
 
         <form class="formulier" th:action="@{/login}" method="post">
             <div class="veld">

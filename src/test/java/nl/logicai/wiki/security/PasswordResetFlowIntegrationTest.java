@@ -5,10 +5,9 @@ import java.net.http.HttpResponse;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import nl.logicai.wiki.TestcontainersConfiguration;
-import nl.logicai.wiki.mail.ResetMailSender;
+import nl.logicai.wiki.mail.CapturedMail;
 import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.models.WikiUser;
 import nl.logicai.wiki.repositories.WikiUserRepository;
@@ -16,11 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -32,28 +28,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and the refusal of unknown, deactivated and Entra-only accounts.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import({TestcontainersConfiguration.class, PasswordResetFlowIntegrationTest.CapturedMail.class})
+@Import({TestcontainersConfiguration.class, CapturedMail.class})
 class PasswordResetFlowIntegrationTest {
 
 	private static final String PASSWORD = "wachtwoord-1";
 	private static final String NEW_PASSWORD = "nieuw-wachtwoord-2";
-
-	/** Replaces the SMTP/log sender so the test can read the link. */
-	@TestConfiguration(proxyBeanMethods = false)
-	static class CapturedMail {
-
-		record Sent(String username, String link) {
-		}
-
-		static final List<Sent> SENT = new CopyOnWriteArrayList<>();
-
-		@Bean
-		@Primary
-		ResetMailSender capturingResetMailSender() {
-			return (user, link, validFor) -> SENT.add(new Sent(user.getUsername(), link));
-		}
-
-	}
 
 	@LocalServerPort
 	private int port;
@@ -73,6 +52,7 @@ class PasswordResetFlowIntegrationTest {
 	@BeforeEach
 	void clearMail() {
 		CapturedMail.SENT.clear();
+		CapturedMail.FAIL_WITH = null;
 	}
 
 	@Test
@@ -103,7 +83,7 @@ class PasswordResetFlowIntegrationTest {
 		assertThat(verzonden.body()).contains("Wij hebben een mail gestuurd").doesNotContain("name=\"email\"");
 
 		assertThat(CapturedMail.SENT).hasSize(1);
-		assertThat(CapturedMail.SENT.getFirst().username()).isEqualTo("reset.flow");
+		assertThat(CapturedMail.SENT.getFirst().aan()).isEqualTo("reset.flow@example.com");
 		String link = pathOf(CapturedMail.SENT.getFirst().link());
 		assertThat(link).startsWith("/wachtwoord-herstellen?token=");
 

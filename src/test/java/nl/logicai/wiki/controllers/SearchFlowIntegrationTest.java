@@ -113,6 +113,26 @@ class SearchFlowIntegrationTest {
 			.andExpect(content().string(not(containsString("Filter op tag"))));
 	}
 
+	/** The search box carries the hook for the title suggestions, which the browser fills from /api/pages/suggest. */
+	@Test
+	void searchBoxOffersTitleSuggestionsFromTheSuggestEndpoint() throws Exception {
+		mvc.perform(get("/search"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("id=\"zoek-suggesties\"")))
+			.andExpect(content().string(containsString("data-suggest-url=\"/api/pages/suggest\"")))
+			.andExpect(content().string(containsString("aria-controls=\"zoek-suggesties\"")));
+	}
+
+	/** The home page's hero search box has the same hook, with its own list. */
+	@Test
+	void homeSearchBoxOffersTheSameTitleSuggestions() throws Exception {
+		mvc.perform(get("/"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("id=\"home-suggesties\"")))
+			.andExpect(content().string(containsString("data-suggest-url=\"/api/pages/suggest\"")))
+			.andExpect(content().string(containsString("aria-controls=\"home-suggesties\"")));
+	}
+
 	/** The page without the sidebar, so "/pages/{id}" checks only look at the results and filters. */
 	private String search(String queryString) throws Exception {
 		String html = mvc.perform(get("/search?" + queryString))

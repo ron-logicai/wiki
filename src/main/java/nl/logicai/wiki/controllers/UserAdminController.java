@@ -3,11 +3,13 @@ package nl.logicai.wiki.controllers;
 import java.util.Locale;
 import java.util.UUID;
 
+import nl.logicai.wiki.config.WikiMailProperties;
 import nl.logicai.wiki.exceptions.InvalidUserException;
-import nl.logicai.wiki.models.NewUserForm;
+import nl.logicai.wiki.models.InviteForm;
 import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.models.WikiUser;
 import nl.logicai.wiki.services.AdminService;
+import nl.logicai.wiki.services.InvitationService;
 import nl.logicai.wiki.services.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -19,39 +21,52 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** User and role management for admins (spec section 1, route /admin/users). Access is enforced in SecurityConfig. */
+/**
+ * User and role management for admins (spec section 1, route /admin/users). New users are invited by
+ * e-mail ({@link InvitationService}); they choose their own username and password on /accountaanmaken.
+ * Access is enforced in SecurityConfig.
+ */
 @Controller
 public class UserAdminController {
 
 	private final UserService userService;
+	private final InvitationService invitationService;
 	private final AdminService adminService;
+	private final WikiMailProperties mail;
 
-	public UserAdminController(UserService userService, AdminService adminService) {
+	public UserAdminController(UserService userService, InvitationService invitationService, AdminService adminService,
+			WikiMailProperties mail) {
 		this.userService = userService;
+		this.invitationService = invitationService;
 		this.adminService = adminService;
+		this.mail = mail;
 	}
 
 	/** De gebruikerslijst, optioneel gefilterd op naam/e-mail ('q') en rol ('rol') zoals in het ontwerp. */
 	@GetMapping("/admin/users")
-	public String overzicht(@ModelAttribute("form") NewUserForm form, @RequestParam(required = false) String q,
+	public String overzicht(@ModelAttribute("form") InviteForm form, @RequestParam(required = false) String q,
 			@RequestParam(required = false) Role rol, Model model) {
 		model.addAttribute("q", q == null ? "" : q.strip());
 		model.addAttribute("rolFilter", rol);
 		return lijst(model);
 	}
 
+	/** Stuurt de uitnodigingsmail; de gebruiker verschijnt pas in de lijst nadat die de link heeft gebruikt. */
 	@PostMapping("/admin/users")
-	public String aanmaken(@ModelAttribute("form") NewUserForm form, Authentication auth, Model model,
+	public String uitnodigen(@ModelAttribute("form") InviteForm form, Authentication auth, Model model,
 			RedirectAttributes redirect) {
 		try {
-			userService.create(form, auth.getName());
-			redirect.addFlashAttribute("melding", "Gebruiker “" + form.getUsername().trim() + "” is aangemaakt.");
+			var invitation = invitationService.invite(form.getEmail(), form.getRole(), auth.getName());
+			String melding = "Uitnodiging verstuurd naar “" + invitation.getEmail() + "”. De link is één uur geldig.";
+			if (!mail.configured()) {
+				// Without Graph or SMTP the LogMailSender only logs the link; say so, or the admin waits for a mail that never comes.
+				melding += " Er is geen mail ingesteld (WIKI_MAIL_GRAPH_SENDER en WIKI_MAIL_HOST zijn leeg): de link staat in de log van de applicatie.";
+			}
+			redirect.addFlashAttribute("melding", melding);
 			return "redirect:/admin/users";
 		}
 		catch (InvalidUserException ex) {
 			model.addAttribute("fout", ex.getMessage());
-			form.setPassword("");
-			form.setPasswordRepeat("");
 			return lijst(model);
 		}
 	}

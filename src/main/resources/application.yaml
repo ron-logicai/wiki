@@ -66,8 +66,21 @@ wiki:
   # Public URL of the wiki, used for links in e-mail. Never taken from request headers (spec N-02).
   base-url: ${WIKI_BASE_URL:http://localhost:8080}
   mail:
-    # SMTP for "wachtwoord vergeten". An empty host means no SMTP: reset links are logged (WARN) instead
-    # of mailed, which is what profile local and the tests use. Never put the password in Git (spec N-04).
+    # Mail for "wachtwoord vergeten" and user invitations: Microsoft Graph (graph.sender set) goes before SMTP (host set).
+    # Neither set means no mail: the links are logged (WARN) instead, which is what profile local and the tests use.
+    # Never put a secret in Git (spec N-04).
+    graph:
+      # Sending as the application through Microsoft Graph (application permission Mail.Send, client credentials of the
+      # Entra app registration), from the mailbox in WIKI_MAIL_GRAPH_SENDER. No mailbox password; see README for the
+      # Entra and Exchange set-up. Tenant, client id and secret are those of the Entra login.
+      sender: ${WIKI_MAIL_GRAPH_SENDER:}
+      tenant-id: ${WIKI_ENTRA_TENANT_ID:}
+      client-id: ${WIKI_ENTRA_CLIENT_ID:}
+      client-secret: ${WIKI_ENTRA_CLIENT_SECRET:}
+      # Only overridden by tests (fake Entra and Graph on localhost).
+      login-base: https://login.microsoftonline.com
+      api-base: https://graph.microsoft.com/v1.0
+    # SMTP (Gmail or another server; Microsoft 365 by password only until December 2026, MC786329).
     host: ${WIKI_MAIL_HOST:}
     port: ${WIKI_MAIL_PORT:587}
     username: ${WIKI_MAIL_USERNAME:}
@@ -78,6 +91,9 @@ wiki:
     # How long a reset link stays valid, and how long a user waits before a new link is sent.
     ttl: ${WIKI_PASSWORD_RESET_TTL:1h}
     cooldown: 2m
+  invitation:
+    # How long an invitation link stays valid; a new invitation for the same address replaces the old link.
+    ttl: ${WIKI_INVITATION_TTL:1h}
   limits:
     title-max-length: 200
     document-max-bytes: 2097152
@@ -95,6 +111,9 @@ spring:
   config:
     activate:
       on-profile: local
+    # The same .env as Docker Compose, so mvnw and IntelliJ pick up WIKI_MAIL_* and friends too.
+    # Tests run without a profile and never read it, so they cannot reach a real SMTP server.
+    import: optional:file:.env[.properties]
   thymeleaf:
     cache: false
 server:

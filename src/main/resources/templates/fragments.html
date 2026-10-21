@@ -215,5 +215,146 @@
     });
 </script>
 
+<!-- Titelsuggesties onder een zoekveld: elk input[data-suggest-url] krijgt bestaande pagina's uit /api/pages/suggest
+     (max. 10, op titel; dezelfde lookup als de linkpopover) in de lijst die aria-controls aanwijst. Nooit iets dat niet
+     bestaat; zonder JavaScript werkt het formulier gewoon via Enter. Gebruikt door zoeken.html en index.html. -->
+<script th:fragment="zoeksuggestiescript">
+    (function () {
+        if (!window.fetch) { return; }
+
+        function koppel(veld) {
+            var lijst = document.getElementById(veld.getAttribute('aria-controls'));
+            if (!lijst) { return; }
+            var url = veld.dataset.suggestUrl;
+            var timer = null;
+            var lopend = null;
+            var actief = -1;
+
+            function sluit() {
+                lijst.hidden = true;
+                veld.setAttribute('aria-expanded', 'false');
+                veld.removeAttribute('aria-activedescendant');
+                actief = -1;
+            }
+
+            function leeg() {
+                while (lijst.firstChild) { lijst.removeChild(lijst.firstChild); }
+                sluit();
+            }
+
+            function rijen() {
+                return Array.prototype.slice.call(lijst.querySelectorAll('.zoek__suggestie'));
+            }
+
+            function markeer(index) {
+                var alle = rijen();
+                alle.forEach(function (rij, i) {
+                    rij.classList.toggle('zoek__suggestie--aan', i === index);
+                    rij.setAttribute('aria-selected', i === index ? 'true' : 'false');
+                });
+                actief = index;
+                if (index >= 0) {
+                    veld.setAttribute('aria-activedescendant', alle[index].id);
+                } else {
+                    veld.removeAttribute('aria-activedescendant');
+                }
+            }
+
+            function toon(paginas) {
+                while (lijst.firstChild) { lijst.removeChild(lijst.firstChild); }
+                if (!paginas.length) { sluit(); return; }
+                paginas.forEach(function (p, i) {
+                    var li = document.createElement('li');
+                    li.setAttribute('role', 'presentation');
+                    var a = document.createElement('a');
+                    a.className = 'zoek__suggestie';
+                    a.id = lijst.id + '-' + i;
+                    a.setAttribute('role', 'option');
+                    a.setAttribute('aria-selected', 'false');
+                    a.href = p.url;
+                    a.appendChild(document.createTextNode(p.title));
+                    if (p.path) {
+                        var pad = document.createElement('span');
+                        pad.className = 'zoek__suggestie-pad';
+                        pad.textContent = p.path;
+                        a.appendChild(pad);
+                    }
+                    li.appendChild(a);
+                    lijst.appendChild(li);
+                });
+                lijst.hidden = false;
+                veld.setAttribute('aria-expanded', 'true');
+                actief = -1;
+            }
+
+            function zoek() {
+                var q = veld.value.trim();
+                if (lopend) { lopend.abort(); lopend = null; }
+                if (!q) { leeg(); return; }
+                var controller = new AbortController();
+                lopend = controller;
+                fetch(url + '?q=' + encodeURIComponent(q), {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                }).then(function (res) {
+                    if (!res.ok) { throw new Error(String(res.status)); }
+                    return res.json();
+                }).then(function (paginas) {
+                    if (controller !== lopend || veld.value.trim() !== q) { return; }
+                    lopend = null;
+                    toon(Array.isArray(paginas) ? paginas : []);
+                }).catch(function (fout) {
+                    if (fout && fout.name === 'AbortError') { return; }
+                    lopend = null;
+                    leeg();
+                });
+            }
+
+            veld.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(zoek, 150);
+            });
+
+            veld.addEventListener('focus', function () {
+                if (lijst.children.length && veld.value.trim()) {
+                    lijst.hidden = false;
+                    veld.setAttribute('aria-expanded', 'true');
+                }
+            });
+
+            veld.addEventListener('keydown', function (e) {
+                var alle = rijen();
+                if (e.key === 'Escape') {
+                    if (!lijst.hidden) { e.preventDefault(); sluit(); }
+                    return;
+                }
+                if (lijst.hidden || !alle.length) { return; }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    markeer((actief + 1) % alle.length);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    markeer(actief <= 0 ? alle.length - 1 : actief - 1);
+                } else if (e.key === 'Enter' && actief >= 0) {
+                    e.preventDefault();
+                    window.location.href = alle[actief].href;
+                }
+            });
+
+            lijst.addEventListener('mousemove', function (e) {
+                var rij = e.target.closest('.zoek__suggestie');
+                if (rij) { markeer(rijen().indexOf(rij)); }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!veld.contains(e.target) && !lijst.contains(e.target)) { sluit(); }
+            });
+        }
+
+        document.querySelectorAll('input[data-suggest-url]').forEach(koppel);
+    })();
+</script>
+
 </body>
 </html>

@@ -1,19 +1,14 @@
 package nl.logicai.wiki.services;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 
 import nl.logicai.wiki.config.PasswordResetProperties;
 import nl.logicai.wiki.exceptions.InvalidUserException;
-import nl.logicai.wiki.mail.ResetMailSender;
+import nl.logicai.wiki.mail.WikiMailSender;
 import nl.logicai.wiki.models.AuditEvent;
 import nl.logicai.wiki.models.PasswordResetToken;
 import nl.logicai.wiki.models.WikiUser;
@@ -30,8 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * "Wachtwoord vergeten" (spec F-01, extension): a user asks for a reset link by e-mail address, gets a
  * single-use link that is valid for {@code wiki.password-reset.ttl}, and chooses a new password there.
- * Only the SHA-256 hash of the token is stored; the link is built from {@code wiki.base-url}, never
- * from request headers. Runs without a session, so no {@code @PreAuthorize}.
+ * Only the SHA-256 hash of the token is stored ({@link LinkTokens}); the link is built from
+ * {@code wiki.base-url}, never from request headers. Runs without a session, so no {@code @PreAuthorize}.
  */
 @Service
 @Transactional
@@ -41,20 +36,19 @@ public class PasswordResetService {
 	public static final String UNKNOWN_ACCOUNT = "Uw account bestaat niet. Neem contact op met de beheerder.";
 
 	private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
-	private static final int TOKEN_BYTES = 32;
 
 	private final WikiUserRepository users;
 	private final PasswordResetTokenRepository tokens;
 	private final AuditEventRepository audit;
 	private final UserService userService;
-	private final ResetMailSender mail;
+	private final WikiMailSender mail;
 	private final PasswordResetProperties settings;
 	private final String baseUrl;
 	private final Clock clock;
 	private final SecureRandom random = new SecureRandom();
 
 	public PasswordResetService(WikiUserRepository users, PasswordResetTokenRepository tokens, AuditEventRepository audit,
-			UserService userService, ResetMailSender mail, PasswordResetProperties settings,
+			UserService userService, WikiMailSender mail, PasswordResetProperties settings,
 			@Value("${wiki.base-url}") String baseUrl, Clock clock) {
 		this.users = users;
 		this.tokens = tokens;
@@ -85,10 +79,8 @@ public class PasswordResetService {
 			return;
 		}
 		tokens.deleteByUserId(user.getId());
-		byte[] bytes = new byte[TOKEN_BYTES];
-		random.nextBytes(bytes);
-		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-		tokens.save(PasswordResetToken.create(user.getId(), hash(token), now, settings.ttl()));
+		String token = LinkTokens.generate(random);
+		tokens.save(PasswordResetToken.create(user.getId(), LinkTokens.hash(token), now, settings.ttl()));
 		audit.save(AuditEvent.of(UserService.USER_PASSWORD_RESET_REQUEST, null, user.getUsername(), now, user.getUsername()));
 		String link = baseUrl + "/wachtwoord-herstellen?token=" + token;
 		try {
@@ -124,22 +116,11 @@ public class PasswordResetService {
 	}
 
 	private Optional<PasswordResetToken> usableToken(String token) {
-		if (token == null || token.isBlank() || token.length() > 100) {
+		if (!LinkTokens.plausible(token)) {
 			return Optional.empty();
 		}
 		Instant now = clock.instant();
-		return tokens.findByTokenHash(hash(token)).filter(t -> t.isUsable(now));
-	}
-
-	/** Hex SHA-256 of the token; only this is stored (package-private for the tests). */
-	static String hash(String token) {
-		try {
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
-		}
-		catch (NoSuchAlgorithmException ex) {
-			throw new IllegalStateException(ex);
-		}
+		return tokens.findByTokenHash(LinkTokens.hash(token)).filter(t -> t.isUsable(now));
 	}
 
 }

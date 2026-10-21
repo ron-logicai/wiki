@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <!-- Het token staat in de URL van de eerste GET; nooit doorgeven aan andere sites. -->
+    <meta name="referrer" content="no-referrer">
+    <title>Account aanmaken · LogicAI Wiki</title>
+</head>
+<body class="inlog">
+
+<header class="inlog__kop">
+    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+    </a>
+    <span class="inlog__ondertitel">Interne kenniswiki</span>
+</header>
+
+<main class="inlog__vlak">
+    <div class="inlog__kaart">
+        <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
+        <p class="eyebrow">LogicAI Wiki</p>
+        <h1>Account aanmaken</h1>
+
+        <!-- Uitnodiging onbekend, al gebruikt of verlopen: geen formulier, dus geen openbare registratie (F-01) -->
+        <th:block th:if="${ongeldig}">
+            <p class="melding" role="alert">Deze uitnodiging is ongeldig of verlopen. Vraag de beheerder om een nieuwe uitnodiging.</p>
+            <div class="acties">
+                <a class="knop knop--primair knop--vol" th:href="@{/login}">Naar inloggen</a>
+            </div>
+        </th:block>
+
+        <th:block th:unless="${ongeldig}">
+            <p class="intro">
+                Je bent uitgenodigd als <strong th:text="${uitnodiging.role.label}">Viewer</strong>
+                voor <strong th:text="${uitnodiging.email}">naam@logicai.nl</strong>.
+                Kies een gebruikersnaam en een wachtwoord van minimaal 8 tekens.
+            </p>
+
+            <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+            <form class="formulier" th:action="@{/accountaanmaken}" method="post">
+                <input type="hidden" name="token" th:value="${token}">
+                <div class="veld">
+                    <label for="username">Gebruikersnaam</label>
+                    <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
+                           spellcheck="false" maxlength="100" pattern="[A-Za-z0-9._@-]+" required autofocus th:value="${username}">
+                    <p class="gedempt klein">Alleen letters, cijfers en . _ @ - (maximaal 100 tekens). Hiermee log je in.</p>
+                </div>
+                <div class="veld">
+                    <label for="password">Wachtwoord</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                </div>
+                <div class="veld">
+                    <label for="passwordRepeat">Herhaal wachtwoord</label>
+                    <input id="passwordRepeat" name="passwordRepeat" type="password" autocomplete="new-password" minlength="8" required>
+                </div>
+                <div class="acties">
+                    <button type="submit" class="knop knop--primair knop--vol">Account aanmaken</button>
+                </div>
+            </form>
+        </th:block>
+    </div>
+</main>
+
+</body>
+</html>

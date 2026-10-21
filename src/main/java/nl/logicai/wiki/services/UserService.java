@@ -8,7 +8,6 @@ import java.util.regex.Pattern;
 
 import nl.logicai.wiki.exceptions.InvalidUserException;
 import nl.logicai.wiki.models.AuditEvent;
-import nl.logicai.wiki.models.NewUserForm;
 import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.models.WikiUser;
 import nl.logicai.wiki.repositories.AuditEventRepository;
@@ -22,14 +21,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * User and role management for admins (spec section 1: activate/deactivate, manage roles; route
- * /admin/users). Users are never deleted. Guards keep the acting admin from locking themselves out
- * and keep at least one active admin. Every change is an AuditEvent without a page.
+ * /admin/users). New users come in through {@link InvitationService}, never directly. Users are never
+ * deleted. Guards keep the acting admin from locking themselves out and keep at least one active
+ * admin. Every change is an AuditEvent without a page.
  */
 @Service
 @Transactional
 public class UserService {
 
+	/** An account was created: by the invitee through an invitation link ({@link InvitationService}). */
 	public static final String USER_CREATE = "user.create";
+	/** An admin sent an invitation link ({@link InvitationService}). */
+	public static final String USER_INVITE = "user.invite";
 	public static final String USER_ROLE = "user.role";
 	public static final String USER_PASSWORD = "user.password";
 	public static final String USER_ACTIVATE = "user.activate";
@@ -61,43 +64,6 @@ public class UserService {
 	@Transactional(readOnly = true)
 	public List<WikiUser> all() {
 		return users.findAllByOrderByUsernameAsc();
-	}
-
-	@PreAuthorize("hasRole('ADMIN')")
-	public WikiUser create(NewUserForm form, String actor) {
-		String username = normalize(form.getUsername());
-		if (username.isEmpty() || username.length() > WikiUser.USERNAME_MAX || !USERNAME.matcher(username).matches()) {
-			throw new InvalidUserException("Gebruikersnaam: alleen letters, cijfers en . _ @ - (maximaal 100 tekens).");
-		}
-		// The form has no separate name field: the username doubles as display name.
-		String displayName = username;
-		String email = normalize(form.getEmail());
-		if (email.isEmpty()) {
-			email = null;
-		}
-		else if (email.length() > WikiUser.EMAIL_MAX || !EMAIL.matcher(email).matches()) {
-			throw new InvalidUserException("E-mailadres is ongeldig.");
-		}
-		String password = form.getPassword() == null ? "" : form.getPassword();
-		String hash = null;
-		if (!password.isEmpty()) {
-			hash = hashPassword(password, form.getPasswordRepeat());
-		}
-		else if (email == null) {
-			throw new InvalidUserException("Geef een wachtwoord, of een e-mailadres voor login via Entra.");
-		}
-		if (form.getRole() == null) {
-			throw new InvalidUserException("Kies een rol.");
-		}
-		if (users.findByUsernameIgnoreCase(username).isPresent()) {
-			throw new InvalidUserException("Gebruikersnaam “" + username + "” bestaat al.");
-		}
-		if (email != null && users.findByEmailIgnoreCase(email).isPresent()) {
-			throw new InvalidUserException("E-mailadres “" + email + "” is al in gebruik.");
-		}
-		WikiUser user = users.save(WikiUser.create(username, displayName, email, hash, form.getRole(), actor, clock.instant()));
-		audit.save(AuditEvent.of(USER_CREATE, null, actor, clock.instant(), username + " als " + form.getRole().getLabel()));
-		return user;
 	}
 
 	@PreAuthorize("hasRole('ADMIN')")
@@ -186,8 +152,29 @@ public class UserService {
 	}
 
 	/**
+	 * Trimmed, lower-cased username, or {@link InvalidUserException} when empty, too long or outside
+	 * the allowed characters. Package-private so {@link InvitationService} applies the same rules.
+	 */
+	static String validUsername(String raw) {
+		String username = normalize(raw);
+		if (username.isEmpty() || username.length() > WikiUser.USERNAME_MAX || !USERNAME.matcher(username).matches()) {
+			throw new InvalidUserException("Gebruikersnaam: alleen letters, cijfers en . _ @ - (maximaal 100 tekens).");
+		}
+		return username;
+	}
+
+	/** Trimmed, lower-cased e-mail address, or {@link InvalidUserException} when empty, too long or malformed. */
+	static String validEmail(String raw) {
+		String email = normalize(raw);
+		if (email.isEmpty() || email.length() > WikiUser.EMAIL_MAX || !EMAIL.matcher(email).matches()) {
+			throw new InvalidUserException("E-mailadres is ongeldig.");
+		}
+		return email;
+	}
+
+	/**
 	 * Length check and the repeat field, so a typo at creation does not lock the new user out.
-	 * Package-private so {@link PasswordResetService} applies the same rules.
+	 * Package-private so {@link PasswordResetService} and {@link InvitationService} apply the same rules.
 	 */
 	String hashPassword(String password, String passwordRepeat) {
 		if (password.length() < PASSWORD_MIN) {

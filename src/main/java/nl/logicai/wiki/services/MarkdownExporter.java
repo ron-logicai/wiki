@@ -46,7 +46,7 @@ public class MarkdownExporter {
 	private static final Pattern LINE_START_SPECIAL = Pattern.compile("(?m)^(\\s*)([#>+-]|\\d{1,9}[.)])(?=\\s|$)");
 
 	private final ObjectMapper mapper;
-
+ 
 	public MarkdownExporter(ObjectMapper mapper) {
 		this.mapper = mapper;
 	}

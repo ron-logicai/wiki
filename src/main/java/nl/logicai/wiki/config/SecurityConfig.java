@@ -43,6 +43,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  *   <li>"Wachtwoord vergeten" is open without a session: {@code /wachtwoord-vergeten} mails a single-use
  *       link to {@code /wachtwoord-herstellen} ({@code PasswordResetService}); a logged-in user changes
  *       their own password on {@code /account/wachtwoord}.</li>
+ *   <li>New users are invited by an admin: the mailed single-use link to {@code /accountaanmaken}
+ *       ({@code InvitationService}) is open without a session but useless without a valid token, so
+ *       there is still no public registration (spec F-01).</li>
  * </ul>
  */
 @Configuration
@@ -60,8 +63,9 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health/**", "/editor/**", "/css/**", "/fonts/**", "/img/**", "/error").permitAll()
 				// The login page with every query string (?error, ?logout, ?deactivated); formLogin().permitAll() would
 				// only allow the exact URLs /login and /login?error, and send /login?logout back to /login.
-				// "Wachtwoord vergeten" (request form) and the reset link from the mail are open as well.
-				.requestMatchers("/login", "/wachtwoord-vergeten", "/wachtwoord-herstellen").permitAll()
+				// "Wachtwoord vergeten" (request form), the reset link from the mail and the invitation link
+				// (/accountaanmaken, unusable without a valid token, so still no public registration) are open as well.
+				.requestMatchers("/login", "/wachtwoord-vergeten", "/wachtwoord-herstellen", "/accountaanmaken").permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())

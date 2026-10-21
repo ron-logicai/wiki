@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 9 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 21 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -24,11 +24,12 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( extra )   Beheerpagina `/admin` (alleen Admin): aantallen, links naar beheerfuncties en de laatste audit-gebeurtenissen; bereikbaar via de rij "Beheer" in de zijbalk (alleen voor beheerders) ( sectie 1, URL-contract )
 
-( F-01, F-02 )   Gebruikers en rollen: tabel `app_user` (V7), beheer op `/admin/users` (toevoegen met herhaald wachtwoord, rol wijzigen, activeren/deactiveren, wachtwoord instellen of resetten via `POST /admin/users/{id}/password`, nooit verwijderen), wachtwoordlogin tegen de tabel, Entra-login alleen voor accounts die op gebruikersnaam of e-mail overeenkomen, deactivering en rolwijziging gelden bij het volgende verzoek ook met open sessie; eerste admin via `WIKI_BOOTSTRAP_ADMIN_*` ( sectie 1, F-01, F-02, A-07 )
+( F-01, F-02 )   Gebruikers en rollen: tabel `app_user` (V7), beheer op `/admin/users` (uitnodigen per e-mail, zie hieronder; rol wijzigen, activeren/deactiveren, wachtwoord instellen of resetten via `POST /admin/users/{id}/password`, nooit verwijderen), wachtwoordlogin tegen de tabel, Entra-login alleen voor accounts die op gebruikersnaam of e-mail overeenkomen, deactivering en rolwijziging gelden bij het volgende verzoek ook met open sessie; eerste admin via `WIKI_BOOTSTRAP_ADMIN_*` ( sectie 1, F-01, F-02, A-07 )
 
 ( U-03 )   Persoonlijke favorieten: ster bij elke pagina in de zijbalkboom (zichtbaar bij hover, `POST /pages/{id}/favorite`), sectie "Favorieten" boven "Ruimtes", tabel `page_favorite` (V8) per gebruikersnaam; pagina's in de prullenbak worden verborgen en komen na herstel terug ( U-03 )
 
 ( U-06 (suggesties) )   Paginalinksuggesties: tijdens het invoegen of bewerken van een link (toolbar-knop, Ctrl+K of "Edit link") zoekt de editor op titel via `GET /api/pages/suggest?q=` (maximaal 10 actieve pagina's, hoofdletterongevoelig, prullenbak uitgesloten, leeg veld toont recent gewijzigde pagina's); een gekozen pagina wordt een link naar `/pages/{id}`, dus de verwijzing blijft werken na hernoemen en verplaatsen ( U-06 eerste helft, F-16 )
+( extra )   Zoeksuggesties: de zoekvelden op `/search` en de startpagina tonen tijdens het typen bestaande pagina's op titel via hetzelfde `GET /api/pages/suggest?q=` (fragment `zoeksuggestiescript` in `fragments.html`; pijltjes en Enter openen de pagina, Enter zonder keuze zoekt gewoon; geen treffers = geen lijst) ( op verzoek, F-13 )
 
 ( N-02 )   Browserbeveiliging: CSRF actief op alle mutaties, ook voor de fetch-verzoeken van de editor (token als header; geweigerde API-verzoeken krijgen een JSON-melding, 401 zonder sessie); sessiecookie HttpOnly, Secure en SameSite=Lax (Lax omdat de Entra-callback een top-level GET is); de volledige loginflow is getest over echte HTTP, voor wachtwoordlogin en voor Entra tegen een nagebootste identity provider in de test ( N-02, A-07 )
 
@@ -42,7 +43,11 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( F-01 )   Eigen loginpagina in de huisstijl (`login.html`, `LoginController`): navy bovenbalk met het logo links, kaart met gebruikersnaam en wachtwoord, knop "Inloggen met Microsoft" zodra Entra is geconfigureerd, en Nederlandse meldingen voor `?error`, `?logout` en `?deactivated` ( F-01, F-02, N-02 )
 
-( F-01 )   Wachtwoord vergeten en eigen wachtwoord wijzigen: "Wachtwoord vergeten?" op de loginpagina vraagt een e-mailadres (`/wachtwoord-vergeten`), bekend actief account met wachtwoord krijgt een mail met een eenmalige link (`/wachtwoord-herstellen?token=`, één uur geldig, alleen de SHA-256-hash in tabel `password_reset_token` V12, wachttijd van 2 minuten tussen aanvragen); onbekend adres geeft "Uw account bestaat niet"; SMTP via `WIKI_MAIL_*`, zonder `WIKI_MAIL_HOST` wordt de link gelogd (`LogResetMailSender`), link gebouwd uit `WIKI_BASE_URL`; ingelogde gebruikers wijzigen hun wachtwoord op `/account/wachtwoord` (naam in de zijbalk) met controle van het huidige wachtwoord; audit `user.password.reset-request`, `user.password.reset` en `user.password.change` ( F-01, N-02, N-04 )
+( F-01 )   Wachtwoord vergeten en eigen wachtwoord wijzigen: "Wachtwoord vergeten?" op de loginpagina vraagt een e-mailadres (`/wachtwoord-vergeten`), bekend actief account met wachtwoord krijgt een mail met een eenmalige link (`/wachtwoord-herstellen?token=`, één uur geldig, alleen de SHA-256-hash in tabel `password_reset_token` V12, wachttijd van 2 minuten tussen aanvragen); onbekend adres geeft "Uw account bestaat niet"; SMTP via `WIKI_MAIL_*`, zonder `WIKI_MAIL_HOST` wordt de link gelogd (`LogMailSender`), link gebouwd uit `WIKI_BASE_URL`; ingelogde gebruikers wijzigen hun wachtwoord op `/account/wachtwoord` (naam in de zijbalk) met controle van het huidige wachtwoord; audit `user.password.reset-request`, `user.password.reset` en `user.password.change` ( F-01, N-02, N-04 )
+
+( F-01 )   Gebruiker uitnodigen per e-mail: het formulier op `/admin/users` vraagt alleen e-mail en rol; de genodigde krijgt een mail met een eenmalige link (`/accountaanmaken?token=`, één uur geldig via `WIKI_INVITATION_TTL`, alleen de SHA-256-hash in tabel `user_invitation` V13, een nieuwe uitnodiging voor hetzelfde adres vervangt de oudere) en kiest daar zelf gebruikersnaam en wachtwoord; de `app_user`-rij ontstaat pas bij het accepteren; zonder geldig token is de pagina onbruikbaar en ze staat nergens in de navigatie, dus nog steeds geen openbare registratie; een adres dat al bij een gebruiker hoort wordt geweigerd; audit `user.invite` (beheerder) en `user.create` (genodigde, "via uitnodiging van"); SMTP via `WIKI_MAIL_*`, zonder host wordt de link gelogd (`LogMailSender`); een Entra-only account zonder wachtwoord is niet meer via het formulier te maken, Entra-login werkt voor genodigden via hun e-mailadres ( F-01, N-02, N-04 )
+
+( F-01, N-04 )   Mail via Microsoft Graph: met `WIKI_MAIL_GRAPH_SENDER` verstuurt de wiki uitnodigingen en herstel-links als applicatie (client credentials van de Entra-appregistratie, toepassingsmachtiging `Mail.Send`, beperkt tot die ene mailbox met een Exchange application access policy) vanuit bijvoorbeeld een gedeelde mailbox `wiki@logicai.nl`; geen mailboxwachtwoord meer in `.env`, en het blijft werken na december 2026 (MC786329); `GraphMailSender` naast `SmtpMailSender`, `MailConfig` kiest Graph, dan SMTP, dan log; fouten van Entra of Graph komen als rode melding op `/admin/users` ( F-01, N-02, N-04 )
 
 ## Volgende stappen
 

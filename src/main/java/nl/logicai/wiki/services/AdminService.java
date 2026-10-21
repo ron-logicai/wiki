@@ -43,6 +43,7 @@ public class AdminService {
 				case AuditEvent.RESTORE_REVISION -> "Revisie teruggezet";
 				case AuditEvent.RELATION_ADD -> "Gerelateerde pagina toegevoegd";
 				case AuditEvent.RELATION_REMOVE -> "Gerelateerde pagina verwijderd";
+				case UserService.USER_INVITE -> "Gebruiker uitgenodigd";
 				case UserService.USER_CREATE -> "Gebruiker aangemaakt";
 				case UserService.USER_ROLE -> "Rol gewijzigd";
 				case UserService.USER_PASSWORD -> "Wachtwoord ingesteld";

@@ -78,7 +78,6 @@
     --shadow-sm: 0 2px 8px rgba(28, 33, 67, 0.07);
     --shadow-md: 0 8px 24px rgba(28, 33, 67, 0.09);
     --shadow-lg: 0 18px 48px rgba(28, 33, 67, 0.12);
-    --shadow-accent: 0 8px 20px rgba(252, 129, 74, 0.30);
 
     --dur-fast: 120ms;
     --dur-base: 200ms;
@@ -574,7 +573,6 @@ p.zij__rij--gedempt:hover {
     border: 1.5px solid var(--grey-200);
     border-radius: var(--radius-pill);
     background: var(--white);
-    box-shadow: var(--shadow-xs);
 }
 
 .knopgroep .knop--icoon {
@@ -625,7 +623,7 @@ p.zij__rij--gedempt:hover {
     white-space: nowrap;
     cursor: pointer;
     transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
-        box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+        filter var(--dur-fast) var(--ease-out);
 }
 
 .knop:hover {
@@ -642,7 +640,6 @@ p.zij__rij--gedempt:hover {
 .knop--primair {
     background: var(--orange);
     color: var(--white);
-    box-shadow: var(--shadow-accent);
 }
 
 .knop--primair:hover {
@@ -653,7 +650,6 @@ p.zij__rij--gedempt:hover {
 .knop--navy {
     background: var(--navy);
     color: var(--offwhite);
-    box-shadow: var(--shadow-sm);
 }
 
 .knop--navy:hover {
@@ -700,7 +696,6 @@ p.zij__rij--gedempt:hover {
 .knop:disabled {
     opacity: 0.6;
     cursor: default;
-    box-shadow: none;
 }
 
 /* Uitklapmenu in de bovenbalk (details/summary: werkt zonder JavaScript) */
@@ -849,15 +844,22 @@ p.zij__rij--gedempt:hover {
 
 .hero__mascotte {
     position: absolute;
-    top: -14px;
+    top: 50%;
     right: 36px;
+    transform: translateY(-50%);
     width: auto;
     height: 190px;
     opacity: 0.95;
     pointer-events: none;
 }
 
+/* Zolang de suggestielijst open is mag de hero niet afknippen (overflow: hidden houdt de afgeronde achtergrond strak) */
+.hero:has(.zoek__suggesties:not([hidden])) {
+    overflow: visible;
+}
+
 .hero__zoek {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
@@ -1885,7 +1887,6 @@ tr.gedempt td {
     font-family: var(--font-display);
     font-size: 14.5px;
     font-weight: 600;
-    box-shadow: var(--shadow-accent);
     cursor: pointer;
 }
 
@@ -1895,7 +1896,6 @@ tr.gedempt td {
 
 .wiki-editor__toolbar button:disabled {
     opacity: 0.6;
-    box-shadow: none;
     cursor: default;
 }
 
@@ -3160,6 +3160,7 @@ a.zij__wie:focus-visible .zij__naam {
 }
 
 .zoek__balk {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
@@ -3218,6 +3219,53 @@ a.zij__wie:focus-visible .zij__naam {
 
 .zoek__balk .knop {
     flex: none;
+}
+
+/* Titelsuggesties onder de zoekbalk (zelfde uitklaplook als .menu__lijst) */
+.zoek__suggesties {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: 0;
+    z-index: 3;
+    margin: 0;
+    padding: 6px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    box-shadow: var(--shadow-md);
+    list-style: none;
+    font-size: 14px;
+}
+
+.zoek__suggesties[hidden] {
+    display: none;
+}
+
+.zoek__suggestie {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--navy);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.zoek__suggestie:hover,
+.zoek__suggestie:focus-visible,
+.zoek__suggestie--aan {
+    background: var(--teal-100);
+    color: var(--navy);
+}
+
+.zoek__suggestie-pad {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 400;
+    white-space: nowrap;
 }
 
 .zoek__hint {
