@@ -13,7 +13,7 @@ Gebouwd als stageopdracht softwareontwikkeling (opdracht v1.0, 15 september 2026
 | Database | PostgreSQL 18, JSONB voor documentinhoud, Flyway-migraties |
 | Editor | BlockNote als lokale React-island (TypeScript + Vite), geen client-side router |
 | Tests | JUnit, MockMvc, Testcontainers (PostgreSQL 18), Playwright |
-| Uitrol | Dockerfile + Docker Compose, GitHub Actions CI |
+| Uitrol | Dockerfile + Docker Compose, Fly.io (`fly.toml`), GitHub Actions CI |
 
 ## Vereisten voor ontwikkelen
 
@@ -43,7 +43,7 @@ ontbreken; buiten dit profiel gebeurt dat nooit, dus in productie bestaan ze nie
 
 Gebruikers en rollen beheer je als admin op `/admin/users` (klik onderin de zijbalk op je eigen naam).
 Een nieuwe gebruiker nodig je uit per e-mail: je vult alleen het adres en de rol in, de genodigde kiest
-zelf een gebruikersnaam en wachtwoord via de link in de mail (`/accountaanmaken?token=`, één uur geldig,
+zelf een naam, gebruikersnaam en wachtwoord via de link in de mail (`/accountaanmaken?token=`, één uur geldig,
 eenmalig). Zonder `WIKI_MAIL_HOST` staat die link in de log.
 Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_ADMIN_USERNAME` nodig
 (met `WIKI_BOOTSTRAP_ADMIN_PASSWORD` en/of `WIKI_BOOTSTRAP_ADMIN_EMAIL` voor Entra); die admin wordt
@@ -175,6 +175,14 @@ vraagt het wachtwoord van een mailbox in `.env`; daarom is Graph de standaard. K
 verstuurd (bijvoorbeeld `ErrorAccessDenied` als de machtiging of de access policy ontbreekt), dan toont
 `/admin/users` een rode melding met de reden van Entra of Graph en wordt niets bewaard.
 
+Tot die inrichting klaar is verstuurt de wiki via SMTP vanuit `info@logicai.nl` (`WIKI_MAIL_HOST=smtp.office365.com`,
+gebruikersnaam en wachtwoord van die mailbox; "Authenticated SMTP" moet aanstaan op de mailbox).
+
+De mails zelf zijn HTML-templates in `src/main/resources/templates/mail/` (`uitnodiging.html`,
+`wachtwoord-herstellen.html`, gedeelde stukken in `fragments.html`), gerenderd door `MailTemplates` met de
+platte tekst als fallback. Onder profiel `local` kun je ze als admin bekijken op `/dev/mail/uitnodiging` en
+`/dev/mail/wachtwoord-herstellen`; de Thymeleaf-cache staat daar uit, dus opslaan en verversen volstaat.
+
 Geüploade bestanden staan niet in de database. Een back-up bestaat daarom uit de database **en** de
 map `WIKI_ATTACHMENTS_DIR`; herstel beide samen.
 
@@ -186,6 +194,96 @@ docker compose up -d --build
 
 Dit bouwt de editor en de jar in een multi-stage Dockerfile en start app + database.
 Databasegegevens staan in het volume `wiki-db-data` en overleven een herstart.
+
+## Uitrol op Fly.io
+
+Lokaal is hiervoor **geen Docker nodig**: `fly deploy` stuurt de broncode naar een remote builder van
+Fly, die daar dezelfde `Dockerfile` bouwt (`--remote-only` is de standaard; alleen `--local-only`
+gebruikt Docker Desktop). `docker-compose.yml` blijft voor lokaal ontwikkelen en wordt door Fly niet gelezen.
+
+De wiki draait op Fly als twee apps in regio `ams` (Amsterdam), verbonden over het private netwerk:
+
+| App | Configuratie | Inhoud | Volume |
+|---|---|---|---|
+| `logicai-wiki` | `fly.toml` | de Dockerfile, 1 GB geheugen, publiek op `https://logicai-wiki.fly.dev` | `wiki_attachments` op `/app/data` (uploads) |
+| `logicai-wiki-db` | `deploy/fly/db/fly.toml` | officieel `postgres:18`-image, 512 MB, geen publieke poorten (`logicai-wiki-db.internal:5432`) | `wiki_db_data` op `/var/lib/postgresql` |
+
+Er is bewust geen `SPRING_PROFILES_ACTIVE` gezet: zonder profiel zijn de sessiecookies Secure, bestaan
+de testgebruikers niet en wordt `.env` niet gelezen. De eerste admin komt uit `WIKI_BOOTSTRAP_ADMIN_*`.
+Flyway draait bij het opstarten van de app. De database is onbeheerd (Fly Managed Postgres kent geen
+Postgres 18 en begint bij $38 per maand): back-ups en Postgres-updates zijn voor onszelf, zie onder.
+Richtprijs voor beide machines plus volumes: ongeveer $11 à $12 per maand (prijzen oktober 2026).
+
+### Eerste keer
+
+```powershell
+# 1. flyctl installeren en inloggen (account met betaalmethode; er is geen gratis tier meer)
+pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
+fly auth login
+
+# 2. Database-app: volume en wachtwoord eerst, dan deployen (alleen een image-pull, geen build)
+fly apps create logicai-wiki-db
+fly volumes create wiki_db_data --region ams --size 3 -a logicai-wiki-db --yes
+fly secrets set POSTGRES_PASSWORD='<sterk wachtwoord>' -a logicai-wiki-db
+fly deploy --config deploy/fly/db/fly.toml -a logicai-wiki-db
+fly logs -a logicai-wiki-db          # verwacht: "database system is ready to accept connections"
+
+# 3. Wiki-app: volume en geheimen (zelfde databasewachtwoord; de bootstrap-admin geldt alleen bij de eerste start)
+fly apps create logicai-wiki
+fly volumes create wiki_attachments --region ams --size 3 -a logicai-wiki --yes
+fly secrets set WIKI_DB_PASSWORD='<zelfde wachtwoord>' WIKI_BOOTSTRAP_ADMIN_USERNAME=admin WIKI_BOOTSTRAP_ADMIN_PASSWORD='<admin-wachtwoord>' -a logicai-wiki
+
+# 4. Deployen vanuit de projectmap (remote build; de eerste keer 5 à 10 minuten voor npm en Maven)
+fly deploy
+fly status -a logicai-wiki
+fly logs -a logicai-wiki             # Flyway-migraties, daarna "Tomcat started on port 8080"
+```
+
+Daarna opent `https://logicai-wiki.fly.dev` de loginpagina. Mail gaat via SMTP vanuit `info@logicai.nl`:
+host, poort, gebruiker en afzender staan in `fly.toml` (`[env]`), het mailboxwachtwoord alleen als secret:
+
+```powershell
+fly secrets set WIKI_MAIL_PASSWORD='<wachtwoord van info@logicai.nl>' -a logicai-wiki
+```
+
+Zonder dat secret (of met `WIKI_MAIL_HOST` leeg in `fly.toml`) meldt `/admin/users` dat er geen mail is
+ingesteld en staan herstel- en uitnodigingslinks in `fly logs`.
+
+Loopt de remote builder uit zijn geheugen (exit 137 in de buildlog), verwijder dan de builder-app
+(`fly apps list` toont `fly-builder-...`, daarna `fly apps destroy <naam>`) en deploy opnieuw; Fly maakt
+een nieuwe builder. Noodoplossing is `fly deploy --local-only`, dan bouwt Docker Desktop de image.
+
+### Controles na een deploy
+
+- `fly status` toont één machine `started` met health check `passing` (`/actuator/health/readiness`).
+- `http://` wordt doorgestuurd naar `https://` (`force_https`), de sessiecookie heeft `Secure; HttpOnly; SameSite=Lax`.
+- De header `Strict-Transport-Security` staat op een ingelogde pagina: dan vertrouwt Tomcat de
+  `X-Forwarded-Proto` van de Fly-proxy (die verbindt vanaf 172.16.0.0/12, binnen de standaard
+  `internalProxies`). Ontbreekt hij, zet dan `server.tomcat.remoteip.internal-proxies` ruimer.
+- Een geüploade afbeelding is er na `fly deploy` of `fly machine restart` nog (volume werkt);
+  `fly ssh console -a logicai-wiki -C "ls -la /app/data/attachments"` toont eigenaar `wiki`.
+- `fly ips list -a logicai-wiki-db` toont geen publiek adres.
+
+### Back-up
+
+Fly maakt dagelijks een snapshot van elk volume en bewaart die vijf dagen
+(`fly volumes snapshots list <volume-id>`). Maak daarnaast zelf een dump van database én uploads:
+
+```powershell
+fly ssh console -a logicai-wiki-db -C "pg_dump -U wiki wiki" > wiki-fly.sql
+fly ssh console -a logicai-wiki -C "tar czf - /app/data/attachments" > attachments-fly.tgz
+```
+
+Terugzetten: `fly proxy 5433:5432 -a logicai-wiki-db` en dan lokaal `psql -h localhost -p 5433 -U wiki wiki < wiki-fly.sql`.
+
+### Later mogelijk
+
+- Automatisch deployen vanuit GitHub Actions: job na de tests op `main` met
+  `superfly/flyctl-actions/setup-flyctl` en `flyctl deploy --remote-only`, token via `fly tokens create deploy`.
+- Eigen domein: `fly certs add wiki.logicai.nl`, CNAME naar `logicai-wiki.fly.dev`, `WIKI_BASE_URL` aanpassen.
+- Entra-login: `SPRING_PROFILES_ACTIVE=entra` in `[env]`, `WIKI_ENTRA_*` als secrets en de redirect-URI
+  `https://<domein>/login/oauth2/code/entra` in de app-registratie.
+- Goedkoper: `auto_stop_machines = "suspend"` met `min_machines_running = 0`; de eerste aanvraag na stilte is dan enkele seconden traag.
 
 ## Projectstructuur
 

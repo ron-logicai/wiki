@@ -31,7 +31,7 @@
                         <h1>Gebruikers en toegang</h1>
                         <p class="intro">
                             Alleen gebruikers in deze lijst kunnen inloggen. Een gedeactiveerde gebruiker wordt bij het
-                            volgende verzoek geweigerd, ook met een open sessie. Gebruikers worden nooit verwijderd.
+                            volgende verzoek geweigerd, ook met een open sessie; een verwijderde gebruiker wordt dan uitgelogd.
                         </p>
                     </div>
                     <nav th:replace="~{fragments :: beheertabs('gebruikers')}"></nav>
@@ -96,7 +96,7 @@
                                         <span class="gedempt" th:if="${u.lastLoginAt == null}">nog nooit</span>
                                     </td>
                                     <td class="tabel__acties">
-                                        <!-- Acties per gebruiker in een uitklapmenu (details/summary): rol, wachtwoord, activeren -->
+                                        <!-- Acties per gebruiker in een uitklapmenu (details/summary): rol, wachtwoord, verwijderen -->
                                         <details class="menu">
                                             <summary class="knop knop--icoon" th:title="'Acties voor ' + ${u.username}" th:attr="aria-label='Acties voor ' + ${u.username}" aria-haspopup="menu">
                                                 <span class="icoon" th:insert="~{fragments :: icoon('meer')}"></span>
@@ -118,9 +118,9 @@
                                                     <input th:id="'ww2-' + ${u.id}" type="password" name="passwordRepeat" minlength="8" required placeholder="Herhaal wachtwoord" autocomplete="off">
                                                     <button type="submit" class="knop">Wachtwoord instellen</button>
                                                 </form>
-                                                <form class="actiefformulier" th:unless="${u.username == gebruiker}" th:action="@{/admin/users/{id}/active(id=${u.id})}" method="post">
-                                                    <input type="hidden" name="active" th:value="${!u.active}">
-                                                    <button type="submit" class="knop" th:classappend="${u.active} ? 'knop--gevaar'" th:text="${u.active} ? 'Deactiveren' : 'Activeren'">Deactiveren</button>
+                                                <form class="verwijderformulier" th:unless="${u.username == gebruiker}" th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post"
+                                                      onsubmit="return confirm('Dit account verwijderen? Dit kan niet ongedaan gemaakt worden.')">
+                                                    <button type="submit" class="knop knop--gevaar">Verwijderen</button>
                                                 </form>
                                             </div>
                                         </details>

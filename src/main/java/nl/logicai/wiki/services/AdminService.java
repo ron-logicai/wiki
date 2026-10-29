@@ -52,6 +52,7 @@ public class AdminService {
 				case UserService.USER_PASSWORD_RESET -> "Wachtwoord hersteld";
 				case UserService.USER_ACTIVATE -> "Gebruiker geactiveerd";
 				case UserService.USER_DEACTIVATE -> "Gebruiker gedeactiveerd";
+				case UserService.USER_DELETE -> "Gebruiker verwijderd";
 				default -> event.getAction();
 			};
 		}

@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -240,6 +241,63 @@ class UserAdminFlowIntegrationTest {
 		mvc.perform(post("/admin/users/{id}/active", other).with(csrf()).param("active", "false")
 				.with(user("andere").roles("ADMIN")))
 			.andExpect(flash().attribute("fout", containsString("laatste actieve beheerder")));
+	}
+
+	/** Verwijderen: the row and its reset tokens go, and an open session is ended on the next request. */
+	@Test
+	void adminDeletesUserAndTheyAreLoggedOutImmediately() throws Exception {
+		UUID id = create("weg", "EDITOR", "weg@example.com");
+		jdbc.update("insert into password_reset_token (id, user_id, token_hash, created_at, expires_at) values (?, ?, ?, now(), now() + interval '1 hour')",
+				UUID.randomUUID(), id, "a".repeat(64));
+
+		// A real form login, so the session carries WebAuthenticationDetails like in the browser.
+		MockHttpSession session = (MockHttpSession) mvc.perform(formLogin().user("weg").password("geheim123"))
+			.andExpect(authenticated().withUsername("weg"))
+			.andReturn().getRequest().getSession(false);
+		mvc.perform(get("/").session(session)).andExpect(status().isOk());
+
+		mvc.perform(post("/admin/users/{id}/delete", id).with(csrf()).with(ADMIN))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/admin/users"))
+			.andExpect(flash().attribute("melding", "“weg” is verwijderd."));
+
+		mvc.perform(get("/").session(session))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/login?verwijderd"));
+		mvc.perform(get("/api/pages/{id}/content", UUID.randomUUID()).session(session))
+			.andExpect(status().isUnauthorized());
+		mvc.perform(formLogin().user("weg").password("geheim123")).andExpect(unauthenticated());
+
+		assertThat(jdbc.queryForObject("select count(*) from app_user where username = 'weg'", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from password_reset_token where user_id = ?", Integer.class, id)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from audit_event where action = 'user.delete' and details = 'weg'", Integer.class))
+			.isEqualTo(1);
+
+		mvc.perform(get("/admin").with(ADMIN))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Gebruiker verwijderd")));
+		mvc.perform(get("/login?verwijderd"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Je account is verwijderd.")));
+	}
+
+	@Test
+	@WithMockUser(username = "enige.beheerder", roles = "ADMIN")
+	void adminCannotDeleteThemselvesOrTheLastAdmin() throws Exception {
+		jdbc.update("update app_user set active = false where role = 'ADMIN'");
+		UUID self = create("enige.beheerder", "ADMIN");
+
+		mvc.perform(post("/admin/users/{id}/delete", self).with(csrf()))
+			.andExpect(flash().attribute("fout", "Je kunt jezelf niet verwijderen."));
+		mvc.perform(post("/admin/users/{id}/delete", self).with(csrf()).with(user("andere").roles("ADMIN")))
+			.andExpect(flash().attribute("fout", containsString("laatste actieve beheerder")));
+		assertThat(users.findById(self)).isPresent();
+
+		// The own-row rule and the last-admin rule are the only guards: with a second admin it goes through.
+		UUID other = create("derde.beheerder", "ADMIN");
+		mvc.perform(post("/admin/users/{id}/delete", other).with(csrf()))
+			.andExpect(flash().attributeExists("melding"));
+		assertThat(users.findById(other)).isEmpty();
 	}
 
 	/** A user with password "geheim123", straight into the table: the admin form no longer creates accounts. */

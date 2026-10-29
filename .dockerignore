@@ -5,3 +5,6 @@ frontend/playwright-report/
 .git/
 .idea/
 .env
+data/
+fly.toml
+deploy/

@@ -87,7 +87,8 @@ public class InvitationService {
 		audit.save(AuditEvent.of(UserService.USER_INVITE, null, actor, now, email + " als " + role.getLabel()));
 		String link = baseUrl + "/accountaanmaken?token=" + token;
 		try {
-			mail.sendInvitation(email, role, actor, link, settings.ttl());
+			// The mail names the admin by display name ("Ellen"), the audit event by username.
+			mail.sendInvitation(email, role, userService.displayNameOf(actor), link, settings.ttl());
 		}
 		catch (MailException ex) {
 			log.error("Uitnodiging voor {} kon niet worden verstuurd", email, ex);
@@ -106,12 +107,13 @@ public class InvitationService {
 	}
 
 	/**
-	 * Creates the account for a usable invitation with the username and password the invitee chose;
-	 * e-mail and role come from the invitation. The invitation is burned, also on the second attempt
-	 * with the same link.
+	 * Creates the account for a usable invitation with the name, username and password the invitee
+	 * chose; e-mail and role come from the invitation. The invitation is burned, also on the second
+	 * attempt with the same link.
 	 */
-	public WikiUser accept(String token, String rawUsername, String password, String passwordRepeat) {
+	public WikiUser accept(String token, String rawDisplayName, String rawUsername, String password, String passwordRepeat) {
 		UserInvitation invitation = usableInvitation(token).orElseThrow(() -> new InvalidUserException(INVALID_LINK));
+		String displayName = UserService.validDisplayName(rawDisplayName);
 		String username = UserService.validUsername(rawUsername);
 		if (users.findByUsernameIgnoreCase(username).isPresent()) {
 			throw new InvalidUserException("Gebruikersnaam “" + username + "” bestaat al.");
@@ -124,8 +126,7 @@ public class InvitationService {
 		}
 		String hash = userService.hashPassword(password, passwordRepeat);
 		Instant now = clock.instant();
-		// The form has no separate name field: the username doubles as display name (as on /admin/users before).
-		WikiUser user = users.save(WikiUser.create(username, username, invitation.getEmail(), hash,
+		WikiUser user = users.save(WikiUser.create(username, displayName, invitation.getEmail(), hash,
 				invitation.getRole(), invitation.getInvitedBy(), now));
 		invitation.markAccepted(now);
 		audit.save(AuditEvent.of(UserService.USER_CREATE, null, username, now,

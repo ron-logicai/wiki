@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  Account aanmaken via een uitnodigingslink (spec F-01). Ontwerp van 28-10-2026: gesplitste pagina met een
+  navy welkomstpaneel links en het formulier rechts; de loginpagina en de wachtwoord-pagina's houden de
+  kaart-opmaak (.inlog).
+-->
 <html lang="nl" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:replace="~{fragments :: head}"></th:block>
@@ -6,19 +11,23 @@
     <meta name="referrer" content="no-referrer">
     <title>Account aanmaken · LogicAI Wiki</title>
 </head>
-<body class="inlog">
+<body class="aanmaken">
 
-<header class="inlog__kop">
-    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
-        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+<aside class="aanmaken__paneel">
+    <a class="aanmaken__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="aanmaken__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
     </a>
-    <span class="inlog__ondertitel">Interne kenniswiki</span>
-</header>
+    <div class="aanmaken__welkom">
+        <img class="aanmaken__mascotte" th:src="@{/img/mascotte.png}" alt="">
+        <h2>Welkom bij de interne wiki</h2>
+        <p>Alle werkwijzen, afspraken en handleidingen van het team op één plek.
+            Maak je account aan en je kunt direct meelezen en meeschrijven.</p>
+    </div>
+    <p class="aanmaken__voet">LogicAI · Zeewolde</p>
+</aside>
 
-<main class="inlog__vlak">
-    <div class="inlog__kaart">
-        <img class="inlog__mascotte" th:src="@{/img/mascotte.png}" alt="">
-        <p class="eyebrow">LogicAI Wiki</p>
+<main class="aanmaken__vlak">
+    <div class="aanmaken__kolom">
         <h1>Account aanmaken</h1>
 
         <!-- Uitnodiging onbekend, al gebruikt of verlopen: geen formulier, dus geen openbare registratie (F-01) -->
@@ -30,35 +39,45 @@
         </th:block>
 
         <th:block th:unless="${ongeldig}">
-            <p class="intro">
-                Je bent uitgenodigd als <strong th:text="${uitnodiging.role.label}">Viewer</strong>
+            <p class="aanmaken__intro">
+                Je bent uitgenodigd door <strong th:text="${uitgenodigdDoor}">Ellen</strong>
+                als <strong th:text="${uitnodiging.role.label}">Viewer</strong>
                 voor <strong th:text="${uitnodiging.email}">naam@logicai.nl</strong>.
-                Kies een gebruikersnaam en een wachtwoord van minimaal 8 tekens.
             </p>
 
             <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
 
-            <form class="formulier" th:action="@{/accountaanmaken}" method="post">
+            <form class="formulier aanmaken__formulier" th:action="@{/accountaanmaken}" method="post">
                 <input type="hidden" name="token" th:value="${token}">
+                <div class="veld">
+                    <label for="displayName">Naam</label>
+                    <input id="displayName" name="displayName" type="text" autocomplete="name" maxlength="200"
+                           placeholder="Voor- en achternaam" required autofocus th:value="${displayName}">
+                </div>
                 <div class="veld">
                     <label for="username">Gebruikersnaam</label>
                     <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
-                           spellcheck="false" maxlength="100" pattern="[A-Za-z0-9._@-]+" required autofocus th:value="${username}">
+                           spellcheck="false" maxlength="100" pattern="[A-Za-z0-9._@-]+" placeholder="bijv. ellen"
+                           required th:value="${username}">
                     <p class="gedempt klein">Alleen letters, cijfers en . _ @ - (maximaal 100 tekens). Hiermee log je in.</p>
                 </div>
                 <div class="veld">
-                    <label for="password">Wachtwoord</label>
-                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                    <label for="password">Nieuw wachtwoord</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="8"
+                           placeholder="Minimaal 8 tekens" required>
                 </div>
                 <div class="veld">
-                    <label for="passwordRepeat">Herhaal wachtwoord</label>
-                    <input id="passwordRepeat" name="passwordRepeat" type="password" autocomplete="new-password" minlength="8" required>
+                    <label for="passwordRepeat">Wachtwoord herhalen</label>
+                    <input id="passwordRepeat" name="passwordRepeat" type="password" autocomplete="new-password" minlength="8"
+                           placeholder="Nog een keer hetzelfde wachtwoord" required>
                 </div>
                 <div class="acties">
                     <button type="submit" class="knop knop--primair knop--vol">Account aanmaken</button>
                 </div>
             </form>
         </th:block>
+
+        <p class="aanmaken__login">Heb je al een account? <a th:href="@{/login}">Inloggen</a></p>
     </div>
 </main>
 

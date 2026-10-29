@@ -3,6 +3,7 @@ package nl.logicai.wiki.controllers;
 import nl.logicai.wiki.exceptions.InvalidUserException;
 import nl.logicai.wiki.models.UserInvitation;
 import nl.logicai.wiki.services.InvitationService;
+import nl.logicai.wiki.services.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,15 +14,18 @@ import org.springframework.web.bind.annotation.RequestParam;
  * De pagina achter de uitnodigingsmail (spec F-01: geen openbare registratie, alleen met een geldig
  * token). Zonder sessie en zonder zijbalk (dus niet in {@code GlobalModelAdvice}); de route staat
  * nergens in de navigatie. Het token staat na de eerste GET alleen nog in een hidden field, nooit
- * meer in een URL.
+ * meer in een URL. De genodigde kiest naam, gebruikersnaam en wachtwoord; e-mail en rol komen uit
+ * de uitnodiging.
  */
 @Controller
 public class InvitationController {
 
 	private final InvitationService invitationService;
+	private final UserService userService;
 
-	public InvitationController(InvitationService invitationService) {
+	public InvitationController(InvitationService invitationService, UserService userService) {
 		this.invitationService = invitationService;
+		this.userService = userService;
 	}
 
 	@GetMapping("/accountaanmaken")
@@ -33,11 +37,11 @@ public class InvitationController {
 	}
 
 	@PostMapping("/accountaanmaken")
-	public String aanmaken(@RequestParam(defaultValue = "") String token, @RequestParam(defaultValue = "") String username,
-			@RequestParam(defaultValue = "") String password, @RequestParam(defaultValue = "") String passwordRepeat,
-			Model model) {
+	public String aanmaken(@RequestParam(defaultValue = "") String token, @RequestParam(defaultValue = "") String displayName,
+			@RequestParam(defaultValue = "") String username, @RequestParam(defaultValue = "") String password,
+			@RequestParam(defaultValue = "") String passwordRepeat, Model model) {
 		try {
-			invitationService.accept(token, username, password, passwordRepeat);
+			invitationService.accept(token, displayName, username, password, passwordRepeat);
 			return "redirect:/login?aangemaakt";
 		}
 		catch (InvalidUserException ex) {
@@ -45,6 +49,7 @@ public class InvitationController {
 					invitation -> {
 						formulier(model, token, invitation);
 						model.addAttribute("fout", ex.getMessage());
+						model.addAttribute("displayName", displayName);
 						model.addAttribute("username", username);
 					},
 					() -> model.addAttribute("ongeldig", true));
@@ -52,9 +57,11 @@ public class InvitationController {
 		}
 	}
 
-	private static void formulier(Model model, String token, UserInvitation invitation) {
+	private void formulier(Model model, String token, UserInvitation invitation) {
 		model.addAttribute("token", token);
 		model.addAttribute("uitnodiging", invitation);
+		// De uitnodiger als weergavenaam ("Ellen"), niet als gebruikersnaam.
+		model.addAttribute("uitgenodigdDoor", userService.displayNameOf(invitation.getInvitedBy()));
 	}
 
 }

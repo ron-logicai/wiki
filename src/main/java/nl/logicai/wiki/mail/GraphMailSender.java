@@ -27,7 +27,7 @@ import org.springframework.web.client.RestClientResponseException;
  * password login on SMTP (MC786329, December 2026). An Exchange application access policy should limit the app to
  * that one mailbox; see the README. Every failure becomes a {@link MailSendException} carrying the reason given by
  * Entra or Graph, so {@code InvitationService} and {@code PasswordResetService} handle it exactly like a refusing
- * SMTP server. Same texts as {@link SmtpMailSender}.
+ * SMTP server. The body is the HTML from {@link MailTemplates}; Graph has no text+HTML alternative.
  */
 public class GraphMailSender implements WikiMailSender {
 
@@ -43,34 +43,36 @@ public class GraphMailSender implements WikiMailSender {
 	private final RestClient graph;
 	private final WikiMailProperties.Graph settings;
 	private final Clock clock;
+	private final MailTemplates templates;
 
 	private volatile Token token;
 
 	private record Token(String value, Instant expiresAt) {
 	}
 
-	public GraphMailSender(RestClient.Builder builder, WikiMailProperties.Graph settings, Clock clock) {
+	public GraphMailSender(RestClient.Builder builder, WikiMailProperties.Graph settings, Clock clock, MailTemplates templates) {
 		this.login = builder.clone().baseUrl(withoutSlash(settings.loginBase())).build();
 		this.graph = builder.clone().baseUrl(withoutSlash(settings.apiBase())).build();
 		this.settings = settings;
 		this.clock = clock;
+		this.templates = templates;
 	}
 
 	@Override
 	public void sendPasswordReset(WikiUser user, String link, Duration validFor) {
-		send(user.getEmail(), "LogicAI Wiki: nieuw wachtwoord instellen", SmtpMailSender.resetBody(user, link, validFor));
+		send(user.getEmail(), templates.passwordReset(user, link, validFor));
 	}
 
 	@Override
 	public void sendInvitation(String email, Role role, String invitedBy, String link, Duration validFor) {
-		send(email, "LogicAI Wiki: uitnodiging voor een account", SmtpMailSender.invitationBody(role, invitedBy, link, validFor));
+		send(email, templates.invitation(role, invitedBy, link, validFor));
 	}
 
-	private void send(String to, String subject, String text) {
+	private void send(String to, MailTemplates.Rendered mail) {
 		Map<String, Object> body = Map.of(
 				"message", Map.of(
-						"subject", subject,
-						"body", Map.of("contentType", "Text", "content", text),
+						"subject", mail.subject(),
+						"body", Map.of("contentType", "HTML", "content", mail.html()),
 						"toRecipients", List.of(Map.of("emailAddress", Map.of("address", to)))),
 				"saveToSentItems", false);
 		try {

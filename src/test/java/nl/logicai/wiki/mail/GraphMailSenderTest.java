@@ -63,7 +63,8 @@ class GraphMailSenderTest {
 		server.start();
 		String base = "http://localhost:" + server.getAddress().getPort();
 		sender = new GraphMailSender(RestClient.builder(),
-				new WikiMailProperties.Graph(SENDER, "test-tenant", "client-123", "geheim", base + "/", base + "/v1.0"), clock);
+				new WikiMailProperties.Graph(SENDER, "test-tenant", "client-123", "geheim", base + "/", base + "/v1.0"), clock,
+				new MailTemplates(MailTemplatesTest.engine()));
 	}
 
 	@AfterEach
@@ -88,8 +89,8 @@ class GraphMailSenderTest {
 		assertThat(send.contentType()).startsWith("application/json");
 		assertThat(send.body()).contains("\"address\":\"nieuw@example.com\"")
 			.contains("\"subject\":\"LogicAI Wiki: uitnodiging voor een account\"")
-			.contains("\"contentType\":\"Text\"")
-			.contains("admin heeft je uitgenodigd").contains("Editor").contains(LINK)
+			.contains("\"contentType\":\"HTML\"")
+			.contains("admin</span> heeft een account als <strong>Editor</strong>").contains(LINK)
 			.contains("\"saveToSentItems\":false");
 	}
 
@@ -102,7 +103,7 @@ class GraphMailSenderTest {
 		assertThat(send.path()).isEqualTo(SEND_PATH);
 		assertThat(send.body()).contains("\"address\":\"ron@example.com\"")
 			.contains("\"subject\":\"LogicAI Wiki: nieuw wachtwoord instellen\"")
-			.contains("Hallo Ron").contains("30 minuten").contains("wachtwoord-herstellen?token=xyz");
+			.contains("Hoi Ron,").contains("30 minuten").contains("wachtwoord-herstellen?token=xyz");
 	}
 
 	@Test

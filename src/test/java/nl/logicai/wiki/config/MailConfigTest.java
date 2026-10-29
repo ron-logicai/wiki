@@ -2,12 +2,15 @@ package nl.logicai.wiki.config;
 
 import nl.logicai.wiki.mail.GraphMailSender;
 import nl.logicai.wiki.mail.LogMailSender;
+import nl.logicai.wiki.mail.MailTemplates;
 import nl.logicai.wiki.mail.SmtpMailSender;
 import nl.logicai.wiki.mail.WikiMailSender;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,6 +20,12 @@ class MailConfigTest {
 	@Configuration(proxyBeanMethods = false)
 	@EnableConfigurationProperties(WikiMailProperties.class)
 	static class Properties {
+
+		/** The senders need the mail templates; a bare engine is enough, nothing is rendered here. */
+		@Bean
+		MailTemplates mailTemplates() {
+			return new MailTemplates(new SpringTemplateEngine());
+		}
 	}
 
 	private final ApplicationContextRunner runner = new ApplicationContextRunner()

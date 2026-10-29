@@ -8,6 +8,7 @@ import java.util.Properties;
 
 import nl.logicai.wiki.mail.GraphMailSender;
 import nl.logicai.wiki.mail.LogMailSender;
+import nl.logicai.wiki.mail.MailTemplates;
 import nl.logicai.wiki.mail.SmtpMailSender;
 import nl.logicai.wiki.mail.WikiMailSender;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ public class MailConfig {
 	private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
 	@Bean
-	WikiMailSender wikiMailSender(WikiMailProperties mail, Clock clock) {
+	WikiMailSender wikiMailSender(WikiMailProperties mail, Clock clock, MailTemplates templates) {
 		if (mail.graphConfigured()) {
 			WikiMailProperties.Graph graph = mail.graph();
 			List<String> missing = graph.missing();
@@ -40,7 +41,7 @@ public class MailConfig {
 						+ ": de wiki mailt via Microsoft Graph met de Entra-appregistratie.");
 			}
 			log.info("Mail via Microsoft Graph als {}", graph.sender());
-			return new GraphMailSender(restClientBuilder(), graph, clock);
+			return new GraphMailSender(restClientBuilder(), graph, clock, templates);
 		}
 		if (!mail.smtpConfigured()) {
 			log.warn("WIKI_MAIL_GRAPH_SENDER en WIKI_MAIL_HOST zijn leeg: herstel-links en uitnodigingen worden gelogd, "
@@ -63,7 +64,7 @@ public class MailConfig {
 		props.put("mail.smtp.connectiontimeout", String.valueOf(TIMEOUT.toMillis()));
 		props.put("mail.smtp.timeout", String.valueOf(TIMEOUT.toMillis()));
 		props.put("mail.smtp.writetimeout", String.valueOf(TIMEOUT.toMillis()));
-		return new SmtpMailSender(sender, mail.from());
+		return new SmtpMailSender(sender, mail.from(), templates);
 	}
 
 	/** Same timeouts as SMTP: a hanging Entra or Graph must not hang the form of the admin. */

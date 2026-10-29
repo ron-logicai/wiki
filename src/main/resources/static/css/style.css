@@ -2813,7 +2813,8 @@ a.zij__wie:focus-visible .zij__naam {
 
 .label--audit-page-delete,
 .label--audit-page-relation-remove,
-.label--audit-user-deactivate {
+.label--audit-user-deactivate,
+.label--audit-user-delete {
     background: var(--orange-100);
     color: var(--orange-600);
 }
@@ -3619,4 +3620,172 @@ a.zij__wie:focus-visible .zij__naam {
 .inlog__kaart .acties {
     flex-direction: column;
     align-items: stretch;
+}
+
+/* ── Account aanmaken (ontwerp 28-10-2026): navy welkomstpaneel links, formulier rechts ──────── */
+.aanmaken {
+    display: flex;
+    min-height: 100vh;
+    background: var(--white);
+}
+
+.aanmaken__paneel {
+    display: flex;
+    flex: 0 0 520px;
+    max-width: 42%;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 32px;
+    padding: 44px 48px;
+    background: var(--navy);
+    color: var(--text-on-dark);
+}
+
+.aanmaken__merk {
+    display: inline-flex;
+    align-self: flex-start;
+    color: inherit;
+}
+
+.aanmaken__logo {
+    display: block;
+    width: auto;
+    height: 28px;
+}
+
+.aanmaken__welkom {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.aanmaken__mascotte {
+    display: block;
+    width: 120px;
+    height: auto;
+}
+
+.aanmaken__welkom h2 {
+    margin: 0;
+    color: var(--offwhite);
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.aanmaken__welkom p {
+    max-width: 380px;
+    margin: 0;
+    color: var(--text-on-dark-muted);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.aanmaken__voet {
+    margin: 0;
+    color: var(--text-on-dark-muted);
+    font-size: 13px;
+}
+
+.aanmaken__vlak {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+}
+
+.aanmaken__kolom {
+    display: flex;
+    width: 100%;
+    max-width: 420px;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.aanmaken__kolom h1 {
+    margin: 0;
+    color: var(--navy);
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.aanmaken__kolom .melding {
+    margin: 0;
+}
+
+.aanmaken__intro {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.aanmaken__intro strong {
+    color: var(--navy);
+}
+
+.aanmaken__formulier {
+    max-width: none;
+}
+
+.aanmaken__formulier .veld {
+    margin-bottom: 14px;
+}
+
+.aanmaken__kolom .acties {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 10px;
+}
+
+.aanmaken__login {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+}
+
+.aanmaken__login a {
+    color: var(--slate);
+    font-weight: 700;
+}
+
+@media (max-width: 56rem) {
+    .aanmaken {
+        flex-direction: column;
+    }
+
+    .aanmaken__paneel {
+        flex: none;
+        max-width: none;
+        gap: 14px;
+        padding: 20px 20px 24px;
+    }
+
+    .aanmaken__mascotte {
+        width: 64px;
+    }
+
+    .aanmaken__welkom h2 {
+        font-size: 24px;
+    }
+
+    .aanmaken__vlak {
+        align-items: flex-start;
+        padding: 28px 16px 40px;
+    }
+}
+
+@media (max-width: 40rem) {
+    .aanmaken__welkom p,
+    .aanmaken__voet {
+        display: none;
+    }
 }

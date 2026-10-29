@@ -66,7 +66,8 @@ public class SecurityConfig {
 				// "Wachtwoord vergeten" (request form), the reset link from the mail and the invitation link
 				// (/accountaanmaken, unusable without a valid token, so still no public registration) are open as well.
 				.requestMatchers("/login", "/wachtwoord-vergeten", "/wachtwoord-herstellen", "/accountaanmaken").permitAll()
-				.requestMatchers("/admin/**").hasRole("ADMIN")
+				// /dev/** only exists under profile local (mail preview); keep it admin-only in case of a stray bean.
+				.requestMatchers("/admin/**", "/dev/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())
 			.formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true))

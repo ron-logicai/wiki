@@ -11,6 +11,7 @@ import nl.logicai.wiki.models.AuditEvent;
 import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.models.WikiUser;
 import nl.logicai.wiki.repositories.AuditEventRepository;
+import nl.logicai.wiki.repositories.PasswordResetTokenRepository;
 import nl.logicai.wiki.repositories.WikiUserRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,9 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * User and role management for admins (spec section 1: activate/deactivate, manage roles; route
- * /admin/users). New users come in through {@link InvitationService}, never directly. Users are never
- * deleted. Guards keep the acting admin from locking themselves out and keep at least one active
- * admin. Every change is an AuditEvent without a page.
+ * /admin/users). New users come in through {@link InvitationService}, never directly. {@link #delete}
+ * removes the app_user row (and its reset tokens); usernames on pages and audit entries are plain
+ * strings and stay as they are. Guards keep the acting admin from locking themselves out and keep at
+ * least one active admin. Every change is an AuditEvent without a page.
  */
 @Service
 @Transactional
@@ -37,6 +39,8 @@ public class UserService {
 	public static final String USER_PASSWORD = "user.password";
 	public static final String USER_ACTIVATE = "user.activate";
 	public static final String USER_DEACTIVATE = "user.deactivate";
+	/** An admin removed the account on /admin/users. */
+	public static final String USER_DELETE = "user.delete";
 	/** A user changed their own password on /account/wachtwoord. */
 	public static final String USER_PASSWORD_CHANGE = "user.password.change";
 	/** A reset link was created for "wachtwoord vergeten" ({@link PasswordResetService}). */
@@ -50,12 +54,15 @@ public class UserService {
 
 	private final WikiUserRepository users;
 	private final AuditEventRepository audit;
+	private final PasswordResetTokenRepository tokens;
 	private final PasswordEncoder encoder;
 	private final Clock clock;
 
-	public UserService(WikiUserRepository users, AuditEventRepository audit, PasswordEncoder encoder, Clock clock) {
+	public UserService(WikiUserRepository users, AuditEventRepository audit, PasswordResetTokenRepository tokens,
+			PasswordEncoder encoder, Clock clock) {
 		this.users = users;
 		this.audit = audit;
+		this.tokens = tokens;
 		this.encoder = encoder;
 		this.clock = clock;
 	}
@@ -104,6 +111,26 @@ public class UserService {
 		}
 		user.setActive(active);
 		audit.save(AuditEvent.of(active ? USER_ACTIVATE : USER_DEACTIVATE, null, actor, clock.instant(), user.getUsername()));
+		return user;
+	}
+
+	/**
+	 * Removes the account for good: the app_user row and its reset tokens (the only foreign key). The
+	 * username stays as a string on pages, favorites and audit entries. An open session of the user is
+	 * ended on their next request by ActiveUserFilter. Same guards as deactivating.
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	public WikiUser delete(UUID id, String actor) {
+		WikiUser user = get(id);
+		if (user.getUsername().equalsIgnoreCase(actor)) {
+			throw new InvalidUserException("Je kunt jezelf niet verwijderen.");
+		}
+		if (user.getRole() == Role.ADMIN) {
+			refuseIfLastActiveAdmin(user);
+		}
+		tokens.deleteByUserId(user.getId());
+		users.delete(user);
+		audit.save(AuditEvent.of(USER_DELETE, null, actor, clock.instant(), user.getUsername()));
 		return user;
 	}
 
@@ -161,6 +188,27 @@ public class UserService {
 			throw new InvalidUserException("Gebruikersnaam: alleen letters, cijfers en . _ @ - (maximaal 100 tekens).");
 		}
 		return username;
+	}
+
+	/**
+	 * Trimmed display name as the invitee typed it (case kept), or {@link InvalidUserException} when empty
+	 * or longer than the {@code display_name} column. Package-private for {@link InvitationService}.
+	 */
+	static String validDisplayName(String raw) {
+		String name = raw == null ? "" : raw.trim();
+		if (name.isEmpty() || name.length() > WikiUser.DISPLAY_NAME_MAX) {
+			throw new InvalidUserException("Naam: vul je voor- en achternaam in (maximaal " + WikiUser.DISPLAY_NAME_MAX + " tekens).");
+		}
+		return name;
+	}
+
+	/** Display name of a username; the username itself when it is not (or no longer) in app_user. */
+	@Transactional(readOnly = true)
+	public String displayNameOf(String username) {
+		if (username == null) {
+			return null;
+		}
+		return users.findByUsernameIgnoreCase(username).map(WikiUser::getDisplayName).orElse(username);
 	}
 
 	/** Trimmed, lower-cased e-mail address, or {@link InvalidUserException} when empty, too long or malformed. */

@@ -21,12 +21,15 @@
         <h1>Inloggen</h1>
         <p class="intro">Log in met je account om de wiki te openen.</p>
 
-        <!-- Meldingen: Spring Security stuurt naar ?error en ?logout, ActiveUserFilter naar ?deactivated (spec F-02). -->
+        <!-- Meldingen: Spring Security stuurt naar ?error en ?logout, ActiveUserFilter naar ?deactivated of ?verwijderd (spec F-02). -->
         <p class="melding" role="alert" th:if="${param.error != null}">
             Inloggen is niet gelukt. Controleer je gebruikersnaam en wachtwoord, of vraag de beheerder of je account toegang heeft.
         </p>
         <p class="melding" role="alert" th:if="${param.deactivated != null}">
             Je account is gedeactiveerd. Neem contact op met de beheerder als je weer toegang nodig hebt.
+        </p>
+        <p class="melding" role="alert" th:if="${param.verwijderd != null}">
+            Je account is verwijderd. Neem contact op met de beheerder als je weer toegang nodig hebt.
         </p>
         <p class="melding melding--info" role="status" th:if="${param.logout != null}">
             Je bent uitgelogd.

@@ -105,18 +105,20 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		HttpResponse<String> form = invitee.get(link);
 		assertThat(form.statusCode()).isEqualTo(200);
-		assertThat(form.body()).contains("name=\"token\"").contains("name=\"username\"").contains("name=\"passwordRepeat\"")
-			.contains("nieuwe.collega@example.com").contains("Editor").doesNotContain("ongeldig");
+		assertThat(form.body()).contains("name=\"token\"").contains("name=\"displayName\"").contains("name=\"username\"")
+			.contains("name=\"passwordRepeat\"").contains("nieuwe.collega@example.com").contains("Editor")
+			.contains("uitgenodigd door <strong>invite.admin</strong>").doesNotContain("ongeldig");
 
 		HttpResponse<String> created = invitee.postForm("/accountaanmaken", Map.of(
-				"token", token, "username", " Nieuwe.Collega ", "password", PASSWORD, "passwordRepeat", PASSWORD,
-				"_csrf", BrowserSession.csrfToken(form.body())));
+				"token", token, "displayName", " Nieuwe Collega ", "username", " Nieuwe.Collega ",
+				"password", PASSWORD, "passwordRepeat", PASSWORD, "_csrf", BrowserSession.csrfToken(form.body())));
 		assertThat(created.statusCode()).isEqualTo(302);
 		assertThat(invitee.location(created)).isEqualTo("/login?aangemaakt");
 		assertThat(invitee.get("/login?aangemaakt").body()).contains("Je account is aangemaakt");
 
 		assertThat(login(invitee, "nieuwe.collega", PASSWORD)).isEqualTo("/");
 		WikiUser user = users.findByUsernameIgnoreCase("nieuwe.collega").orElseThrow();
+		assertThat(user.getDisplayName()).isEqualTo("Nieuwe Collega");
 		assertThat(user.getEmail()).isEqualTo("nieuwe.collega@example.com");
 		assertThat(user.getRole()).isEqualTo(Role.EDITOR);
 		assertThat(user.getCreatedBy()).isEqualTo("invite.admin");
@@ -127,9 +129,8 @@ class InvitationFlowIntegrationTest {
 		HttpResponse<String> again = invitee.get(link);
 		assertThat(again.statusCode()).isEqualTo(200);
 		assertThat(again.body()).contains("ongeldig of verlopen").doesNotContain("name=\"username\"");
-		HttpResponse<String> reuse = invitee.postForm("/accountaanmaken", Map.of(
-				"token", token, "username", "tweede.poging", "password", PASSWORD, "passwordRepeat", PASSWORD,
-				"_csrf", BrowserSession.csrfToken(again.body())));
+		HttpResponse<String> reuse = post(invitee, token, "Tweede Poging", "tweede.poging", PASSWORD, PASSWORD,
+				BrowserSession.csrfToken(again.body()));
 		assertThat(reuse.statusCode()).isEqualTo(200);
 		assertThat(reuse.body()).contains("ongeldig of verlopen");
 		assertThat(users.findByUsernameIgnoreCase("tweede.poging")).isEmpty();
@@ -151,23 +152,27 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		String csrf = BrowserSession.csrfToken(invitee.get(link).body());
 
-		HttpResponse<String> taken = post(invitee, token, "BEZET", PASSWORD, PASSWORD, csrf);
+		HttpResponse<String> taken = post(invitee, token, "Ty Po", "BEZET", PASSWORD, PASSWORD, csrf);
 		assertThat(taken.statusCode()).isEqualTo(200);
-		assertThat(taken.body()).contains("bestaat al").contains("name=\"token\"").contains("value=\"BEZET\"");
+		assertThat(taken.body()).contains("bestaat al").contains("name=\"token\"").contains("value=\"BEZET\"")
+			.contains("value=\"Ty Po\"");
 
-		HttpResponse<String> badChars = post(invitee, token, "Bad Name!", PASSWORD, PASSWORD, csrf);
+		HttpResponse<String> noName = post(invitee, token, "   ", "typo", PASSWORD, PASSWORD, csrf);
+		assertThat(noName.body()).contains("Naam:").contains("name=\"token\"");
+
+		HttpResponse<String> badChars = post(invitee, token, "Ty Po", "Bad Name!", PASSWORD, PASSWORD, csrf);
 		assertThat(badChars.body()).contains("alleen letters, cijfers");
 
-		HttpResponse<String> mismatch = post(invitee, token, "typo", PASSWORD, "anders-anders", csrf);
+		HttpResponse<String> mismatch = post(invitee, token, "Ty Po", "typo", PASSWORD, "anders-anders", csrf);
 		assertThat(mismatch.body()).contains("niet gelijk");
 
-		HttpResponse<String> tooShort = post(invitee, token, "typo", "kort", "kort", csrf);
+		HttpResponse<String> tooShort = post(invitee, token, "Ty Po", "typo", "kort", "kort", csrf);
 		assertThat(tooShort.body()).contains("minimaal 8");
 
-		HttpResponse<String> saved = post(invitee, token, "typo", PASSWORD, PASSWORD, csrf);
+		HttpResponse<String> saved = post(invitee, token, "Ty Po", "typo", PASSWORD, PASSWORD, csrf);
 		assertThat(saved.statusCode()).isEqualTo(302);
 		assertThat(invitee.location(saved)).isEqualTo("/login?aangemaakt");
-		assertThat(users.findByUsernameIgnoreCase("typo")).isPresent();
+		assertThat(users.findByUsernameIgnoreCase("typo")).map(WikiUser::getDisplayName).contains("Ty Po");
 	}
 
 	@Test
@@ -238,7 +243,7 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		invitee.get("/accountaanmaken");
 		HttpResponse<String> created = invitee.postForm("/accountaanmaken", Map.of(
-				"token", "x", "username", "csrf", "password", PASSWORD, "passwordRepeat", PASSWORD));
+				"token", "x", "displayName", "Csrf", "username", "csrf", "password", PASSWORD, "passwordRepeat", PASSWORD));
 		assertThat(created.statusCode()).isEqualTo(403);
 	}
 
@@ -263,10 +268,10 @@ class InvitationFlowIntegrationTest {
 		return admin.postForm("/admin/users", Map.of("email", email, "role", role, "_csrf", BrowserSession.csrfToken(page.body())));
 	}
 
-	private static HttpResponse<String> post(BrowserSession browser, String token, String username, String password,
-			String passwordRepeat, String csrf) {
-		return browser.postForm("/accountaanmaken", Map.of("token", token, "username", username,
-				"password", password, "passwordRepeat", passwordRepeat, "_csrf", csrf));
+	private static HttpResponse<String> post(BrowserSession browser, String token, String displayName, String username,
+			String password, String passwordRepeat, String csrf) {
+		return browser.postForm("/accountaanmaken", Map.of("token", token, "displayName", displayName,
+				"username", username, "password", password, "passwordRepeat", passwordRepeat, "_csrf", csrf));
 	}
 
 	/** Logs in through the form and returns where the browser is sent. */

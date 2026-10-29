@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  Uitnodigingsmail (spec F-01), ontwerp van 28-10-2026. Gerenderd door MailTemplates; de platte-tekstversie
+  staat daar ook. Model: uitgenodigdDoor (weergavenaam van de beheerder), rol (label), link, geldigheid.
+-->
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Je bent uitgenodigd voor de LogicAI wiki</title>
+<!--[if mso]><style>table,td{font-family:Arial,Helvetica,sans-serif !important;}</style><![endif]-->
+<style>
+@media only screen and (max-width:620px){
+  .wrap{width:100% !important;}
+  .pad{padding-left:24px !important;padding-right:24px !important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#F7F7F7;">
+<span style="display:none;font-size:1px;color:#F7F7F7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;"
+      th:text="|${uitgenodigdDoor} heeft een account voor je klaargezet. Kies je naam, gebruikersnaam en wachtwoord en je kunt direct aan de slag.|">Preheader</span>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F7F7F7;">
+<tr><td align="center" style="padding:40px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="wrap" style="width:600px;max-width:600px;">
+
+  <tr th:replace="~{mail/fragments :: merk}"></tr>
+
+  <tr th:replace="~{mail/fragments :: kop('Interne wiki', 'Je bent uitgenodigd voor de wiki')}"></tr>
+
+  <tr><td style="background-color:#FFFFFF;padding:36px 48px 8px;" class="pad">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:18px;">Hoi,</td></tr>
+      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:18px;">
+        <span th:text="${uitgenodigdDoor}">Ellen</span> heeft een account als <strong th:text="${rol}">Editor</strong> voor je klaargezet in de interne wiki van LogicAI.
+        Daar staan al onze werkwijzen, afspraken en handleidingen op één plek.
+      </td></tr>
+      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Kies je naam, gebruikersnaam en wachtwoord en je kunt direct meelezen en meeschrijven.</td></tr>
+      <tr th:replace="~{mail/fragments :: knop('Account aanmaken', ${link})}"></tr>
+      <tr th:replace="~{mail/fragments :: kader(${geldigheid}, ${link})}"></tr>
+      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Vragen? Loop even langs of stuur een berichtje.<br>Groet,<br><strong th:text="${uitgenodigdDoor}">Ellen</strong></td></tr>
+    </table>
+  </td></tr>
+
+  <tr th:replace="~{mail/fragments :: voet('Verwachtte je deze e-mail niet? Dan kun je hem negeren; er wordt geen account aangemaakt zonder jouw actie.')}"></tr>
+
+  <tr th:replace="~{mail/fragments :: onderschrift}"></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

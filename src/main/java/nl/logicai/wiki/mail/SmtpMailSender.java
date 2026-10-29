@@ -1,60 +1,56 @@
 package nl.logicai.wiki.mail;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import nl.logicai.wiki.models.Role;
 import nl.logicai.wiki.models.WikiUser;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 
-/** Sends the reset link and the invitation as plain-text Dutch e-mails through the configured SMTP server. */
+/**
+ * Sends the reset link and the invitation through the configured SMTP server as {@code multipart/alternative}:
+ * the HTML from {@link MailTemplates} with its plain text as fallback.
+ */
 public class SmtpMailSender implements WikiMailSender {
 
 	private final JavaMailSender sender;
 	private final String from;
+	private final MailTemplates templates;
 
-	public SmtpMailSender(JavaMailSender sender, String from) {
+	public SmtpMailSender(JavaMailSender sender, String from, MailTemplates templates) {
 		this.sender = sender;
 		this.from = from;
+		this.templates = templates;
 	}
 
 	@Override
 	public void sendPasswordReset(WikiUser user, String link, Duration validFor) {
-		send(user.getEmail(), "LogicAI Wiki: nieuw wachtwoord instellen", resetBody(user, link, validFor));
+		send(user.getEmail(), templates.passwordReset(user, link, validFor));
 	}
 
 	@Override
 	public void sendInvitation(String email, Role role, String invitedBy, String link, Duration validFor) {
-		send(email, "LogicAI Wiki: uitnodiging voor een account", invitationBody(role, invitedBy, link, validFor));
+		send(email, templates.invitation(role, invitedBy, link, validFor));
 	}
 
-	private void send(String to, String subject, String text) {
-		SimpleMailMessage message = new SimpleMailMessage();
-		message.setFrom(from);
-		message.setTo(to);
-		message.setSubject(subject);
-		message.setText(text);
+	private void send(String to, MailTemplates.Rendered mail) {
+		MimeMessage message = sender.createMimeMessage();
+		try {
+			MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED,
+					StandardCharsets.UTF_8.name());
+			helper.setFrom(from);
+			helper.setTo(to);
+			helper.setSubject(mail.subject());
+			helper.setText(mail.text(), mail.html());
+		}
+		catch (MessagingException ex) {
+			throw new MailPreparationException("Mail kon niet worden opgebouwd", ex);
+		}
 		sender.send(message);
-	}
-
-	static String resetBody(WikiUser user, String link, Duration validFor) {
-		return "Hallo " + user.getDisplayName() + ",\n\n"
-				+ "Er is gevraagd om een nieuw wachtwoord voor je account “" + user.getUsername()
-				+ "” op de LogicAI Wiki.\n"
-				+ "Kies via deze link een nieuw wachtwoord; de link is " + validFor.toMinutes()
-				+ " minuten geldig en werkt één keer:\n\n"
-				+ link + "\n\n"
-				+ "Heb je dit niet aangevraagd? Negeer deze mail; je wachtwoord blijft ongewijzigd.\n";
-	}
-
-	static String invitationBody(Role role, String invitedBy, String link, Duration validFor) {
-		return "Hallo,\n\n"
-				+ invitedBy + " heeft je uitgenodigd voor de LogicAI Wiki, de interne kenniswiki van LogicAI, "
-				+ "met de rol " + role.getLabel() + ".\n"
-				+ "Kies via deze link je gebruikersnaam en wachtwoord; de link is " + validFor.toMinutes()
-				+ " minuten geldig en werkt één keer:\n\n"
-				+ link + "\n\n"
-				+ "Verwacht je deze uitnodiging niet? Negeer deze mail; er wordt dan geen account aangemaakt.\n";
 	}
 
 }

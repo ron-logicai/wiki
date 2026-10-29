@@ -1,0 +1,25 @@
+# Fly.io-configuratie van de database-app: het officiële postgres:18-image, zelfde als lokaal en in de tests.
+# Geen [http_service] of [[services]], dus alleen bereikbaar binnen de Fly-organisatie als
+# logicai-wiki-db.internal:5432. Het wachtwoord staat in `fly secrets set POSTGRES_PASSWORD=...`.
+# Deployen: fly deploy --config deploy/fly/db/fly.toml -a logicai-wiki-db
+# Onbeheerd: back-ups (volume-snapshots + pg_dump) en Postgres-updates zijn voor onszelf; zie README.
+
+app = "logicai-wiki-db"
+primary_region = "ams"
+
+[build]
+  image = "postgres:18"
+
+[env]
+  POSTGRES_DB = "wiki"
+  POSTGRES_USER = "wiki"
+
+# Databasebestanden op een Fly-volume (fly volumes create wiki_db_data --region ams).
+# postgres:18 zet PGDATA in /var/lib/postgresql/18/docker, een submap van het volume.
+[mounts]
+  source = "wiki_db_data"
+  destination = "/var/lib/postgresql"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

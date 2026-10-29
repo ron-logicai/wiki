@@ -22,12 +22,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Spec F-02: a deactivated user is refused on the next request, also with an existing session, and a
- * role change applies on the next request. Runs before authorization; one indexed query per request.
- * Principals that are not in app_user (for example mock users in tests) pass through unchanged.
+ * role change applies on the next request, and a deleted user is logged out the same way. Runs before
+ * authorization; one indexed query per request. Principals that are not in app_user and did not come
+ * through a real login (no WebAuthenticationDetails: mock users in tests) pass through unchanged.
  */
 public class ActiveUserFilter extends OncePerRequestFilter {
 
@@ -55,23 +57,16 @@ public class ActiveUserFilter extends OncePerRequestFilter {
 		}
 		Optional<WikiUser> found = users.findByUsernameIgnoreCase(auth.getName());
 		if (found.isEmpty()) {
+			if (auth.getDetails() instanceof WebAuthenticationDetails) {
+				refuse(request, response, "verwijderd");
+				return;
+			}
 			chain.doFilter(request, response);
 			return;
 		}
 		WikiUser user = found.get();
 		if (!user.isActive()) {
-			HttpSession session = request.getSession(false);
-			if (session != null) {
-				session.invalidate();
-			}
-			SecurityContextHolder.clearContext();
-			String path = request.getRequestURI().substring(request.getContextPath().length());
-			if (path.startsWith("/api/")) {
-				response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-			}
-			else {
-				response.sendRedirect(request.getContextPath() + "/login?deactivated");
-			}
+			refuse(request, response, "deactivated");
 			return;
 		}
 		Set<String> roles = auth.getAuthorities().stream()
@@ -86,6 +81,23 @@ public class ActiveUserFilter extends OncePerRequestFilter {
 		chain.doFilter(request, response);
 	}
 
+	/** Ends the session; HTML requests go to the login page with a reason, API requests get 401. */
+	private static void refuse(HttpServletRequest request, HttpServletResponse response, String reason)
+			throws IOException {
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			session.invalidate();
+		}
+		SecurityContextHolder.clearContext();
+		String path = request.getRequestURI().substring(request.getContextPath().length());
+		if (path.startsWith("/api/")) {
+			response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+		}
+		else {
+			response.sendRedirect(request.getContextPath() + "/login?" + reason);
+		}
+	}
+
 	private static Authentication withRole(Authentication auth, WikiUser user) {
 		List<GrantedAuthority> authorities = new ArrayList<>();
 		for (GrantedAuthority authority : auth.getAuthorities()) {
@@ -95,7 +107,10 @@ public class ActiveUserFilter extends OncePerRequestFilter {
 		}
 		authorities.add(new SimpleGrantedAuthority(user.getRole().authority()));
 		if (auth instanceof OAuth2AuthenticationToken oauth) {
-			return new OAuth2AuthenticationToken(oauth.getPrincipal(), authorities, oauth.getAuthorizedClientRegistrationId());
+			OAuth2AuthenticationToken renewed =
+				new OAuth2AuthenticationToken(oauth.getPrincipal(), authorities, oauth.getAuthorizedClientRegistrationId());
+			renewed.setDetails(oauth.getDetails());
+			return renewed;
 		}
 		UsernamePasswordAuthenticationToken renewed =
 			UsernamePasswordAuthenticationToken.authenticated(auth.getPrincipal(), auth.getCredentials(), authorities);

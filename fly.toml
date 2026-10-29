@@ -1,0 +1,44 @@
+# fly.toml app configuration file generated for logicai-wiki on 2026-10-29T10:36:43+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'logicai-wiki'
+primary_region = 'ams'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  JAVA_TOOL_OPTIONS = '-XX:MaxRAMPercentage=75'
+  WIKI_ATTACHMENTS_DIR = '/app/data/attachments'
+  WIKI_BASE_URL = 'https://logicai-wiki.fly.dev'
+  WIKI_DB_URL = 'jdbc:postgresql://logicai-wiki-db.internal:5432/wiki'
+  WIKI_DB_USERNAME = 'wiki'
+  WIKI_MAIL_FROM = 'info@logicai.nl'
+  WIKI_MAIL_HOST = 'smtp.office365.com'
+  WIKI_MAIL_PORT = '587'
+  WIKI_MAIL_STARTTLS = 'true'
+  WIKI_MAIL_USERNAME = 'info@logicai.nl'
+
+[[mounts]]
+  source = 'wiki_attachments'
+  destination = '/app/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '1m0s'
+    method = 'GET'
+    path = '/actuator/health/readiness'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'

@@ -46,7 +46,7 @@ public class MarkdownExporter {
 	private static final Pattern LINE_START_SPECIAL = Pattern.compile("(?m)^(\\s*)([#>+-]|\\d{1,9}[.)])(?=\\s|$)");
 
 	private final ObjectMapper mapper;
- 
+
 	public MarkdownExporter(ObjectMapper mapper) {
 		this.mapper = mapper;
 	}
@@ -58,7 +58,7 @@ public class MarkdownExporter {
 	/**
 	 * A complete .md file: YAML front matter, the title as level-1 heading and the content.
 	 *
-	 * @param baseUrl the wiki root without trailing slash, used to make internal links absolute
+	 * @param baseUrl the wiki root without trailing slash,  bused to make internal links absolute
 	 */
 	public String exportPage(PageMeta meta, String documentJson, String baseUrl) {
 		StringBuilder md = new StringBuilder();

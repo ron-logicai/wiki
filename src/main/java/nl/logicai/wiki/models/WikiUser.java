@@ -11,9 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * An allowed user of the wiki (spec F-01, F-02). Users are never deleted, only deactivated, so audit
- * entries and revision authors keep pointing at a real account. {@code passwordHash} is null for
- * users who only log in through Entra.
+ * An allowed user of the wiki (spec F-01, F-02). Users can be deactivated or, by an admin, deleted;
+ * audit entries and revision authors store the username as a string, so they survive a delete.
+ * {@code passwordHash} is null for users who only log in through Entra.
  */
 @Entity
 @Table(name = "app_user")

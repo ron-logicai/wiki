@@ -109,6 +109,18 @@ public class UserAdminController {
 		return "redirect:/admin/users";
 	}
 
+	@PostMapping("/admin/users/{id}/delete")
+	public String verwijderen(@PathVariable UUID id, Authentication auth, RedirectAttributes redirect) {
+		try {
+			var user = userService.delete(id, auth.getName());
+			redirect.addFlashAttribute("melding", "“" + user.getUsername() + "” is verwijderd.");
+		}
+		catch (InvalidUserException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/admin/users";
+	}
+
 	private String lijst(Model model) {
 		String q = model.getAttribute("q") instanceof String s ? s.toLowerCase(Locale.ROOT) : "";
 		Role rol = model.getAttribute("rolFilter") instanceof Role r ? r : null;

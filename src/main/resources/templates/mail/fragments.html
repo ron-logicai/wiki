@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+  Gedeelde stukken van de mails (ontwerp 28-10-2026): e-mail-HTML met tabellen en inline CSS, zodat Outlook,
+  Gmail en de telefoon-apps hetzelfde laten zien. Geen /css/style.css en geen webfonts: mailclients laden die niet.
+  Kleuren uit de huisstijl: navy #1C2143, teal #78C6CE, oranje #FC814A, slate #3D5A6C, lichtteal #E4F2F3.
+-->
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<body>
+<table role="presentation">
+
+<!-- Woordmerk boven de kaart -->
+<tr th:fragment="merk"><td class="pad" style="padding:0 8px 20px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:28px;mso-line-height-rule:exactly;font-weight:bold;letter-spacing:1px;color:#3D5A6C;">LOGICAI</td></tr>
+
+<!-- Navy kop met eyebrow en titel -->
+<tr th:fragment="kop(eyebrow, titel)"><td style="background-color:#1C2143;border-radius:28px 28px 0 0;padding:40px 48px 36px;" class="pad">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;font-weight:bold;color:#78C6CE;padding-bottom:14px;" th:text="${eyebrow}">Interne wiki</td></tr>
+        <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:38px;mso-line-height-rule:exactly;font-weight:bold;color:#F7F7F7;" th:text="${titel}">Titel</td></tr>
+    </table>
+</td></tr>
+
+<!-- Oranje knop -->
+<tr th:fragment="knop(tekst, link)"><td align="left" style="padding-bottom:28px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr><td bgcolor="#FC814A" style="background-color:#FC814A;border-radius:999px;mso-padding-alt:0;">
+            <a th:href="${link}" th:text="${tekst}" style="display:block;padding:15px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;mso-line-height-rule:exactly;font-weight:bold;color:#1C2143;text-decoration:none;border-radius:999px;">Knop</a>
+        </td></tr>
+    </table>
+</td></tr>
+
+<!-- Lichtteal kader met de geldigheid en de volledige link als tekst (plakken zonder token werkt niet) -->
+<tr th:fragment="kader(geldigheid, link)"><td style="padding-bottom:28px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#E4F2F3;border-radius:14px;">
+        <tr><td style="padding:18px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;mso-line-height-rule:exactly;color:#1C2143;">
+            De link is <strong th:text="${geldigheid}">1 uur</strong> geldig en werkt één keer. Werkt de knop niet? Plak dan deze link in je browser:<br>
+            <a th:href="${link}" th:text="${link}" style="color:#3D5A6C;text-decoration:underline;word-break:break-all;">https://wiki.logicai.nl/…</a>
+        </td></tr>
+    </table>
+</td></tr>
+
+<!-- Voet in de kaart, boven een scheidingslijn -->
+<tr th:fragment="voet(tekst)"><td style="background-color:#FFFFFF;border-radius:0 0 28px 28px;padding:0 48px 36px;" class="pad">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:1.5px solid #C9DDDF;">
+        <tr><td style="padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#5B6478;" th:text="${tekst}">Voet</td></tr>
+    </table>
+</td></tr>
+
+<!-- Onderschrift onder de kaart -->
+<tr th:fragment="onderschrift"><td class="pad" style="padding:28px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;mso-line-height-rule:exactly;color:#5B6478;">
+    LogicAI · Zeewolde · <a href="https://logicai.nl" style="color:#3D5A6C;text-decoration:underline;">logicai.nl</a><br>
+    Dit is een interne systeemmail van de LogicAI wiki.
+</td></tr>
+
+</table>
+</body>
+</html>
