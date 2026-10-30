@@ -68,7 +68,9 @@ class LoginFlowIntegrationTest {
 		HttpResponse<String> plain = browser.get("/login");
 		assertThat(plain.statusCode()).isEqualTo(200);
 		// The login is the e-mail address; the field keeps Spring Security's parameter name "username".
-		assertThat(plain.body()).contains("name=\"username\"").contains("type=\"email\"").contains("E-mailadres")
+		// type="text" (not "email"), so an account without an address can still type its username.
+		assertThat(plain.body()).contains("name=\"username\"").contains("inputmode=\"email\"").contains("E-mailadres")
+			.doesNotContain("type=\"email\"")
 			.contains("name=\"password\"").doesNotContain("class=\"melding").doesNotContain("Gebruikersnaam");
 
 		HttpResponse<String> error = browser.get("/login?error");

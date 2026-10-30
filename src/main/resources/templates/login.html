@@ -42,11 +42,13 @@
         </p>
 
         <form class="formulier" th:action="@{/login}" method="post">
-            <!-- Inloggen op e-mailadres; de parameter heet "username" omdat Spring Security die naam verwacht. -->
+            <!-- Inloggen op e-mailadres; de parameter heet "username" omdat Spring Security die naam verwacht.
+                 Bewust een tekstveld en geen e-mailveld: een account van vóór de e-mail-login zonder adres
+                 (bootstrap-admin) typt hier nog zijn gebruikersnaam, en de browser zou dat anders blokkeren. -->
             <div class="veld">
                 <label for="username">E-mailadres</label>
-                <input id="username" name="username" type="email" autocomplete="username" autocapitalize="none"
-                       spellcheck="false" placeholder="naam@logicai.nl" required autofocus>
+                <input id="username" name="username" type="text" inputmode="email" autocomplete="username"
+                       autocapitalize="none" spellcheck="false" placeholder="naam@logicai.nl" required autofocus>
             </div>
             <div class="veld">
                 <label for="password">Wachtwoord</label>
