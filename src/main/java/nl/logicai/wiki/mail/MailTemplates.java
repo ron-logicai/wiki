@@ -40,7 +40,7 @@ public class MailTemplates {
 		String text = "Hoi,\n\n"
 				+ invitedBy + " heeft een account als " + role.getLabel() + " voor je klaargezet in de interne wiki van LogicAI. "
 				+ "Daar staan al onze werkwijzen, afspraken en handleidingen op één plek.\n"
-				+ "Kies via deze link je naam, gebruikersnaam en wachtwoord; de link is " + validity
+				+ "Kies via deze link je naam en wachtwoord (inloggen doe je daarna met dit e-mailadres); de link is " + validity
 				+ " geldig en werkt één keer:\n\n"
 				+ link + "\n\n"
 				+ "Verwachtte je deze e-mail niet? Dan kun je hem negeren; er wordt geen account aangemaakt zonder jouw actie.\n\n"
@@ -57,13 +57,13 @@ public class MailTemplates {
 	public Rendered passwordReset(WikiUser user, String link, Duration validFor) {
 		String validity = validity(validFor);
 		String text = "Hoi " + user.getDisplayName() + ",\n\n"
-				+ "Er is gevraagd om een nieuw wachtwoord voor je account “" + user.getUsername() + "” op de LogicAI wiki.\n"
+				+ "Er is gevraagd om een nieuw wachtwoord voor je account “" + user.getEmail() + "” op de LogicAI wiki.\n"
 				+ "Kies via deze link een nieuw wachtwoord; de link is " + validity + " geldig en werkt één keer:\n\n"
 				+ link + "\n\n"
 				+ "Heb je dit niet aangevraagd? Negeer deze mail; je wachtwoord blijft ongewijzigd.\n";
 		String html = render("mail/wachtwoord-herstellen", Map.of(
 				"naam", user.getDisplayName(),
-				"gebruikersnaam", user.getUsername(),
+				"email", user.getEmail(),
 				"link", link,
 				"geldigheid", validity));
 		return new Rendered(RESET_SUBJECT, text, html);

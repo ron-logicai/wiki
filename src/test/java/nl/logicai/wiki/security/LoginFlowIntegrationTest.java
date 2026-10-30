@@ -67,7 +67,9 @@ class LoginFlowIntegrationTest {
 
 		HttpResponse<String> plain = browser.get("/login");
 		assertThat(plain.statusCode()).isEqualTo(200);
-		assertThat(plain.body()).contains("name=\"username\"").contains("name=\"password\"").doesNotContain("class=\"melding");
+		// The login is the e-mail address; the field keeps Spring Security's parameter name "username".
+		assertThat(plain.body()).contains("name=\"username\"").contains("type=\"email\"").contains("E-mailadres")
+			.contains("name=\"password\"").doesNotContain("class=\"melding").doesNotContain("Gebruikersnaam");
 
 		HttpResponse<String> error = browser.get("/login?error");
 		assertThat(error.statusCode()).isEqualTo(200);
@@ -103,8 +105,9 @@ class LoginFlowIntegrationTest {
 		String sessionBeforeLogin = browser.cookie("JSESSIONID").orElseThrow();
 		assertHardened(browser.lastSetCookie("JSESSIONID").orElseThrow());
 
+		// Login by e-mail address; case and surrounding spaces do not matter.
 		HttpResponse<String> login = browser.postForm("/login",
-				Map.of("username", username, "password", PASSWORD, "_csrf", loginToken));
+				Map.of("username", " " + emailOf(username).toUpperCase() + " ", "password", PASSWORD, "_csrf", loginToken));
 		assertThat(login.statusCode()).isEqualTo(302);
 		assertThat(browser.location(login)).isEqualTo("/");
 		// Session fixation protection: the id changes on login, and the new cookie has the same flags.
@@ -114,7 +117,8 @@ class LoginFlowIntegrationTest {
 
 		HttpResponse<String> home = browser.get("/");
 		assertThat(home.statusCode()).isEqualTo(200);
-		assertThat(home.body()).contains(username);
+		// The sidebar shows the display name; the internal username is not rendered.
+		assertThat(home.body()).contains(displayNameOf(username)).doesNotContain(">" + username + "<");
 		assertThat(home.body()).contains("<meta name=\"_csrf\" content=\"");
 
 		// The token from the page is accepted as a header, like the editor sends it.
@@ -144,7 +148,7 @@ class LoginFlowIntegrationTest {
 		BrowserSession browser = new BrowserSession(port);
 		browser.get("/login");
 
-		HttpResponse<String> login = browser.postForm("/login", Map.of("username", username, "password", PASSWORD));
+		HttpResponse<String> login = browser.postForm("/login", Map.of("username", emailOf(username), "password", PASSWORD));
 		assertThat(login.statusCode()).isEqualTo(403);
 
 		HttpResponse<String> home = browser.get("/");
@@ -157,21 +161,36 @@ class LoginFlowIntegrationTest {
 		String deactivated = create("ron.uit", PASSWORD, Role.VIEWER);
 		jdbc.update("update app_user set active = false where username = ?", deactivated);
 		String entraOnly = "ron.entra.only";
-		users.save(WikiUser.create(entraOnly, "Alleen Entra", entraOnly + "@example.com", null, Role.VIEWER,
+		users.save(WikiUser.create(entraOnly, "Alleen Entra", emailOf(entraOnly), null, Role.VIEWER,
 				"test", clock.instant()));
 
-		assertRefused(wrong, "verkeerd");
-		assertRefused(deactivated, PASSWORD);
-		assertRefused(entraOnly, PASSWORD);
+		assertRefused(emailOf(wrong), "verkeerd");
+		assertRefused(emailOf(deactivated), PASSWORD);
+		assertRefused(emailOf(entraOnly), PASSWORD);
+		// The internal username is not a login for an account that has an e-mail address.
+		assertRefused(wrong, PASSWORD);
 	}
 
-	private void assertRefused(String username, String password) {
+	/** An account from before the e-mail login, without an address, can still log in with its username. */
+	@Test
+	void accountWithoutEmailStillLogsInWithUsername() {
+		String legacy = "ron.oud";
+		users.save(WikiUser.create(legacy, "Ron Oud", null, encoder.encode(PASSWORD), Role.VIEWER, "test", clock.instant()));
 		BrowserSession browser = new BrowserSession(port);
 		String token = BrowserSession.csrfToken(browser.get("/login").body());
 		HttpResponse<String> login = browser.postForm("/login",
-				Map.of("username", username, "password", password, "_csrf", token));
+				Map.of("username", legacy, "password", PASSWORD, "_csrf", token));
 		assertThat(login.statusCode()).isEqualTo(302);
-		assertThat(browser.location(login)).isEqualTo("/login?error");
+		assertThat(browser.location(login)).isEqualTo("/");
+	}
+
+	private void assertRefused(String login, String password) {
+		BrowserSession browser = new BrowserSession(port);
+		String token = BrowserSession.csrfToken(browser.get("/login").body());
+		HttpResponse<String> response = browser.postForm("/login",
+				Map.of("username", login, "password", password, "_csrf", token));
+		assertThat(response.statusCode()).isEqualTo(302);
+		assertThat(browser.location(response)).isEqualTo("/login?error");
 		assertThat(browser.get("/").statusCode()).isEqualTo(302);
 	}
 
@@ -182,9 +201,19 @@ class LoginFlowIntegrationTest {
 		assertThat(setCookie).containsIgnoringCase("SameSite=Lax");
 	}
 
+	/** A user who logs in with {@code <username>@example.com}; the display name differs from the username on purpose. */
 	private String create(String username, String password, Role role) {
-		users.save(WikiUser.create(username, username, null, encoder.encode(password), role, "test", clock.instant()));
+		users.save(WikiUser.create(username, displayNameOf(username), emailOf(username), encoder.encode(password), role,
+				"test", clock.instant()));
 		return username;
+	}
+
+	private static String emailOf(String username) {
+		return username + "@example.com";
+	}
+
+	private static String displayNameOf(String username) {
+		return "Test " + username.replace('.', ' ');
 	}
 
 }

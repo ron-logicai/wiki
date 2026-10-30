@@ -112,7 +112,7 @@ class EntraLoginFlowIntegrationTest {
 		// 3. Logged in as the wiki user, with the role from app_user rather than anything Entra sent.
 		HttpResponse<String> home = browser.get("/");
 		assertThat(home.statusCode()).isEqualTo(200);
-		assertThat(home.body()).contains("ron.entra");
+		assertThat(home.body()).contains("Ron Entra");
 		assertThat(browser.get("/admin").statusCode()).isEqualTo(200);
 		assertThat(users.findByUsernameIgnoreCase("ron.entra").orElseThrow().getLastLoginAt()).isNotNull();
 

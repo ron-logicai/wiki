@@ -88,8 +88,8 @@ class AccountPasswordIntegrationTest {
 			.andExpect(header().string("Location", "/account/wachtwoord"))
 			.andExpect(flash().attributeExists("melding"));
 
-		mvc.perform(formLogin().user("ron.account").password(NEW_PASSWORD)).andExpect(authenticated());
-		mvc.perform(formLogin().user("ron.account").password(PASSWORD)).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("ron.account@example.com").password(NEW_PASSWORD)).andExpect(authenticated());
+		mvc.perform(formLogin().user("ron.account@example.com").password(PASSWORD)).andExpect(unauthenticated());
 
 		mvc.perform(get("/admin").with(user("admin").roles("ADMIN")))
 			.andExpect(status().isOk())

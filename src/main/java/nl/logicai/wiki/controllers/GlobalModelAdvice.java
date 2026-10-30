@@ -23,10 +23,12 @@ class GlobalModelAdvice {
 
 	private final PageService pageService;
 	private final FavoriteService favoriteService;
+	private final Namen namen;
 
-	GlobalModelAdvice(PageService pageService, FavoriteService favoriteService) {
+	GlobalModelAdvice(PageService pageService, FavoriteService favoriteService, Namen namen) {
 		this.pageService = pageService;
 		this.favoriteService = favoriteService;
+		this.namen = namen;
 	}
 
 	@ModelAttribute("boom")
@@ -34,9 +36,16 @@ class GlobalModelAdvice {
 		return pageService.tree();
 	}
 
+	/** De interne gebruikersnaam (sleutel): voor vergelijkingen zoals "(jij)" op /admin/users, niet om te tonen. */
 	@ModelAttribute("gebruiker")
 	String gebruiker(Authentication auth) {
 		return auth == null ? null : auth.getName();
+	}
+
+	/** De weergavenaam voor de zijbalk; gebruikers zien geen gebruikersnaam meer. */
+	@ModelAttribute("gebruikerNaam")
+	String gebruikerNaam(Authentication auth) {
+		return auth == null ? null : namen.weergave(auth.getName());
 	}
 
 	/** Rolnaam onder de gebruikersnaam in de zijbalk (ontwerp): Beheerder, Redacteur of Lezer. */

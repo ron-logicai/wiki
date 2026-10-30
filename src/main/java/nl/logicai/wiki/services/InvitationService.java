@@ -26,8 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * New users come in by invitation (spec F-01: no public registration). An admin enters an e-mail
  * address and a role on /admin/users; the invitee gets a single-use link to /accountaanmaken that is
- * valid for {@code wiki.invitation.ttl} and chooses a username and password there. The
- * {@link WikiUser} row is created only on acceptance. Only the SHA-256 hash of the token is stored
+ * valid for {@code wiki.invitation.ttl} and chooses a display name and password there; the e-mail
+ * address is the login and the internal username is derived from it ({@link UserService#usernameFor}).
+ * The {@link WikiUser} row is created only on acceptance. Only the SHA-256 hash of the token is stored
  * ({@link LinkTokens}); the link is built from {@code wiki.base-url}, never from request headers.
  * Accepting runs without a session, so those methods have no {@code @PreAuthorize}.
  */
@@ -107,17 +108,13 @@ public class InvitationService {
 	}
 
 	/**
-	 * Creates the account for a usable invitation with the name, username and password the invitee
-	 * chose; e-mail and role come from the invitation. The invitation is burned, also on the second
-	 * attempt with the same link.
+	 * Creates the account for a usable invitation with the name and password the invitee chose;
+	 * e-mail and role come from the invitation and the internal username is derived from the e-mail
+	 * address. The invitation is burned, also on the second attempt with the same link.
 	 */
-	public WikiUser accept(String token, String rawDisplayName, String rawUsername, String password, String passwordRepeat) {
+	public WikiUser accept(String token, String rawDisplayName, String password, String passwordRepeat) {
 		UserInvitation invitation = usableInvitation(token).orElseThrow(() -> new InvalidUserException(INVALID_LINK));
 		String displayName = UserService.validDisplayName(rawDisplayName);
-		String username = UserService.validUsername(rawUsername);
-		if (users.findByUsernameIgnoreCase(username).isPresent()) {
-			throw new InvalidUserException("Gebruikersnaam “" + username + "” bestaat al.");
-		}
 		if (users.findByEmailIgnoreCase(invitation.getEmail()).isPresent()) {
 			throw new InvalidUserException("E-mailadres is inmiddels al in gebruik. Neem contact op met de beheerder.");
 		}
@@ -125,12 +122,14 @@ public class InvitationService {
 			throw new InvalidUserException("Geef een wachtwoord.");
 		}
 		String hash = userService.hashPassword(password, passwordRepeat);
+		String username = userService.usernameFor(invitation.getEmail());
 		Instant now = clock.instant();
 		WikiUser user = users.save(WikiUser.create(username, displayName, invitation.getEmail(), hash,
 				invitation.getRole(), invitation.getInvitedBy(), now));
 		invitation.markAccepted(now);
 		audit.save(AuditEvent.of(UserService.USER_CREATE, null, username, now,
-				username + " als " + invitation.getRole().getLabel() + " via uitnodiging van " + invitation.getInvitedBy()));
+				displayName + " (" + invitation.getEmail() + ") als " + invitation.getRole().getLabel()
+						+ " via uitnodiging van " + invitation.getInvitedBy()));
 		return user;
 	}
 

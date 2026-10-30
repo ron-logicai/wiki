@@ -9,6 +9,7 @@ import nl.logicai.wiki.exceptions.PageNotFoundException;
 import nl.logicai.wiki.models.AuditEvent;
 import nl.logicai.wiki.models.Page;
 import nl.logicai.wiki.models.WikiDocument;
+import nl.logicai.wiki.repositories.WikiUserRepository;
 import nl.logicai.wiki.services.AdminService;
 import nl.logicai.wiki.services.BlockRenderer;
 import nl.logicai.wiki.services.FavoriteService;
@@ -41,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Renders the Thymeleaf templates without a database; the service layer is mocked. */
 @WebMvcTest({WebController.class, PageController.class, TagController.class, TemplateController.class, SearchController.class, TrashController.class, AdminController.class})
-@Import({BlockRenderer.class, MarkdownExporter.class, GlobalModelAdvice.class, Datums.class})
+@Import({BlockRenderer.class, MarkdownExporter.class, GlobalModelAdvice.class, Datums.class, Namen.class})
 @WithMockUser(username = "editor", roles = "EDITOR")
 class PageControllerTemplateTest {
 
@@ -75,6 +76,10 @@ class PageControllerTemplateTest {
 	/** Beheer > Overzicht (counts and the audit list). */
 	@MockitoBean
 	private AdminService adminService;
+
+	/** The {@code namen} bean resolves display names; with no users every name falls back to the username. */
+	@MockitoBean
+	private WikiUserRepository users;
 
 	private final Page page = Page.create("Onboarding",
 		null,

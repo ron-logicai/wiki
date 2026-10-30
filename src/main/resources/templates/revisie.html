@@ -32,7 +32,7 @@
                 <p class="melding melding--info">
                     Je bekijkt versie <strong th:text="${revisie.revisionNumber}">1</strong> van
                     <time th:datetime="${revisie.createdAt}" th:text="${@datums.volledig(revisie.createdAt)}">datum</time>
-                    door <span th:text="${revisie.author}">auteur</span>.
+                    door <span th:text="${@namen.weergave(revisie.author)}">auteur</span>.
                     <span th:if="${revisie.revisionNumber == pagina.currentRevision}">Dit is de actuele versie.</span>
                 </p>
 

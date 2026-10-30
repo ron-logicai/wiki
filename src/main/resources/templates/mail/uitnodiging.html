@@ -20,7 +20,7 @@
 </head>
 <body style="margin:0;padding:0;background-color:#F7F7F7;">
 <span style="display:none;font-size:1px;color:#F7F7F7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;"
-      th:text="|${uitgenodigdDoor} heeft een account voor je klaargezet. Kies je naam, gebruikersnaam en wachtwoord en je kunt direct aan de slag.|">Preheader</span>
+      th:text="|${uitgenodigdDoor} heeft een account voor je klaargezet. Kies je naam en wachtwoord en je kunt direct aan de slag.|">Preheader</span>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F7F7F7;">
 <tr><td align="center" style="padding:40px 16px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="wrap" style="width:600px;max-width:600px;">
@@ -36,7 +36,7 @@
         <span th:text="${uitgenodigdDoor}">Ellen</span> heeft een account als <strong th:text="${rol}">Editor</strong> voor je klaargezet in de interne wiki van LogicAI.
         Daar staan al onze werkwijzen, afspraken en handleidingen op één plek.
       </td></tr>
-      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Kies je naam, gebruikersnaam en wachtwoord en je kunt direct meelezen en meeschrijven.</td></tr>
+      <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Kies je naam en wachtwoord en je kunt direct meelezen en meeschrijven. Inloggen doe je daarna met dit e-mailadres.</td></tr>
       <tr th:replace="~{mail/fragments :: knop('Account aanmaken', ${link})}"></tr>
       <tr th:replace="~{mail/fragments :: kader(${geldigheid}, ${link})}"></tr>
       <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Vragen? Loop even langs of stuur een berichtje.<br>Groet,<br><strong th:text="${uitgenodigdDoor}">Ellen</strong></td></tr>

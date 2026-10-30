@@ -75,16 +75,17 @@
                                 <tr th:each="u : ${gebruikers}" th:classappend="${!u.active} ? 'gedempt'">
                                     <td>
                                         <div class="persoon">
-                                            <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.substring(u.username, 0, 1)}">a</span>
+                                            <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.substring(u.displayName, 0, 1)}">a</span>
                                             <div class="persoon__tekst">
                                                 <div class="persoon__naam">
-                                                    <span th:text="${u.displayName ?: u.username}">Naam</span>
+                                                    <span th:text="${u.displayName}">Naam</span>
                                                     <span class="klein gedempt" th:if="${u.username == gebruiker}">(jij)</span>
                                                     <span class="klein gedempt" th:unless="${u.active}">· gedeactiveerd</span>
                                                 </div>
+                                                <!-- Het e-mailadres is de login; de interne gebruikersnaam wordt niet getoond. -->
                                                 <div class="persoon__sub">
-                                                    <span th:text="${u.username}">gebruikersnaam</span>
-                                                    <th:block th:if="${!#strings.isEmpty(u.email)}"> · <span th:text="${u.email}">mail</span></th:block>
+                                                    <span th:if="${!#strings.isEmpty(u.email)}" th:text="${u.email}">mail</span>
+                                                    <span class="gedempt" th:if="${#strings.isEmpty(u.email)}">geen e-mailadres: kan alleen nog met de oude gebruikersnaam inloggen</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -98,7 +99,7 @@
                                     <td class="tabel__acties">
                                         <!-- Acties per gebruiker in een uitklapmenu (details/summary): rol, wachtwoord, verwijderen -->
                                         <details class="menu">
-                                            <summary class="knop knop--icoon" th:title="'Acties voor ' + ${u.username}" th:attr="aria-label='Acties voor ' + ${u.username}" aria-haspopup="menu">
+                                            <summary class="knop knop--icoon" th:title="'Acties voor ' + ${u.displayName}" th:attr="aria-label='Acties voor ' + ${u.displayName}" aria-haspopup="menu">
                                                 <span class="icoon" th:insert="~{fragments :: icoon('meer')}"></span>
                                             </summary>
                                             <div class="menu__lijst menu__acties">
@@ -109,6 +110,14 @@
                                                             <option th:each="r : ${rollen}" th:value="${r}" th:text="${r.label}" th:selected="${r == u.role}">Rol</option>
                                                         </select>
                                                         <button type="submit" class="knop">Wijzigen</button>
+                                                    </div>
+                                                </form>
+                                                <!-- E-mailadres (de login) instellen of corrigeren; nodig voor accounts van vóór de e-mail-login. -->
+                                                <form class="emailformulier" th:action="@{/admin/users/{id}/email(id=${u.id})}" method="post" autocomplete="off">
+                                                    <label th:for="'mail-' + ${u.id}">E-mailadres (login)</label>
+                                                    <div class="menu__regel">
+                                                        <input th:id="'mail-' + ${u.id}" type="email" name="email" maxlength="200" required placeholder="naam@logicai.nl" th:value="${u.email}">
+                                                        <button type="submit" class="knop">Opslaan</button>
                                                     </div>
                                                 </form>
                                                 <form class="wachtwoordformulier" th:action="@{/admin/users/{id}/password(id=${u.id})}" method="post" autocomplete="off">
@@ -132,13 +141,13 @@
 
                     <div class="zijkolom">
                         <!-- Rechts (ontwerp 3a): nieuwe gebruiker uitnodigen en de rollen in het kort.
-                             Alleen e-mail en rol: de genodigde kiest zelf gebruikersnaam en wachtwoord via de link in de mail. -->
+                             Alleen e-mail en rol: de genodigde kiest zelf naam en wachtwoord via de link in de mail en logt in met het e-mailadres. -->
                         <form id="nieuwe-gebruiker" th:action="@{/admin/users}" th:object="${form}" method="post" class="formulier kaart" autocomplete="off">
                             <h2>Nieuwe gebruiker uitnodigen</h2>
                             <div class="veld">
                                 <label for="email">E-mail</label>
                                 <input id="email" type="email" th:field="*{email}" maxlength="200" required placeholder="naam@logicai.nl">
-                                <p class="gedempt klein">De gebruiker krijgt een mail met een link om een gebruikersnaam en wachtwoord te kiezen. De link is één uur geldig.</p>
+                                <p class="gedempt klein">De gebruiker krijgt een mail met een link om een naam en wachtwoord te kiezen en logt daarna in met dit e-mailadres. De link is één uur geldig.</p>
                             </div>
                             <div class="veld">
                                 <label for="role">Rol</label>

@@ -68,10 +68,11 @@ class MailTemplatesTest {
 		MailTemplates.Rendered mail = templates.passwordReset(user, link, Duration.ofMinutes(30));
 
 		assertThat(mail.subject()).isEqualTo("LogicAI Wiki: nieuw wachtwoord instellen");
-		assertThat(mail.html()).contains("Hoi Ron,").contains("<strong>ron</strong>").contains("Nieuw wachtwoord kiezen")
+		// The account is named by its e-mail address (the login), never by the internal username.
+		assertThat(mail.html()).contains("Hoi Ron,").contains("<strong>ron@example.com</strong>").contains("Nieuw wachtwoord kiezen")
 			.contains("href=\"" + link + "\"").contains("<strong>30 minuten</strong>")
-			.contains("je wachtwoord blijft ongewijzigd");
-		assertThat(mail.text()).contains("Hoi Ron,").contains("“ron”").contains("30 minuten").contains(link);
+			.contains("je wachtwoord blijft ongewijzigd").doesNotContain("<strong>ron</strong>");
+		assertThat(mail.text()).contains("Hoi Ron,").contains("“ron@example.com”").contains("30 minuten").contains(link);
 	}
 
 	@Test

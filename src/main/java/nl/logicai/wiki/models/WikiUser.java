@@ -11,8 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * An allowed user of the wiki (spec F-01, F-02). Users can be deactivated or, by an admin, deleted;
- * audit entries and revision authors store the username as a string, so they survive a delete.
+ * An allowed user of the wiki (spec F-01, F-02). The e-mail address is the login; {@code username} is
+ * the internal key (derived from the address for invited users) that audit entries, revision authors
+ * and favorites store as a string, so they survive a delete. Users can be deactivated or, by an admin, deleted.
  * {@code passwordHash} is null for users who only log in through Entra.
  */
 @Entity
@@ -85,7 +86,7 @@ public class WikiUser {
 		this.passwordHash = passwordHash;
 	}
 
-	/** Sets the e-mail address (lower-cased by the caller); used by the local seed to give test users an address. */
+	/** Sets the e-mail address, the login (lower-cased by the caller): the local seed and admins on /admin/users. */
 	public void setEmail(String email) {
 		this.email = email;
 	}

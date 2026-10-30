@@ -50,8 +50,8 @@
                 <h1 th:text="${pagina.title}">Titel</h1>
                 <div class="labels artikel__meta">
                     <span class="label artikel__auteur">
-                        <span class="avatar" aria-hidden="true" th:text="${#strings.substring(pagina.updatedBy, 0, 1)}">a</span>
-                        <span th:text="${pagina.updatedBy}">iemand</span>
+                        <span class="avatar" aria-hidden="true" th:text="${@namen.initiaal(pagina.updatedBy)}">a</span>
+                        <span th:text="${@namen.weergave(pagina.updatedBy)}">iemand</span>
                     </span>
                     <time class="label" th:datetime="${pagina.updatedAt}" th:text="'Bijgewerkt ' + ${@datums.relatief(pagina.updatedAt)}">datum</time>
                     <span class="label">Versie <span th:text="${pagina.currentRevision}">1</span></span>

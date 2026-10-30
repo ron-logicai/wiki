@@ -23,7 +23,7 @@
                 <p class="melding melding--info">
                     Deze pagina staat in de prullenbak sinds
                     <time th:datetime="${pagina.deletedAt}" th:text="${@datums.volledig(pagina.deletedAt)}">datum</time>,
-                    verwijderd door <span th:text="${pagina.deletedBy}">iemand</span>.
+                    verwijderd door <span th:text="${@namen.weergave(pagina.deletedBy)}">iemand</span>.
                     De link blijft geldig: na herstel verschijnt hier weer dezelfde pagina.
                 </p>
                 <p sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">

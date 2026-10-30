@@ -38,8 +38,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  *       OIDC callback needs, see the comment there.</li>
  *   <li>Company login (Entra ID via OIDC) is enabled automatically when a client registration
  *       is configured (profile {@code entra}); the account must match an active app_user.</li>
- *   <li>Password login checks app_user through {@code WikiUserDetailsService}; profile {@code local}
- *       seeds the three test users, and {@code WIKI_BOOTSTRAP_ADMIN_*} creates the first admin.</li>
+ *   <li>Password login is by e-mail address and checks app_user through {@code WikiUserDetailsService};
+ *       the principal name stays the internal username. Profile {@code local} seeds the three test
+ *       users ({@code admin@wiki.nl} etc.), and {@code WIKI_BOOTSTRAP_ADMIN_*} creates the first admin.</li>
  *   <li>"Wachtwoord vergeten" is open without a session: {@code /wachtwoord-vergeten} mails a single-use
  *       link to {@code /wachtwoord-herstellen} ({@code PasswordResetService}); a logged-in user changes
  *       their own password on {@code /account/wachtwoord}.</li>

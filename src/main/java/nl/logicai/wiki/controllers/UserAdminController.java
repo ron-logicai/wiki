@@ -23,8 +23,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * User and role management for admins (spec section 1, route /admin/users). New users are invited by
- * e-mail ({@link InvitationService}); they choose their own username and password on /accountaanmaken.
- * Access is enforced in SecurityConfig.
+ * e-mail ({@link InvitationService}); they choose their own name and password on /accountaanmaken and
+ * log in with the e-mail address, which an admin can correct here. Access is enforced in SecurityConfig.
  */
 @Controller
 public class UserAdminController {
@@ -76,7 +76,20 @@ public class UserAdminController {
 			@RequestParam(defaultValue = "") String passwordRepeat, Authentication auth, RedirectAttributes redirect) {
 		try {
 			var user = userService.setPassword(id, password, passwordRepeat, auth.getName());
-			redirect.addFlashAttribute("melding", "Wachtwoord van “" + user.getUsername() + "” is ingesteld; inloggen kan direct.");
+			redirect.addFlashAttribute("melding", "Wachtwoord van “" + user.getDisplayName() + "” is ingesteld; inloggen kan direct.");
+		}
+		catch (InvalidUserException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/admin/users";
+	}
+
+	@PostMapping("/admin/users/{id}/email")
+	public String email(@PathVariable UUID id, @RequestParam(defaultValue = "") String email, Authentication auth,
+			RedirectAttributes redirect) {
+		try {
+			var user = userService.setEmail(id, email, auth.getName());
+			redirect.addFlashAttribute("melding", "E-mailadres van “" + user.getDisplayName() + "” is nu " + user.getEmail() + ".");
 		}
 		catch (InvalidUserException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());
@@ -88,7 +101,7 @@ public class UserAdminController {
 	public String rol(@PathVariable UUID id, @RequestParam Role role, Authentication auth, RedirectAttributes redirect) {
 		try {
 			var user = userService.changeRole(id, role, auth.getName());
-			redirect.addFlashAttribute("melding", "Rol van “" + user.getUsername() + "” is nu " + role.getLabel() + ".");
+			redirect.addFlashAttribute("melding", "Rol van “" + user.getDisplayName() + "” is nu " + role.getLabel() + ".");
 		}
 		catch (InvalidUserException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());
@@ -101,7 +114,7 @@ public class UserAdminController {
 			RedirectAttributes redirect) {
 		try {
 			var user = userService.setActive(id, active, auth.getName());
-			redirect.addFlashAttribute("melding", "“" + user.getUsername() + "” is " + (active ? "geactiveerd." : "gedeactiveerd."));
+			redirect.addFlashAttribute("melding", "“" + user.getDisplayName() + "” is " + (active ? "geactiveerd." : "gedeactiveerd."));
 		}
 		catch (InvalidUserException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());
@@ -113,7 +126,7 @@ public class UserAdminController {
 	public String verwijderen(@PathVariable UUID id, Authentication auth, RedirectAttributes redirect) {
 		try {
 			var user = userService.delete(id, auth.getName());
-			redirect.addFlashAttribute("melding", "“" + user.getUsername() + "” is verwijderd.");
+			redirect.addFlashAttribute("melding", "“" + user.getDisplayName() + "” is verwijderd.");
 		}
 		catch (InvalidUserException ex) {
 			redirect.addFlashAttribute("fout", ex.getMessage());

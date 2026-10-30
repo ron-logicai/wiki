@@ -114,15 +114,43 @@ class UserAdminFlowIntegrationTest {
 	void createdUserCanLogInWithTheirPassword() throws Exception {
 		create("ron1234", "ADMIN");
 
-		mvc.perform(formLogin().user("ron1234").password("geheim123"))
+		mvc.perform(formLogin().user("ron1234@example.com").password("geheim123"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(redirectedUrl("/"))
 			.andExpect(authenticated().withUsername("ron1234").withRoles("ADMIN"));
-		// Username lookup ignores case, so "Ron1234" logs in too.
-		mvc.perform(formLogin().user("Ron1234").password("geheim123"))
+		// The e-mail lookup ignores case, so "Ron1234@Example.com" logs in too.
+		mvc.perform(formLogin().user("Ron1234@Example.com").password("geheim123"))
 			.andExpect(authenticated().withUsername("ron1234"));
-		mvc.perform(formLogin().user("ron1234").password("verkeerd!"))
+		mvc.perform(formLogin().user("ron1234@example.com").password("verkeerd!"))
 			.andExpect(unauthenticated());
+		// The internal username is not a login once the account has an e-mail address.
+		mvc.perform(formLogin().user("ron1234").password("geheim123"))
+			.andExpect(unauthenticated());
+	}
+
+	/** Accounts from before the e-mail login have no address: they keep their username until an admin sets one. */
+	@Test
+	void adminSetsEmailAndLegacyAccountSwitchesFromUsernameToEmailLogin() throws Exception {
+		UUID id = create("oud", "EDITOR", null);
+		create("ander", "VIEWER");
+
+		mvc.perform(formLogin().user("oud").password("geheim123"))
+			.andExpect(authenticated().withUsername("oud"));
+
+		mvc.perform(post("/admin/users/{id}/email", id).with(csrf()).with(ADMIN).param("email", "ander@example.com"))
+			.andExpect(flash().attribute("fout", containsString("al in gebruik")));
+		mvc.perform(post("/admin/users/{id}/email", id).with(csrf()).with(ADMIN).param("email", "geen-adres"))
+			.andExpect(flash().attribute("fout", containsString("ongeldig")));
+		mvc.perform(post("/admin/users/{id}/email", id).with(csrf()).with(ADMIN).param("email", " Oud@Example.com "))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/admin/users"))
+			.andExpect(flash().attribute("melding", containsString("oud@example.com")));
+
+		mvc.perform(formLogin().user("oud").password("geheim123")).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("oud@example.com").password("geheim123"))
+			.andExpect(authenticated().withUsername("oud"));
+		assertThat(jdbc.queryForObject("select count(*) from audit_event where action = 'user.email' and details = 'oud: geen naar oud@example.com'",
+				Integer.class)).isEqualTo(1);
 	}
 
 	@Test
@@ -142,8 +170,8 @@ class UserAdminFlowIntegrationTest {
 			.andExpect(header().string("Location", "/admin/users"))
 			.andExpect(flash().attribute("melding", containsString("ingesteld")));
 
-		mvc.perform(formLogin().user("vergeten").password("geheim123")).andExpect(unauthenticated());
-		mvc.perform(formLogin().user("vergeten").password("nieuw-ww-1"))
+		mvc.perform(formLogin().user("vergeten@example.com").password("geheim123")).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("vergeten@example.com").password("nieuw-ww-1"))
 			.andExpect(authenticated().withUsername("vergeten").withRoles("EDITOR"));
 
 		mvc.perform(get("/admin").with(ADMIN))
@@ -153,11 +181,11 @@ class UserAdminFlowIntegrationTest {
 		// An Entra-only account (no password hash) gets form login once a password is set.
 		UUID entra = users.save(WikiUser.create("entra.only", "entra.only", "entra.only@example.com", null,
 				Role.VIEWER, "test", clock.instant())).getId();
-		mvc.perform(formLogin().user("entra.only").password("nieuw-ww-1")).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("entra.only@example.com").password("nieuw-ww-1")).andExpect(unauthenticated());
 		mvc.perform(post("/admin/users/{id}/password", entra).with(csrf()).with(ADMIN)
 				.param("password", "nieuw-ww-1").param("passwordRepeat", "nieuw-ww-1"))
 			.andExpect(flash().attributeExists("melding"));
-		mvc.perform(formLogin().user("entra.only").password("nieuw-ww-1"))
+		mvc.perform(formLogin().user("entra.only@example.com").password("nieuw-ww-1"))
 			.andExpect(authenticated().withUsername("entra.only"));
 	}
 
@@ -251,7 +279,7 @@ class UserAdminFlowIntegrationTest {
 				UUID.randomUUID(), id, "a".repeat(64));
 
 		// A real form login, so the session carries WebAuthenticationDetails like in the browser.
-		MockHttpSession session = (MockHttpSession) mvc.perform(formLogin().user("weg").password("geheim123"))
+		MockHttpSession session = (MockHttpSession) mvc.perform(formLogin().user("weg@example.com").password("geheim123"))
 			.andExpect(authenticated().withUsername("weg"))
 			.andReturn().getRequest().getSession(false);
 		mvc.perform(get("/").session(session)).andExpect(status().isOk());
@@ -266,7 +294,7 @@ class UserAdminFlowIntegrationTest {
 			.andExpect(redirectedUrl("/login?verwijderd"));
 		mvc.perform(get("/api/pages/{id}/content", UUID.randomUUID()).session(session))
 			.andExpect(status().isUnauthorized());
-		mvc.perform(formLogin().user("weg").password("geheim123")).andExpect(unauthenticated());
+		mvc.perform(formLogin().user("weg@example.com").password("geheim123")).andExpect(unauthenticated());
 
 		assertThat(jdbc.queryForObject("select count(*) from app_user where username = 'weg'", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("select count(*) from password_reset_token where user_id = ?", Integer.class, id)).isZero();
@@ -300,9 +328,9 @@ class UserAdminFlowIntegrationTest {
 		assertThat(users.findById(other)).isEmpty();
 	}
 
-	/** A user with password "geheim123", straight into the table: the admin form no longer creates accounts. */
+	/** A user with password "geheim123" and login {@code <username>@example.com}, straight into the table. */
 	private UUID create(String username, String role) {
-		return create(username, role, null);
+		return create(username, role, username + "@example.com");
 	}
 
 	private UUID create(String username, String role, String email) {

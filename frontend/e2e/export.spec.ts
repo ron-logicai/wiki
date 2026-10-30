@@ -9,7 +9,8 @@ const PASSWORD = "wiki";
 
 async function login(page: Page, username: string) {
   await page.goto("/login");
-  await page.fill('input[name="username"]', username);
+  // Login is by e-mail address; the local profile seeds <role>@wiki.nl with password "wiki".
+  await page.fill('input[name="username"]', `${username}@wiki.nl`);
   await page.fill('input[name="password"]', PASSWORD);
   await page.click('button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);

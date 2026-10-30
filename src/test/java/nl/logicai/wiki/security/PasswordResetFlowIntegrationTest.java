@@ -98,9 +98,9 @@ class PasswordResetFlowIntegrationTest {
 		assertThat(saved.statusCode()).isEqualTo(302);
 		assertThat(browser.location(saved)).isEqualTo("/login?reset");
 
-		assertThat(login(browser, "reset.flow", NEW_PASSWORD)).isEqualTo("/");
+		assertThat(login(browser, "reset.flow@example.com", NEW_PASSWORD)).isEqualTo("/");
 		browser.forgetCookies();
-		assertThat(login(browser, "reset.flow", PASSWORD)).isEqualTo("/login?error");
+		assertThat(login(browser, "reset.flow@example.com", PASSWORD)).isEqualTo("/login?error");
 
 		// Single use: the same link is now refused, also on POST.
 		HttpResponse<String> again = browser.get(link);

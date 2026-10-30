@@ -117,11 +117,12 @@
             <span class="zij__label">Prullenbak</span>
         </a>
         <!-- Gebruikersblok: avatar, naam met de rol eronder, en uitloggen. Beheer heeft hierboven een eigen rij. -->
+        <!-- Weergavenaam (gebruikerNaam), niet de interne gebruikersnaam (gebruiker). -->
         <div class="zij__gebruiker" th:if="${gebruiker != null}">
-            <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.substring(gebruiker, 0, 1)}">g</span>
+            <span class="avatar avatar--groot" aria-hidden="true" th:text="${@namen.initiaal(gebruiker)}">g</span>
             <!-- Naam en rol linken naar het eigen account (wachtwoord wijzigen). -->
             <a class="zij__wie" th:href="@{/account/wachtwoord}" title="Wachtwoord wijzigen">
-                <div class="zij__naam" th:text="${gebruiker}">gebruiker</div>
+                <div class="zij__naam" th:text="${gebruikerNaam ?: gebruiker}">gebruiker</div>
                 <div class="zij__rol" th:if="${rolLabel != null}" th:text="${rolLabel}">Rol</div>
             </a>
             <form th:action="@{/logout}" method="post">

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Mail voor "wachtwoord vergeten" (spec F-01), zelfde opmaak als de uitnodiging (ontwerp 28-10-2026).
-  Gerenderd door MailTemplates. Model: naam, gebruikersnaam, link, geldigheid.
+  Gerenderd door MailTemplates. Model: naam, email, link, geldigheid.
 -->
 <html lang="nl" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -20,7 +20,7 @@
 </head>
 <body style="margin:0;padding:0;background-color:#F7F7F7;">
 <span style="display:none;font-size:1px;color:#F7F7F7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;"
-      th:text="|Kies een nieuw wachtwoord voor je account ${gebruikersnaam} op de LogicAI wiki.|">Preheader</span>
+      th:text="|Kies een nieuw wachtwoord voor je account ${email} op de LogicAI wiki.|">Preheader</span>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F7F7F7;">
 <tr><td align="center" style="padding:40px 16px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="wrap" style="width:600px;max-width:600px;">
@@ -33,7 +33,7 @@
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:18px;" th:text="|Hoi ${naam},|">Hoi Ron,</td></tr>
       <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:18px;">
-        Er is gevraagd om een nieuw wachtwoord voor je account “<strong th:text="${gebruikersnaam}">ron</strong>” op de LogicAI wiki.
+        Er is gevraagd om een nieuw wachtwoord voor je account “<strong th:text="${email}">ron@logicai.nl</strong>” op de LogicAI wiki.
       </td></tr>
       <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:27px;mso-line-height-rule:exactly;color:#1C2143;padding-bottom:28px;">Kies via de knop een nieuw wachtwoord; daarna log je daarmee in.</td></tr>
       <tr th:replace="~{mail/fragments :: knop('Nieuw wachtwoord kiezen', ${link})}"></tr>

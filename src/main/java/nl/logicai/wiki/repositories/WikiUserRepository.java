@@ -14,7 +14,8 @@ public interface WikiUserRepository extends JpaRepository<WikiUser, UUID> {
 
 	Optional<WikiUser> findByEmailIgnoreCase(String email);
 
-	List<WikiUser> findAllByOrderByUsernameAsc();
+	/** De gebruikerslijst op /admin/users, op weergavenaam (de gebruikersnaam is intern). */
+	List<WikiUser> findAllByOrderByDisplayNameAsc();
 
 	/** Actieve gebruikers voor de eigenaar-keuzelijst (spec U-07). */
 	List<WikiUser> findByActiveTrueOrderByDisplayNameAsc();

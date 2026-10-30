@@ -22,9 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * User and role management for admins (spec section 1: activate/deactivate, manage roles; route
- * /admin/users). New users come in through {@link InvitationService}, never directly. {@link #delete}
- * removes the app_user row (and its reset tokens); usernames on pages and audit entries are plain
- * strings and stay as they are. Guards keep the acting admin from locking themselves out and keep at
+ * /admin/users). New users come in through {@link InvitationService}, never directly. Users log in
+ * with their e-mail address; the username is an internal key derived from it ({@link #usernameFor})
+ * that nobody types or sees. {@link #delete} removes the app_user row (and its reset tokens);
+ * usernames on pages and audit entries are plain strings and stay as they are. Guards keep the acting admin from locking themselves out and keep at
  * least one active admin. Every change is an AuditEvent without a page.
  */
 @Service
@@ -37,6 +38,8 @@ public class UserService {
 	public static final String USER_INVITE = "user.invite";
 	public static final String USER_ROLE = "user.role";
 	public static final String USER_PASSWORD = "user.password";
+	/** An admin set or changed the e-mail address (the login) on /admin/users. */
+	public static final String USER_EMAIL = "user.email";
 	public static final String USER_ACTIVATE = "user.activate";
 	public static final String USER_DEACTIVATE = "user.deactivate";
 	/** An admin removed the account on /admin/users. */
@@ -49,7 +52,9 @@ public class UserService {
 	public static final String USER_PASSWORD_RESET = "user.password.reset";
 
 	static final int PASSWORD_MIN = 8;
-	private static final Pattern USERNAME = Pattern.compile("[a-z0-9._@-]+");
+	/** Fallback for a derived username when the local part of the e-mail address has no usable character. */
+	static final String USERNAME_FALLBACK = "gebruiker";
+	private static final Pattern USERNAME_UNWANTED = Pattern.compile("[^a-z0-9._-]");
 	private static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
 
 	private final WikiUserRepository users;
@@ -70,7 +75,7 @@ public class UserService {
 	@PreAuthorize("hasRole('ADMIN')")
 	@Transactional(readOnly = true)
 	public List<WikiUser> all() {
-		return users.findAllByOrderByUsernameAsc();
+		return users.findAllByOrderByDisplayNameAsc();
 	}
 
 	@PreAuthorize("hasRole('ADMIN')")
@@ -135,6 +140,27 @@ public class UserService {
 	}
 
 	/**
+	 * Sets or replaces the e-mail address of a user: the login for the form and the match for Entra.
+	 * Needed for accounts from before the e-mail login (bootstrap admin without address) and for typos.
+	 * An address that belongs to another user is refused.
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	public WikiUser setEmail(UUID id, String rawEmail, String actor) {
+		WikiUser user = get(id);
+		String email = validEmail(rawEmail);
+		if (email.equalsIgnoreCase(user.getEmail())) {
+			return user;
+		}
+		if (users.findByEmailIgnoreCase(email).filter(other -> !other.getId().equals(user.getId())).isPresent()) {
+			throw new InvalidUserException("E-mailadres “" + email + "” is al in gebruik.");
+		}
+		String was = user.getEmail() == null ? "geen" : user.getEmail();
+		user.setEmail(email);
+		audit.save(AuditEvent.of(USER_EMAIL, null, actor, clock.instant(), user.getUsername() + ": " + was + " naar " + email));
+		return user;
+	}
+
+	/**
 	 * Sets or replaces the password of a user, so an admin can repair a mistyped password or give an
 	 * Entra-only account form login. The new password works on the next login (spec F-01).
 	 */
@@ -179,15 +205,37 @@ public class UserService {
 	}
 
 	/**
-	 * Trimmed, lower-cased username, or {@link InvalidUserException} when empty, too long or outside
-	 * the allowed characters. Package-private so {@link InvitationService} applies the same rules.
+	 * The internal username for a new account: {@link #usernameBase} of the e-mail address, with a
+	 * number appended ({@code ron2}, {@code ron3}, ...) while that username is taken. Nobody types or
+	 * sees it; it is the stable key on pages, favorites and audit entries. Package-private so
+	 * {@link InvitationService} uses it; the caller is in a transaction.
 	 */
-	static String validUsername(String raw) {
-		String username = normalize(raw);
-		if (username.isEmpty() || username.length() > WikiUser.USERNAME_MAX || !USERNAME.matcher(username).matches()) {
-			throw new InvalidUserException("Gebruikersnaam: alleen letters, cijfers en . _ @ - (maximaal 100 tekens).");
+	String usernameFor(String email) {
+		String base = usernameBase(email);
+		String candidate = base;
+		for (int n = 2; users.findByUsernameIgnoreCase(candidate).isPresent(); n++) {
+			String suffix = Integer.toString(n);
+			candidate = base.substring(0, Math.min(base.length(), WikiUser.USERNAME_MAX - suffix.length())) + suffix;
 		}
-		return username;
+		return candidate;
+	}
+
+	/**
+	 * The local part of an e-mail address as a username: lower-cased, only letters, digits and . _ -
+	 * (other characters dropped), at most {@link WikiUser#USERNAME_MAX}; {@link #USERNAME_FALLBACK}
+	 * when nothing usable is left. Pure, so the local seed and the bootstrap admin can use it too.
+	 */
+	public static String usernameBase(String email) {
+		String local = normalize(email);
+		int at = local.indexOf('@');
+		if (at >= 0) {
+			local = local.substring(0, at);
+		}
+		String username = USERNAME_UNWANTED.matcher(local).replaceAll("");
+		if (username.isEmpty()) {
+			return USERNAME_FALLBACK;
+		}
+		return username.length() > WikiUser.USERNAME_MAX ? username.substring(0, WikiUser.USERNAME_MAX) : username;
 	}
 
 	/**

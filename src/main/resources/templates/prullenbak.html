@@ -36,7 +36,7 @@
                         <span class="rij__titel">
                             <a th:href="@{/pages/{id}(id=${i.page.id})}" th:text="${i.page.title}">Titel</a>
                             <span class="gedempt klein">
-                                · verwijderd door <span th:text="${i.page.deletedBy}">iemand</span>,
+                                · verwijderd door <span th:text="${@namen.weergave(i.page.deletedBy)}">iemand</span>,
                                 <time th:datetime="${i.page.deletedAt}" th:text="${@datums.relatief(i.page.deletedAt)}">datum</time>
                                 <th:block th:if="${i.parent != null}">
                                     · stond onder <span th:text="${i.parent.title}">ouder</span><span th:unless="${i.parentActive}"> (ook verwijderd)</span>

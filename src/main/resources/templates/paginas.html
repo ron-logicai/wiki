@@ -76,8 +76,8 @@
                                     <span class="gedempt" th:if="${rij.ruimte == null}">—</span>
                                 </td>
                                 <td class="paginalijst__wie">
-                                    <span class="avatar" th:title="${p.updatedBy}" th:text="${#strings.substring(p.updatedBy, 0, 1)}">a</span>
-                                    <span class="verborgen" th:text="${p.updatedBy}">iemand</span>
+                                    <span class="avatar" th:title="${@namen.weergave(p.updatedBy)}" th:text="${@namen.initiaal(p.updatedBy)}">a</span>
+                                    <span class="verborgen" th:text="${@namen.weergave(p.updatedBy)}">iemand</span>
                                 </td>
                                 <td class="paginalijst__tijd">
                                     <time th:datetime="${p.updatedAt}" th:text="${@datums.relatief(p.updatedAt)}">datum</time>

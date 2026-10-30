@@ -24,8 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Inviting a new user over real HTTP (spec F-01: no public registration, N-02): the admin form sends a
  * mail (captured by a test sender instead of SMTP), the link opens /accountaanmaken, the invitee chooses
- * username and password with CSRF, the link is single use and expires, a newer invitation replaces the
- * older link, and non-admins cannot invite.
+ * a name and password with CSRF and logs in with the invited e-mail address (the internal username is
+ * derived from it), the link is single use and expires, a newer invitation replaces the older link, and
+ * non-admins cannot invite.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import({TestcontainersConfiguration.class, CapturedMail.class})
@@ -59,7 +60,7 @@ class InvitationFlowIntegrationTest {
 	void mailFailureIsShownAndLeavesNoInvitation() {
 		create("invite.admin7", "invite.admin7@example.com", PASSWORD, Role.ADMIN);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin7", PASSWORD);
+		login(admin, "invite.admin7@example.com", PASSWORD);
 
 		CapturedMail.FAIL_WITH = "535 5.7.139 Authentication unsuccessful";
 		HttpResponse<String> failed = invite(admin, "onbereikbaar@example.com", "VIEWER");
@@ -84,7 +85,7 @@ class InvitationFlowIntegrationTest {
 	void adminInvitesAndInviteeCreatesAccountOnce() {
 		create("invite.admin", "invite.admin@example.com", PASSWORD, Role.ADMIN);
 		BrowserSession admin = new BrowserSession(port);
-		assertThat(login(admin, "invite.admin", PASSWORD)).isEqualTo("/");
+		assertThat(login(admin, "invite.admin@example.com", PASSWORD)).isEqualTo("/");
 
 		HttpResponse<String> invited = invite(admin, "Nieuwe.Collega@example.com", "EDITOR");
 		assertThat(invited.statusCode()).isEqualTo(302);
@@ -105,18 +106,22 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		HttpResponse<String> form = invitee.get(link);
 		assertThat(form.statusCode()).isEqualTo(200);
-		assertThat(form.body()).contains("name=\"token\"").contains("name=\"displayName\"").contains("name=\"username\"")
-			.contains("name=\"passwordRepeat\"").contains("nieuwe.collega@example.com").contains("Editor")
+		// Only name, password and repeat: no username field, the e-mail address from the invitation is the login.
+		assertThat(form.body()).contains("name=\"token\"").contains("name=\"displayName\"").contains("name=\"password\"")
+			.contains("name=\"passwordRepeat\"").doesNotContain("name=\"username\"").doesNotContain("Gebruikersnaam")
+			.contains("nieuwe.collega@example.com").contains("Editor")
 			.contains("uitgenodigd door <strong>invite.admin</strong>").doesNotContain("ongeldig");
 
 		HttpResponse<String> created = invitee.postForm("/accountaanmaken", Map.of(
-				"token", token, "displayName", " Nieuwe Collega ", "username", " Nieuwe.Collega ",
+				"token", token, "displayName", " Nieuwe Collega ",
 				"password", PASSWORD, "passwordRepeat", PASSWORD, "_csrf", BrowserSession.csrfToken(form.body())));
 		assertThat(created.statusCode()).isEqualTo(302);
 		assertThat(invitee.location(created)).isEqualTo("/login?aangemaakt");
 		assertThat(invitee.get("/login?aangemaakt").body()).contains("Je account is aangemaakt");
 
-		assertThat(login(invitee, "nieuwe.collega", PASSWORD)).isEqualTo("/");
+		assertThat(login(invitee, "nieuwe.collega@example.com", PASSWORD)).isEqualTo("/");
+		// The sidebar shows the chosen name, not the derived username.
+		assertThat(invitee.get("/").body()).contains("Nieuwe Collega");
 		WikiUser user = users.findByUsernameIgnoreCase("nieuwe.collega").orElseThrow();
 		assertThat(user.getDisplayName()).isEqualTo("Nieuwe Collega");
 		assertThat(user.getEmail()).isEqualTo("nieuwe.collega@example.com");
@@ -128,23 +133,22 @@ class InvitationFlowIntegrationTest {
 		invitee.forgetCookies();
 		HttpResponse<String> again = invitee.get(link);
 		assertThat(again.statusCode()).isEqualTo(200);
-		assertThat(again.body()).contains("ongeldig of verlopen").doesNotContain("name=\"username\"");
-		HttpResponse<String> reuse = post(invitee, token, "Tweede Poging", "tweede.poging", PASSWORD, PASSWORD,
+		assertThat(again.body()).contains("ongeldig of verlopen").doesNotContain("name=\"displayName\"");
+		HttpResponse<String> reuse = post(invitee, token, "Tweede Poging", PASSWORD, PASSWORD,
 				BrowserSession.csrfToken(again.body()));
 		assertThat(reuse.statusCode()).isEqualTo(200);
 		assertThat(reuse.body()).contains("ongeldig of verlopen");
-		assertThat(users.findByUsernameIgnoreCase("tweede.poging")).isEmpty();
+		assertThat(users.findAll()).noneMatch(u -> "Tweede Poging".equals(u.getDisplayName()));
 
 		assertThat(auditCount("user.invite", "invite.admin")).isEqualTo(1);
 		assertThat(auditCount("user.create", "nieuwe.collega")).isEqualTo(1);
 	}
 
 	@Test
-	void takenUsernameOrBadPasswordKeepsInvitationUsable() {
+	void badNameOrPasswordKeepsInvitationUsable() {
 		create("invite.admin2", "invite.admin2@example.com", PASSWORD, Role.ADMIN);
-		create("bezet", "bezet@example.com", PASSWORD, Role.VIEWER);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin2", PASSWORD);
+		login(admin, "invite.admin2@example.com", PASSWORD);
 		invite(admin, "typo@example.com", "VIEWER");
 		String link = pathOf(CapturedMail.SENT.getFirst().link());
 		String token = link.substring(link.indexOf('=') + 1);
@@ -152,34 +156,51 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		String csrf = BrowserSession.csrfToken(invitee.get(link).body());
 
-		HttpResponse<String> taken = post(invitee, token, "Ty Po", "BEZET", PASSWORD, PASSWORD, csrf);
-		assertThat(taken.statusCode()).isEqualTo(200);
-		assertThat(taken.body()).contains("bestaat al").contains("name=\"token\"").contains("value=\"BEZET\"")
-			.contains("value=\"Ty Po\"");
-
-		HttpResponse<String> noName = post(invitee, token, "   ", "typo", PASSWORD, PASSWORD, csrf);
+		HttpResponse<String> noName = post(invitee, token, "   ", PASSWORD, PASSWORD, csrf);
+		assertThat(noName.statusCode()).isEqualTo(200);
 		assertThat(noName.body()).contains("Naam:").contains("name=\"token\"");
 
-		HttpResponse<String> badChars = post(invitee, token, "Ty Po", "Bad Name!", PASSWORD, PASSWORD, csrf);
-		assertThat(badChars.body()).contains("alleen letters, cijfers");
+		HttpResponse<String> mismatch = post(invitee, token, "Ty Po", PASSWORD, "anders-anders", csrf);
+		assertThat(mismatch.body()).contains("niet gelijk").contains("value=\"Ty Po\"");
 
-		HttpResponse<String> mismatch = post(invitee, token, "Ty Po", "typo", PASSWORD, "anders-anders", csrf);
-		assertThat(mismatch.body()).contains("niet gelijk");
-
-		HttpResponse<String> tooShort = post(invitee, token, "Ty Po", "typo", "kort", "kort", csrf);
+		HttpResponse<String> tooShort = post(invitee, token, "Ty Po", "kort", "kort", csrf);
 		assertThat(tooShort.body()).contains("minimaal 8");
 
-		HttpResponse<String> saved = post(invitee, token, "Ty Po", "typo", PASSWORD, PASSWORD, csrf);
+		HttpResponse<String> saved = post(invitee, token, "Ty Po", PASSWORD, PASSWORD, csrf);
 		assertThat(saved.statusCode()).isEqualTo(302);
 		assertThat(invitee.location(saved)).isEqualTo("/login?aangemaakt");
 		assertThat(users.findByUsernameIgnoreCase("typo")).map(WikiUser::getDisplayName).contains("Ty Po");
+	}
+
+	/** The derived username is the local part of the address; a taken one gets a number appended. */
+	@Test
+	void derivedUsernameGetsSuffixWhenLocalPartIsTaken() {
+		create("invite.admin8", "invite.admin8@example.com", PASSWORD, Role.ADMIN);
+		create("bezet", "bezet@elders.example", PASSWORD, Role.VIEWER);
+		BrowserSession admin = new BrowserSession(port);
+		login(admin, "invite.admin8@example.com", PASSWORD);
+		invite(admin, "Bezet@example.com", "VIEWER");
+		String link = pathOf(CapturedMail.SENT.getFirst().link());
+		String token = link.substring(link.indexOf('=') + 1);
+
+		BrowserSession invitee = new BrowserSession(port);
+		String csrf = BrowserSession.csrfToken(invitee.get(link).body());
+		HttpResponse<String> saved = post(invitee, token, "Ook Bezet", PASSWORD, PASSWORD, csrf);
+		assertThat(saved.statusCode()).isEqualTo(302);
+
+		WikiUser user = users.findByEmailIgnoreCase("bezet@example.com").orElseThrow();
+		assertThat(user.getUsername()).isEqualTo("bezet2");
+		assertThat(user.getDisplayName()).isEqualTo("Ook Bezet");
+		assertThat(login(invitee, "bezet@example.com", PASSWORD)).isEqualTo("/");
+		// The first "bezet" still logs in with their own address and is untouched.
+		assertThat(users.findByUsernameIgnoreCase("bezet").orElseThrow().getEmail()).isEqualTo("bezet@elders.example");
 	}
 
 	@Test
 	void expiredInvitationIsRefused() {
 		create("invite.admin3", "invite.admin3@example.com", PASSWORD, Role.ADMIN);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin3", PASSWORD);
+		login(admin, "invite.admin3@example.com", PASSWORD);
 		invite(admin, "verlopen@example.com", "VIEWER");
 		String link = pathOf(CapturedMail.SENT.getFirst().link());
 
@@ -187,7 +208,7 @@ class InvitationFlowIntegrationTest {
 
 		HttpResponse<String> form = new BrowserSession(port).get(link);
 		assertThat(form.statusCode()).isEqualTo(200);
-		assertThat(form.body()).contains("ongeldig of verlopen").doesNotContain("name=\"username\"");
+		assertThat(form.body()).contains("ongeldig of verlopen").doesNotContain("name=\"displayName\"");
 	}
 
 	@Test
@@ -196,7 +217,7 @@ class InvitationFlowIntegrationTest {
 		for (String path : new String[] {"/accountaanmaken", "/accountaanmaken?token=", "/accountaanmaken?token=x"}) {
 			HttpResponse<String> response = browser.get(path);
 			assertThat(response.statusCode()).isEqualTo(200);
-			assertThat(response.body()).contains("ongeldig of verlopen").doesNotContain("name=\"username\"");
+			assertThat(response.body()).contains("ongeldig of verlopen").doesNotContain("name=\"displayName\"");
 		}
 	}
 
@@ -204,7 +225,7 @@ class InvitationFlowIntegrationTest {
 	void newInvitationReplacesOlderLinkForSameAddress() {
 		create("invite.admin4", "invite.admin4@example.com", PASSWORD, Role.ADMIN);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin4", PASSWORD);
+		login(admin, "invite.admin4@example.com", PASSWORD);
 		invite(admin, "herhaald@example.com", "VIEWER");
 		invite(admin, "HERHAALD@example.com", "EDITOR");
 		assertThat(CapturedMail.SENT).hasSize(2);
@@ -222,7 +243,7 @@ class InvitationFlowIntegrationTest {
 		create("invite.admin5", "invite.admin5@example.com", PASSWORD, Role.ADMIN);
 		create("al.lid", "al.lid@example.com", PASSWORD, Role.VIEWER);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin5", PASSWORD);
+		login(admin, "invite.admin5@example.com", PASSWORD);
 
 		HttpResponse<String> refused = invite(admin, "Al.Lid@example.com", "VIEWER");
 		assertThat(refused.statusCode()).isEqualTo(200);
@@ -234,7 +255,7 @@ class InvitationFlowIntegrationTest {
 	void formsRequireCsrf() {
 		create("invite.admin6", "invite.admin6@example.com", PASSWORD, Role.ADMIN);
 		BrowserSession admin = new BrowserSession(port);
-		login(admin, "invite.admin6", PASSWORD);
+		login(admin, "invite.admin6@example.com", PASSWORD);
 
 		HttpResponse<String> invited = admin.postForm("/admin/users", Map.of("email", "csrf@example.com", "role", "VIEWER"));
 		assertThat(invited.statusCode()).isEqualTo(403);
@@ -243,7 +264,7 @@ class InvitationFlowIntegrationTest {
 		BrowserSession invitee = new BrowserSession(port);
 		invitee.get("/accountaanmaken");
 		HttpResponse<String> created = invitee.postForm("/accountaanmaken", Map.of(
-				"token", "x", "displayName", "Csrf", "username", "csrf", "password", PASSWORD, "passwordRepeat", PASSWORD));
+				"token", "x", "displayName", "Csrf", "password", PASSWORD, "passwordRepeat", PASSWORD));
 		assertThat(created.statusCode()).isEqualTo(403);
 	}
 
@@ -251,7 +272,7 @@ class InvitationFlowIntegrationTest {
 	void editorCannotInvite() {
 		create("invite.editor", "invite.editor@example.com", PASSWORD, Role.EDITOR);
 		BrowserSession editor = new BrowserSession(port);
-		assertThat(login(editor, "invite.editor", PASSWORD)).isEqualTo("/");
+		assertThat(login(editor, "invite.editor@example.com", PASSWORD)).isEqualTo("/");
 
 		assertThat(editor.get("/admin/users").statusCode()).isEqualTo(403);
 		HttpResponse<String> home = editor.get("/");
@@ -268,17 +289,17 @@ class InvitationFlowIntegrationTest {
 		return admin.postForm("/admin/users", Map.of("email", email, "role", role, "_csrf", BrowserSession.csrfToken(page.body())));
 	}
 
-	private static HttpResponse<String> post(BrowserSession browser, String token, String displayName, String username,
+	private static HttpResponse<String> post(BrowserSession browser, String token, String displayName,
 			String password, String passwordRepeat, String csrf) {
 		return browser.postForm("/accountaanmaken", Map.of("token", token, "displayName", displayName,
-				"username", username, "password", password, "passwordRepeat", passwordRepeat, "_csrf", csrf));
+				"password", password, "passwordRepeat", passwordRepeat, "_csrf", csrf));
 	}
 
-	/** Logs in through the form and returns where the browser is sent. */
-	private String login(BrowserSession browser, String username, String password) {
+	/** Logs in through the form (e-mail address; the field is still called "username") and returns where the browser is sent. */
+	private String login(BrowserSession browser, String email, String password) {
 		HttpResponse<String> loginPage = browser.get("/login");
 		HttpResponse<String> response = browser.postForm("/login", Map.of(
-				"username", username, "password", password, "_csrf", BrowserSession.csrfToken(loginPage.body())));
+				"username", email, "password", password, "_csrf", BrowserSession.csrfToken(loginPage.body())));
 		assertThat(response.statusCode()).isEqualTo(302);
 		return browser.location(response);
 	}

@@ -41,7 +41,7 @@
                     <tr th:each="r : ${revisies}">
                         <td><a th:href="@{/pages/{id}/history/{rev}(id=${pagina.id}, rev=${r.id})}" th:text="${r.revisionNumber}">1</a></td>
                         <td th:text="${r.title}">Titel</td>
-                        <td th:text="${r.author}">auteur</td>
+                        <td th:text="${@namen.weergave(r.author)}">auteur</td>
                         <td><time th:datetime="${r.createdAt}" th:text="${@datums.volledig(r.createdAt)}">datum</time></td>
                         <td sec:authorize="hasAnyRole('EDITOR', 'ADMIN')">
                             <span class="gedempt" th:if="${r.revisionNumber == pagina.currentRevision}">actueel</span>

@@ -23,7 +23,7 @@
 
         <!-- Meldingen: Spring Security stuurt naar ?error en ?logout, ActiveUserFilter naar ?deactivated of ?verwijderd (spec F-02). -->
         <p class="melding" role="alert" th:if="${param.error != null}">
-            Inloggen is niet gelukt. Controleer je gebruikersnaam en wachtwoord, of vraag de beheerder of je account toegang heeft.
+            Inloggen is niet gelukt. Controleer je e-mailadres en wachtwoord, of vraag de beheerder of je account toegang heeft.
         </p>
         <p class="melding" role="alert" th:if="${param.deactivated != null}">
             Je account is gedeactiveerd. Neem contact op met de beheerder als je weer toegang nodig hebt.
@@ -38,14 +38,15 @@
             Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
         <p class="melding melding--info" role="status" th:if="${param.aangemaakt != null}">
-            Je account is aangemaakt. Log in met je gebruikersnaam en wachtwoord.
+            Je account is aangemaakt. Log in met je e-mailadres en wachtwoord.
         </p>
 
         <form class="formulier" th:action="@{/login}" method="post">
+            <!-- Inloggen op e-mailadres; de parameter heet "username" omdat Spring Security die naam verwacht. -->
             <div class="veld">
-                <label for="username">Gebruikersnaam</label>
-                <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
-                       spellcheck="false" required autofocus>
+                <label for="username">E-mailadres</label>
+                <input id="username" name="username" type="email" autocomplete="username" autocapitalize="none"
+                       spellcheck="false" placeholder="naam@logicai.nl" required autofocus>
             </div>
             <div class="veld">
                 <label for="password">Wachtwoord</label>

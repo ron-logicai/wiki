@@ -57,12 +57,13 @@ management:
       enabled: false
 
 wiki:
-  # First admin on a fresh installation: created once, only while app_user is empty. Password for
-  # form login and/or e-mail for Entra login. Afterwards manage users on /admin/users.
+  # First admin on a fresh installation: created once, only while app_user is empty. The e-mail address
+  # is the login (also what Entra must match); the password enables form login. The name is optional.
+  # Afterwards manage users on /admin/users.
   bootstrap-admin:
-    username: ${WIKI_BOOTSTRAP_ADMIN_USERNAME:}
-    password: ${WIKI_BOOTSTRAP_ADMIN_PASSWORD:}
     email: ${WIKI_BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${WIKI_BOOTSTRAP_ADMIN_PASSWORD:}
+    name: ${WIKI_BOOTSTRAP_ADMIN_NAME:}
   # Public URL of the wiki, used for links in e-mail. Never taken from request headers (spec N-02).
   base-url: ${WIKI_BASE_URL:http://localhost:8080}
   mail:

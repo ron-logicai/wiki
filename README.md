@@ -37,18 +37,23 @@ cd frontend && npm ci && npm run build && cd ..
 
 De applicatie draait op <http://localhost:8080>. Healthcheck: <http://localhost:8080/actuator/health>.
 
-Met het profiel `local` bestaan drie testgebruikers, allemaal met wachtwoord `wiki`:
-`viewer`, `editor` en `admin`. Ze worden bij het opstarten in de tabel `app_user` gezet als ze
-ontbreken; buiten dit profiel gebeurt dat nooit, dus in productie bestaan ze niet.
+Inloggen gaat met e-mailadres en wachtwoord. Met het profiel `local` bestaan drie testgebruikers,
+allemaal met wachtwoord `wiki`: `viewer@wiki.nl`, `editor@wiki.nl` en `admin@wiki.nl`. Ze worden bij
+het opstarten in de tabel `app_user` gezet als ze ontbreken; buiten dit profiel gebeurt dat nooit, dus
+in productie bestaan ze niet.
 
 Gebruikers en rollen beheer je als admin op `/admin/users` (klik onderin de zijbalk op je eigen naam).
 Een nieuwe gebruiker nodig je uit per e-mail: je vult alleen het adres en de rol in, de genodigde kiest
-zelf een naam, gebruikersnaam en wachtwoord via de link in de mail (`/accountaanmaken?token=`, één uur geldig,
-eenmalig). Zonder `WIKI_MAIL_HOST` staat die link in de log.
-Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_ADMIN_USERNAME` nodig
-(met `WIKI_BOOTSTRAP_ADMIN_PASSWORD` en/of `WIKI_BOOTSTRAP_ADMIN_EMAIL` voor Entra); die admin wordt
-alleen aangemaakt zolang de gebruikerstabel leeg is. Entra-accounts komen alleen binnen als hun
-`preferred_username` of e-mailadres overeenkomt met een actieve gebruiker.
+zelf een naam en wachtwoord via de link in de mail (`/accountaanmaken?token=`, één uur geldig, eenmalig)
+en logt daarna in met het uitgenodigde e-mailadres. Zonder `WIKI_MAIL_HOST` staat die link in de log.
+Overal in de wiki staat de weergavenaam; de kolom `username` in `app_user` is alleen nog een interne
+sleutel (afgeleid van het deel vóór de `@`) voor pagina's, favorieten en de audit.
+Een verse installatie zonder `local`-profiel heeft één keer `WIKI_BOOTSTRAP_ADMIN_EMAIL` nodig
+(met `WIKI_BOOTSTRAP_ADMIN_PASSWORD` voor inloggen met wachtwoord, zonder wachtwoord alleen via Entra;
+`WIKI_BOOTSTRAP_ADMIN_NAME` is optioneel); die admin wordt alleen aangemaakt zolang de gebruikerstabel
+leeg is. Entra-accounts komen alleen binnen als hun `preferred_username` of e-mailadres overeenkomt met
+een actieve gebruiker. Een account van vóór de e-mail-login dat nog geen adres heeft, kan met de oude
+gebruikersnaam blijven inloggen tot een beheerder op `/admin/users` een e-mailadres instelt.
 
 Browserbeveiliging (spec N-02): CSRF-bescherming staat aan voor alle formulieren en voor de
 fetch-verzoeken van de editor (het token staat als meta-tag in de pagina en gaat mee als header).
@@ -231,7 +236,7 @@ fly logs -a logicai-wiki-db          # verwacht: "database system is ready to ac
 # 3. Wiki-app: volume en geheimen (zelfde databasewachtwoord; de bootstrap-admin geldt alleen bij de eerste start)
 fly apps create logicai-wiki
 fly volumes create wiki_attachments --region ams --size 3 -a logicai-wiki --yes
-fly secrets set WIKI_DB_PASSWORD='<zelfde wachtwoord>' WIKI_BOOTSTRAP_ADMIN_USERNAME=admin WIKI_BOOTSTRAP_ADMIN_PASSWORD='<admin-wachtwoord>' -a logicai-wiki
+fly secrets set WIKI_DB_PASSWORD='<zelfde wachtwoord>' WIKI_BOOTSTRAP_ADMIN_EMAIL='<admin-e-mailadres>' WIKI_BOOTSTRAP_ADMIN_PASSWORD='<admin-wachtwoord>' -a logicai-wiki
 
 # 4. Deployen vanuit de projectmap (remote build; de eerste keer 5 à 10 minuten voor npm en Maven)
 fly deploy

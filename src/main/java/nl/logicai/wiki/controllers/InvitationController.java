@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
  * De pagina achter de uitnodigingsmail (spec F-01: geen openbare registratie, alleen met een geldig
  * token). Zonder sessie en zonder zijbalk (dus niet in {@code GlobalModelAdvice}); de route staat
  * nergens in de navigatie. Het token staat na de eerste GET alleen nog in een hidden field, nooit
- * meer in een URL. De genodigde kiest naam, gebruikersnaam en wachtwoord; e-mail en rol komen uit
- * de uitnodiging.
+ * meer in een URL. De genodigde kiest naam en wachtwoord; e-mail en rol komen uit de uitnodiging en
+ * met het e-mailadres logt de genodigde in (de interne gebruikersnaam wordt afgeleid).
  */
 @Controller
 public class InvitationController {
@@ -38,10 +38,10 @@ public class InvitationController {
 
 	@PostMapping("/accountaanmaken")
 	public String aanmaken(@RequestParam(defaultValue = "") String token, @RequestParam(defaultValue = "") String displayName,
-			@RequestParam(defaultValue = "") String username, @RequestParam(defaultValue = "") String password,
-			@RequestParam(defaultValue = "") String passwordRepeat, Model model) {
+			@RequestParam(defaultValue = "") String password, @RequestParam(defaultValue = "") String passwordRepeat,
+			Model model) {
 		try {
-			invitationService.accept(token, displayName, username, password, passwordRepeat);
+			invitationService.accept(token, displayName, password, passwordRepeat);
 			return "redirect:/login?aangemaakt";
 		}
 		catch (InvalidUserException ex) {
@@ -50,7 +50,6 @@ public class InvitationController {
 						formulier(model, token, invitation);
 						model.addAttribute("fout", ex.getMessage());
 						model.addAttribute("displayName", displayName);
-						model.addAttribute("username", username);
 					},
 					() -> model.addAttribute("ongeldig", true));
 			return "accountaanmaken";

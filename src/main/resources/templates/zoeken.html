@@ -73,8 +73,8 @@
                                     </span>
                                     <span class="zoek__punt" th:unless="${h.tags.isEmpty()}" aria-hidden="true">·</span>
                                     <span class="zoek__wie">
-                                        <span class="avatar" aria-hidden="true" th:text="${#strings.substring(h.page.updatedBy, 0, 1)}">a</span>
-                                        <span th:text="${h.page.updatedBy}">iemand</span> ·
+                                        <span class="avatar" aria-hidden="true" th:text="${@namen.initiaal(h.page.updatedBy)}">a</span>
+                                        <span th:text="${@namen.weergave(h.page.updatedBy)}">iemand</span> ·
                                         <time th:datetime="${h.page.updatedAt}" th:text="${@datums.relatief(h.page.updatedAt)}">datum</time>
                                     </span>
                                 </div>

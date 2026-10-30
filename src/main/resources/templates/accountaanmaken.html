@@ -43,6 +43,7 @@
                 Je bent uitgenodigd door <strong th:text="${uitgenodigdDoor}">Ellen</strong>
                 als <strong th:text="${uitnodiging.role.label}">Viewer</strong>
                 voor <strong th:text="${uitnodiging.email}">naam@logicai.nl</strong>.
+                Met dat e-mailadres log je straks in.
             </p>
 
             <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
@@ -54,13 +55,7 @@
                     <input id="displayName" name="displayName" type="text" autocomplete="name" maxlength="200"
                            placeholder="Voor- en achternaam" required autofocus th:value="${displayName}">
                 </div>
-                <div class="veld">
-                    <label for="username">Gebruikersnaam</label>
-                    <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none"
-                           spellcheck="false" maxlength="100" pattern="[A-Za-z0-9._@-]+" placeholder="bijv. ellen"
-                           required th:value="${username}">
-                    <p class="gedempt klein">Alleen letters, cijfers en . _ @ - (maximaal 100 tekens). Hiermee log je in.</p>
-                </div>
+                <!-- Geen gebruikersnaam: inloggen gaat op het e-mailadres uit de uitnodiging. -->
                 <div class="veld">
                     <label for="password">Nieuw wachtwoord</label>
                     <input id="password" name="password" type="password" autocomplete="new-password" minlength="8"

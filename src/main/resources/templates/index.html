@@ -89,7 +89,7 @@
                                     <a th:href="@{/pages/{id}(id=${r.pagina.id})}" th:text="${r.pagina.title}">Titel</a>
                                 </span>
                                 <span class="rij__ruimte" th:text="${r.ruimte}">Ruimte</span>
-                                <span class="avatar" th:title="${r.pagina.updatedBy}" th:text="${#strings.substring(r.pagina.updatedBy, 0, 1)}">a</span>
+                                <span class="avatar" th:title="${@namen.weergave(r.pagina.updatedBy)}" th:text="${@namen.initiaal(r.pagina.updatedBy)}">a</span>
                                 <time class="rij__tijd" th:datetime="${r.pagina.updatedAt}" th:text="${@datums.relatief(r.pagina.updatedAt)}">datum</time>
                             </li>
                         </ul>

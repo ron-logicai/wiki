@@ -61,9 +61,9 @@
                                 </td>
                                 <td>
                                     <div class="persoon">
-                                        <span class="avatar avatar--groot" aria-hidden="true" th:text="${#strings.isEmpty(r.event.actor)} ? '?' : ${#strings.substring(r.event.actor, 0, 1)}">a</span>
+                                        <span class="avatar avatar--groot" aria-hidden="true" th:text="${@namen.initiaal(r.event.actor)}">a</span>
                                         <div class="persoon__tekst">
-                                            <div class="persoon__naam" th:text="${r.event.actor}">iemand</div>
+                                            <div class="persoon__naam" th:text="${@namen.weergave(r.event.actor)}">iemand</div>
                                         </div>
                                     </div>
                                 </td>
