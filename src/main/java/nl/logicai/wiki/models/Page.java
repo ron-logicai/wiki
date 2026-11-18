@@ -15,7 +15,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * A wiki page. The UUID is the permanent identity (spec F-03, section 5); title and parent may change.
- * Content is stored as validated BlockNote block JSON in a JSONB column, the single source of truth.
+ * Content is stored as validated BlockNote block JSON in a JSON column, the single source of truth.
  */
 @Entity
 @Table(name = "page")
@@ -31,13 +31,13 @@ public class Page {
 	private String title;
 
 	@JdbcTypeCode(SqlTypes.JSON)
-	@Column(nullable = false, columnDefinition = "jsonb")
+	@Column(nullable = false, columnDefinition = "json")
 	private String document;
 
 	@Column(name = "document_schema_version", nullable = false)
 	private int documentSchemaVersion;
 
-	@Column(name = "search_text", nullable = false, columnDefinition = "text")
+	@Column(name = "search_text", nullable = false, columnDefinition = "longtext")
 	private String searchText;
 
 	@Column(name = "created_by", nullable = false, length = 200)

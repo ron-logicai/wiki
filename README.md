@@ -10,22 +10,22 @@ Gebouwd als stageopdracht softwareontwikkeling (opdracht v1.0, 15 september 2026
 | Runtime | Java 25 LTS (Eclipse Temurin) |
 | Backend | Spring Boot 4.1.x: Spring MVC, Data JPA, Security (OIDC), Validation |
 | HTML | Thymeleaf, server-side gerenderd; vaste URL's per pagina |
-| Database | PostgreSQL 18, JSONB voor documentinhoud, Flyway-migraties |
+| Database | MySQL 9.1, JSON-kolom voor documentinhoud, FULLTEXT-index voor zoeken, Flyway-migraties |
 | Editor | BlockNote als lokale React-island (TypeScript + Vite), geen client-side router |
-| Tests | JUnit, MockMvc, Testcontainers (PostgreSQL 18), Playwright |
+| Tests | JUnit, MockMvc, Testcontainers (MySQL 9.1), Playwright |
 | Uitrol | Dockerfile + Docker Compose, Fly.io (`fly.toml`), GitHub Actions CI |
 
 ## Vereisten voor ontwikkelen
 
 - Eclipse Temurin JDK 25: <https://adoptium.net/temurin/releases/?version=25>
 - Node.js 26 en npm (alleen buildhulpmiddel voor de editor)
-- Docker Desktop (voor PostgreSQL via Compose en voor Testcontainers)
+- Docker Desktop (voor Testcontainers, en voor een lokale MySQL via Compose)
 
 ## Snel starten
 
 ```bash
-# 1. Database
-cp .env.example .env            # vul WIKI_DB_PASSWORD in
+# 1. Database: een lokale MySQL-container (of zet WIKI_DB_* in .env voor een andere server)
+cp .env.example .env
 docker compose up -d db
 
 # 2. Editor-bundle bouwen (schrijft naar src/main/resources/static/editor)
@@ -66,74 +66,68 @@ echte HTTP getest, met een nagebootste Entra in de test.
 Tijdens frontend-ontwikkeling herbouwt `npm run dev` de bundle bij elke wijziging;
 Spring Boot serveert de bestanden onder `/editor/`.
 
-## Ontwikkelen met een blijvende database (Docker-volume)
+## Database
 
-Bij `docker compose up -d db` staan de databasebestanden niet in de container maar in het
-benoemde Docker-volume `wiki-db-data`. Dat volume blijft bestaan als de container stopt, opnieuw
-start of wordt verwijderd, dus je pagina's, gebruikers en revisies zijn er na een herstart nog.
-Dit is de relevante configuratie uit `docker-compose.yml`:
+De wiki gebruikt MySQL 9.1. Welke database de app gebruikt, bepalen `WIKI_DB_URL`, `WIKI_DB_USERNAME` en
+`WIKI_DB_PASSWORD`:
 
-```yaml
-services:
-  db:
-    image: postgres:18
-    restart: unless-stopped            # start mee met Docker Desktop
-    environment:
-      POSTGRES_DB: ${WIKI_DB_NAME:-wiki}
-      POSTGRES_USER: ${WIKI_DB_USERNAME:-wiki}
-      POSTGRES_PASSWORD: ${WIKI_DB_PASSWORD:?set WIKI_DB_PASSWORD in .env}
-    ports:
-      - "127.0.0.1:5432:5432"          # alleen bereikbaar vanaf je eigen machine
-    volumes:
-      - wiki-db-data:/var/lib/postgresql   # postgres:18 verwacht het volume hier, niet in .../data
-
-volumes:
-  wiki-db-data:                        # benoemd volume, beheerd door Docker
-```
-
-Zo werk je er dagelijks mee:
+- **Gedeelde server** (`database.enabl.sh`, database `wiki`): lokaal en Fly-productie gebruiken dezelfde
+  database. De drie waarden staan in `.env` (lokaal) en in `fly.toml` plus een Fly-secret (productie),
+  nooit in Git. Let op: wat je lokaal wijzigt, wijzigt productie, en een nieuwe Flyway-migratie die je
+  lokaal start draait meteen op de productiedatabase.
+- **Lokale container** (voor experimenten, nieuwe migraties en de browsertests): laat de drie regels weg
+  uit `.env`; de app gebruikt dan `jdbc:mysql://localhost:3306/wiki` met gebruiker en wachtwoord `wiki`,
+  de MySQL-container uit `docker-compose.yml`. De gegevens staan in het Docker-volume `wiki-mysql-data` en
+  blijven staan tot `docker compose down -v`.
 
 ```bash
-docker compose up -d db          # database starten (eerste keer: volume wordt aangemaakt en Flyway vult het schema bij de eerste app-start)
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-
+docker compose up -d db          # lokale MySQL starten (Flyway vult het schema bij de eerste app-start)
 docker compose stop db           # stoppen, gegevens blijven staan
-docker compose down              # containers weg, volume blijft staan
-docker compose up -d db          # weer verder met dezelfde gegevens
-
-docker volume ls | grep wiki     # het volume bekijken (heet <projectmap>_wiki-db-data)
-docker compose down -v           # ALLES wissen: containers én volume, je begint met een lege wiki
+docker compose down -v           # ALLES wissen: containers én volume
+docker compose exec db mysqldump -uwiki -pwiki wiki > wiki-dev.sql      # kopie maken
+docker compose exec -T db mysql -uwiki -pwiki wiki < wiki-dev.sql       # terugzetten
 ```
 
-Alleen `docker compose down -v` (of `docker volume rm`) gooit de gegevens weg. Geüploade bestanden
-staan bij een lokale run niet in Docker maar in `./data/attachments` (zie `WIKI_ATTACHMENTS_DIR`);
-die map staat in `.gitignore` en blijft ook gewoon staan.
+Elke JDBC-URL heeft `connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true` nodig (tijdstempels staan
+als UTC in `DATETIME(6)`), en `sslMode=REQUIRED` voor een server die niet op je eigen machine staat.
+Geüploade bestanden staan bij een lokale run niet in de database maar in `./data/attachments`
+(zie `WIKI_ATTACHMENTS_DIR`); die map staat in `.gitignore`.
 
-Wil je de databasebestanden liever als gewone map in het project (bijvoorbeeld om ze makkelijk te
-kopiëren of te verwijderen), zet dan een `docker-compose.override.yml` naast `docker-compose.yml`.
-Compose leest die automatisch mee; commit hem niet.
+Afwijking van de stageopdracht: sectie 6 schrijft PostgreSQL 18 met JSONB voor. Het project is in november
+2026 op verzoek omgezet naar MySQL: UUID's zijn `CHAR(36)`, het document staat in een `JSON`-kolom en zoeken
+gebruikt een `FULLTEXT`-index.
 
-```yaml
-# docker-compose.override.yml: databasebestanden in ./data/postgres in plaats van in een Docker-volume
-services:
-  db:
-    volumes:
-      - ./data/postgres:/var/lib/postgresql
-```
+Bekende zoekbeperkingen (spec F-13, sectie 7): alleen hele woorden, geen stammen of voorvoegsels; een woord
+is een reeks letters, cijfers en underscores, dus "node.js" zoekt op "node". MySQL indexeert geen woorden
+korter dan drie tekens en geen stopwoorden (waaronder "de" en "en"); die tellen in een zoekvraag niet mee.
+Bestaat een zoekvraag alleen uit zulke woorden ("AI", "C#"), dan zoekt de wiki op de letterlijke tekst in
+titel en inhoud, nieuwste eerst.
 
-Een kopie van je ontwikkeldata maak je met `pg_dump` in de container; terugzetten gaat met `psql`:
+### De oude PostgreSQL-gegevens
 
-```bash
-docker compose exec db pg_dump -U wiki wiki > wiki-dev.sql
-docker compose exec -T db psql -U wiki wiki < wiki-dev.sql
-```
+Tot november 2026 draaide de wiki op PostgreSQL. De gegevens van de lokale database en van Fly-productie
+zijn samengevoegd en overgezet naar MySQL; de bronnen zijn niet gewijzigd en dienen als back-up:
+
+- lokaal: Docker-volume `wiki_wiki-db-data` (wachtwoord in `.env` als `WIKI_OLD_POSTGRES_PASSWORD`), te
+  starten met `docker run -d --name wiki-oude-postgres -p 127.0.0.1:5432:5432 -v wiki_wiki-db-data:/var/lib/postgresql postgres:18`;
+- Fly: de app `logicai-wiki-db` met volume `wiki_db_data`. Verwijder die pas (`fly apps destroy logicai-wiki-db`)
+  als productie een tijd goed op MySQL draait.
 
 ## Tests
 
 ```bash
-./mvnw verify                         # unit-, integratie- en MVC-tests (start postgres:18 via Testcontainers)
+./mvnw verify                         # unit-, integratie- en MVC-tests (start mysql:9.1 via Testcontainers)
 cd frontend && npm run typecheck      # TypeScript
 cd frontend && npx playwright test    # browserflows tegen een draaiende app op :8080
+```
+
+De tests draaien nooit tegen de gedeelde server. Start voor de browsertests de app tegen de lokale container,
+anders komen de testpagina's in de echte wiki:
+
+```bash
+docker compose up -d db
+WIKI_DB_URL='jdbc:mysql://localhost:3306/wiki?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true' \
+  WIKI_DB_USERNAME=wiki WIKI_DB_PASSWORD=wiki ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 ## Configuratie
@@ -142,7 +136,7 @@ Alle instellingen komen uit omgevingsvariabelen; zie `.env.example`. Er staan ge
 
 | Variabele | Betekenis |
 |---|---|
-| `WIKI_DB_URL`, `WIKI_DB_USERNAME`, `WIKI_DB_PASSWORD` | PostgreSQL-verbinding |
+| `WIKI_DB_URL`, `WIKI_DB_USERNAME`, `WIKI_DB_PASSWORD` | MySQL-verbinding (zie "Database"); zonder deze drie de lokale container |
 | `SPRING_PROFILES_ACTIVE` | `local` (ontwikkeling) en/of `entra` (bedrijfslogin) |
 | `WIKI_ENTRA_TENANT_ID`, `WIKI_ENTRA_CLIENT_ID`, `WIKI_ENTRA_CLIENT_SECRET` | Microsoft Entra ID app-registratie |
 | `WIKI_ATTACHMENTS_DIR` | Map voor geüploade bestanden (standaard `./data/attachments`; in Compose het volume `wiki-attachments`) |
@@ -197,8 +191,8 @@ map `WIKI_ATTACHMENTS_DIR`; herstel beide samen.
 docker compose up -d --build
 ```
 
-Dit bouwt de editor en de jar in een multi-stage Dockerfile en start app + database.
-Databasegegevens staan in het volume `wiki-db-data` en overleven een herstart.
+Dit bouwt de editor en de jar in een multi-stage Dockerfile en start de app plus de lokale MySQL-container.
+Staan `WIKI_DB_*` in `.env`, dan gebruikt de app in Compose die server in plaats van de container.
 
 ## Uitrol op Fly.io
 
@@ -206,18 +200,27 @@ Lokaal is hiervoor **geen Docker nodig**: `fly deploy` stuurt de broncode naar e
 Fly, die daar dezelfde `Dockerfile` bouwt (`--remote-only` is de standaard; alleen `--local-only`
 gebruikt Docker Desktop). `docker-compose.yml` blijft voor lokaal ontwikkelen en wordt door Fly niet gelezen.
 
-De wiki draait op Fly als twee apps in regio `ams` (Amsterdam), verbonden over het private netwerk:
+De wiki draait op Fly als één app in regio `ams` (Amsterdam); de database is de MySQL-server
+`database.enabl.sh` buiten Fly:
 
 | App | Configuratie | Inhoud | Volume |
 |---|---|---|---|
 | `logicai-wiki` | `fly.toml` | de Dockerfile, 1 GB geheugen, publiek op `https://logicai-wiki.fly.dev` | `wiki_attachments` op `/app/data` (uploads) |
-| `logicai-wiki-db` | `deploy/fly/db/fly.toml` | officieel `postgres:18`-image, 512 MB, geen publieke poorten (`logicai-wiki-db.internal:5432`) | `wiki_db_data` op `/var/lib/postgresql` |
 
-Er is bewust geen `SPRING_PROFILES_ACTIVE` gezet: zonder profiel zijn de sessiecookies Secure, bestaan
-de testgebruikers niet en wordt `.env` niet gelezen. De eerste admin komt uit `WIKI_BOOTSTRAP_ADMIN_*`.
-Flyway draait bij het opstarten van de app. De database is onbeheerd (Fly Managed Postgres kent geen
-Postgres 18 en begint bij $38 per maand): back-ups en Postgres-updates zijn voor onszelf, zie onder.
-Richtprijs voor beide machines plus volumes: ongeveer $11 à $12 per maand (prijzen oktober 2026).
+Er is bewust geen `SPRING_PROFILES_ACTIVE` gezet: zonder profiel zijn de sessiecookies Secure en wordt
+`.env` niet gelezen. De eerste admin komt uit `WIKI_BOOTSTRAP_ADMIN_*`. Flyway draait bij het opstarten
+van de app. Database-URL en gebruiker staan in `fly.toml` (`[env]`), het wachtwoord alleen als secret.
+
+### Overstap van PostgreSQL naar MySQL (eenmalig, november 2026)
+
+De gegevens staan al in MySQL (zie "De oude PostgreSQL-gegevens"). Productie zelf draait nog op de
+Fly-Postgres tot deze twee commando's zijn uitgevoerd; wijzig in de tussentijd niets in de Fly-wiki, want
+die wijzigingen gaan niet meer mee:
+
+```powershell
+fly secrets set WIKI_DB_PASSWORD='<wachtwoord van de MySQL-gebruiker>' -a logicai-wiki --stage
+fly deploy
+```
 
 ### Eerste keer
 
@@ -226,19 +229,12 @@ Richtprijs voor beide machines plus volumes: ongeveer $11 à $12 per maand (prij
 pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
 fly auth login
 
-# 2. Database-app: volume en wachtwoord eerst, dan deployen (alleen een image-pull, geen build)
-fly apps create logicai-wiki-db
-fly volumes create wiki_db_data --region ams --size 3 -a logicai-wiki-db --yes
-fly secrets set POSTGRES_PASSWORD='<sterk wachtwoord>' -a logicai-wiki-db
-fly deploy --config deploy/fly/db/fly.toml -a logicai-wiki-db
-fly logs -a logicai-wiki-db          # verwacht: "database system is ready to accept connections"
-
-# 3. Wiki-app: volume en geheimen (zelfde databasewachtwoord; de bootstrap-admin geldt alleen bij de eerste start)
+# 2. Wiki-app: volume en geheimen (de bootstrap-admin geldt alleen bij de eerste start op een lege database)
 fly apps create logicai-wiki
 fly volumes create wiki_attachments --region ams --size 3 -a logicai-wiki --yes
-fly secrets set WIKI_DB_PASSWORD='<zelfde wachtwoord>' WIKI_BOOTSTRAP_ADMIN_EMAIL='<admin-e-mailadres>' WIKI_BOOTSTRAP_ADMIN_PASSWORD='<admin-wachtwoord>' -a logicai-wiki
+fly secrets set WIKI_DB_PASSWORD='<wachtwoord van de MySQL-gebruiker>' WIKI_BOOTSTRAP_ADMIN_EMAIL='<admin-e-mailadres>' WIKI_BOOTSTRAP_ADMIN_PASSWORD='<admin-wachtwoord>' -a logicai-wiki
 
-# 4. Deployen vanuit de projectmap (remote build; de eerste keer 5 à 10 minuten voor npm en Maven)
+# 3. Deployen vanuit de projectmap (remote build; de eerste keer 5 à 10 minuten voor npm en Maven)
 fly deploy
 fly status -a logicai-wiki
 fly logs -a logicai-wiki             # Flyway-migraties, daarna "Tomcat started on port 8080"
@@ -267,19 +263,20 @@ een nieuwe builder. Noodoplossing is `fly deploy --local-only`, dan bouwt Docker
   `internalProxies`). Ontbreekt hij, zet dan `server.tomcat.remoteip.internal-proxies` ruimer.
 - Een geüploade afbeelding is er na `fly deploy` of `fly machine restart` nog (volume werkt);
   `fly ssh console -a logicai-wiki -C "ls -la /app/data/attachments"` toont eigenaar `wiki`.
-- `fly ips list -a logicai-wiki-db` toont geen publiek adres.
+- `fly logs -a logicai-wiki` toont bij het opstarten `jdbc:mysql://database.enabl.sh` en "Schema `wiki` is up to date".
 
 ### Back-up
 
-Fly maakt dagelijks een snapshot van elk volume en bewaart die vijf dagen
-(`fly volumes snapshots list <volume-id>`). Maak daarnaast zelf een dump van database én uploads:
+Fly maakt dagelijks een snapshot van het uploads-volume en bewaart die vijf dagen
+(`fly volumes snapshots list <volume-id>`). De database staat niet op Fly: maak daarvan zelf een dump
+(of gebruik de back-up van de MySQL-server), samen met de uploads:
 
 ```powershell
-fly ssh console -a logicai-wiki-db -C "pg_dump -U wiki wiki" > wiki-fly.sql
+mysqldump -h database.enabl.sh -u <gebruiker> -p --single-transaction wiki > wiki.sql
 fly ssh console -a logicai-wiki -C "tar czf - /app/data/attachments" > attachments-fly.tgz
 ```
 
-Terugzetten: `fly proxy 5433:5432 -a logicai-wiki-db` en dan lokaal `psql -h localhost -p 5433 -U wiki wiki < wiki-fly.sql`.
+Terugzetten: `mysql -h database.enabl.sh -u <gebruiker> -p wiki < wiki.sql`.
 
 ### Later mogelijk
 

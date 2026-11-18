@@ -149,7 +149,7 @@ class PasswordResetFlowIntegrationTest {
 		request(browser, "reset.verlopen@example.com");
 		String link = pathOf(CapturedMail.SENT.getFirst().link());
 
-		jdbc.update("update password_reset_token set expires_at = now() - interval '1 minute'"
+		jdbc.update("update password_reset_token set expires_at = now() - interval 1 minute"
 				+ " where user_id = (select id from app_user where username = 'reset.verlopen')");
 
 		HttpResponse<String> form = browser.get(link);
@@ -170,7 +170,7 @@ class PasswordResetFlowIntegrationTest {
 		assertThat(CapturedMail.SENT).hasSize(1);
 		String firstLink = pathOf(CapturedMail.SENT.getFirst().link());
 
-		jdbc.update("update password_reset_token set created_at = created_at - interval '10 minutes'"
+		jdbc.update("update password_reset_token set created_at = created_at - interval 10 minute"
 				+ " where user_id = (select id from app_user where username = 'reset.herhaald')");
 		request(browser, "reset.herhaald@example.com");
 		assertThat(CapturedMail.SENT).hasSize(2);

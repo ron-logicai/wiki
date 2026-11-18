@@ -153,7 +153,8 @@ public class PageService {
 	 * Moves a page (with its subtree) under a new parent, or to the top level when newParentId is null
 	 * (spec F-04). The URL never changes. Refuses the page itself and its descendants as target, and
 	 * checks the version the user saw. SERIALIZABLE so two concurrent moves cannot form a cycle:
-	 * PostgreSQL aborts one of them instead.
+	 * under that level MySQL (InnoDB) locks the rows both moves read, and rolls one of them back as a
+	 * deadlock, which the controller reports as a conflict.
 	 */
 	@PreAuthorize("hasRole('EDITOR')")
 	@Transactional(isolation = Isolation.SERIALIZABLE)

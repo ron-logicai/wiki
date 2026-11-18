@@ -70,7 +70,7 @@ class TrashFlowIntegrationTest {
 			.andExpect(content().string(containsString("<h1>" + marker + "</h1>")));
 		assertThat(mainOf("/search?q=" + marker)).contains("/pages/" + id);
 
-		Integer events = jdbc.queryForObject("select count(*) from audit_event where page_id = ?", Integer.class, id);
+		Integer events = jdbc.queryForObject("select count(*) from audit_event where page_id = ?", Integer.class, id.toString());
 		assertThat(events).isEqualTo(2);
 	}
 

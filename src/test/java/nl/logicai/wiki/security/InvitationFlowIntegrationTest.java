@@ -204,7 +204,7 @@ class InvitationFlowIntegrationTest {
 		invite(admin, "verlopen@example.com", "VIEWER");
 		String link = pathOf(CapturedMail.SENT.getFirst().link());
 
-		jdbc.update("update user_invitation set expires_at = now() - interval '1 minute' where email = ?", "verlopen@example.com");
+		jdbc.update("update user_invitation set expires_at = now() - interval 1 minute where email = ?", "verlopen@example.com");
 
 		HttpResponse<String> form = new BrowserSession(port).get(link);
 		assertThat(form.statusCode()).isEqualTo(200);

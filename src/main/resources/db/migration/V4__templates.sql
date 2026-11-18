@@ -2,24 +2,25 @@
 -- Later changes to a template never touch pages created from it.
 
 CREATE TABLE page_template (
-    id                      UUID PRIMARY KEY,
+    id                      CHAR(36) PRIMARY KEY,
     title                   VARCHAR(200) NOT NULL,
     description             VARCHAR(300) NOT NULL DEFAULT '',
-    document                JSONB NOT NULL,
+    document                JSON NOT NULL,
     document_schema_version INTEGER NOT NULL DEFAULT 1,
     created_by              VARCHAR(200) NOT NULL,
     updated_by              VARCHAR(200) NOT NULL,
-    created_at              TIMESTAMPTZ NOT NULL,
-    updated_at              TIMESTAMPTZ NOT NULL,
+    created_at              DATETIME(6) NOT NULL,
+    updated_at              DATETIME(6) NOT NULL,
     lock_version            BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT page_template_title_not_blank CHECK (btrim(title) <> '')
-);
+    CONSTRAINT page_template_title_not_blank CHECK (trim(title) <> '')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
+
 
 -- The three required example templates (spec section 4). Fixed ids so tests and docs can refer to them.
 INSERT INTO page_template (id, title, description, document, created_by, updated_by, created_at, updated_at) VALUES
 ('11111111-1111-4111-8111-111111111101', 'Projectinformatie',
  'Een compleet overzicht van je project: contact, doel, repositorylinks, omgevingen, stack en onderhoud.',
- $json$[
+ '[
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Contact","styles":{}}]},
   {"type":"bulletListItem","content":[{"type":"text","text":"Naam — rol · e-mail · telefoon","styles":{}}]},
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Doel","styles":{}}]},
@@ -34,11 +35,11 @@ INSERT INTO page_template (id, title, description, document, created_by, updated
   {"type":"paragraph","content":[{"type":"text","text":"Talen, frameworks, hosting en tooling, gescheiden door ·","styles":{}}]},
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Onderhoud","styles":{}}]},
   {"type":"bulletListItem","content":[{"type":"text","text":"Taak — frequentie of datum · verantwoordelijke","styles":{}}]}
- ]$json$::jsonb,
- 'systeem', 'systeem', now(), now()),
+ ]',
+ 'systeem', 'systeem', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)),
 ('11111111-1111-4111-8111-111111111102', 'Developer-onboarding',
  'Alles wat een nieuwe developer nodig heeft: accounts, ontwikkelomgeving en eerste taken.',
- $json$[
+ '[
   {"type":"paragraph","content":[{"type":"text","text":"Welkom! Reken op ongeveer twee dagen voor accounts en omgeving. Je buddy is …","styles":{}}]},
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Accounts","styles":{}}]},
   {"type":"bulletListItem","content":[{"type":"text","text":"Dienst — waarvoor · aanvragen via wie","styles":{}}]},
@@ -50,11 +51,11 @@ INSERT INTO page_template (id, title, description, document, created_by, updated
   {"type":"checkListItem","props":{"checked":false},"content":[{"type":"text","text":"Stel je voor aan het team — dag 1","styles":{}}]},
   {"type":"checkListItem","props":{"checked":false},"content":[{"type":"text","text":"Lees de werkinstructies — dag 1","styles":{}}]},
   {"type":"checkListItem","props":{"checked":false},"content":[{"type":"text","text":"Maak één kleine fix — week 1","styles":{}}]}
- ]$json$::jsonb,
- 'systeem', 'systeem', now(), now()),
+ ]',
+ 'systeem', 'systeem', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6)),
 ('11111111-1111-4111-8111-111111111103', 'Werkinstructie',
  'Duidelijke, stapsgewijze instructie: doel, voorwaarden, stappen, controle en gerelateerde links.',
- $json$[
+ '[
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Doel","styles":{}}]},
   {"type":"paragraph","content":[{"type":"text","text":"Wat bereik je met deze instructie en voor wie geldt ze?","styles":{}}]},
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Voorwaarden","styles":{}}]},
@@ -67,5 +68,5 @@ INSERT INTO page_template (id, title, description, document, created_by, updated
   {"type":"checkListItem","props":{"checked":false},"content":[{"type":"text","text":"Waaraan zie je dat het gelukt is","styles":{}}]},
   {"type":"heading","props":{"level":2},"content":[{"type":"text","text":"Gerelateerde links","styles":{}}]},
   {"type":"bulletListItem","content":[{"type":"text","text":"Paginanaam · ruimte","styles":{}}]}
- ]$json$::jsonb,
- 'systeem', 'systeem', now(), now());
+ ]',
+ 'systeem', 'systeem', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));

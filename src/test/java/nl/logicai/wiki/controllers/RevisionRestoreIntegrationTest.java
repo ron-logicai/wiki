@@ -63,7 +63,7 @@ class RevisionRestoreIntegrationTest {
 			.andExpect(content().string(not(containsString("Tweede tekst"))));
 
 		// Revision 3 is still there and unchanged; revision 4 is the restored copy.
-		Integer aantal = jdbc.queryForObject("select count(*) from page_revision where page_id = ?", Integer.class, id);
+		Integer aantal = jdbc.queryForObject("select count(*) from page_revision where page_id = ?", Integer.class, id.toString());
 		assertThat(aantal).isEqualTo(4);
 		mvc.perform(get("/pages/{id}/history/{rev}", id, revisionId(id, 3)))
 			.andExpect(status().isOk())
@@ -75,7 +75,7 @@ class RevisionRestoreIntegrationTest {
 			.andExpect(content().string(not(containsString("Deze versie terugzetten"))));
 
 		Integer events = jdbc.queryForObject(
-			"select count(*) from audit_event where page_id = ? and action = 'page.restore-revision'", Integer.class, id);
+			"select count(*) from audit_event where page_id = ? and action = 'page.restore-revision'", Integer.class, id.toString());
 		assertThat(events).isEqualTo(1);
 	}
 
@@ -91,7 +91,7 @@ class RevisionRestoreIntegrationTest {
 			.andExpect(status().is3xxRedirection())
 			.andExpect(flash().attribute("melding", containsString("niets gewijzigd")));
 
-		Integer aantal = jdbc.queryForObject("select count(*) from page_revision where page_id = ?", Integer.class, id);
+		Integer aantal = jdbc.queryForObject("select count(*) from page_revision where page_id = ?", Integer.class, id.toString());
 		assertThat(aantal).isEqualTo(4);
 	}
 
@@ -137,7 +137,7 @@ class RevisionRestoreIntegrationTest {
 
 	private UUID revisionId(UUID pageId, int number) {
 		return jdbc.queryForObject("select id from page_revision where page_id = ? and revision_number = ?",
-			UUID.class, pageId, number);
+			UUID.class, pageId.toString(), number);
 	}
 
 	private void save(UUID id, long baseVersion, String title, String document) throws Exception {

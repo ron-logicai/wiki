@@ -71,7 +71,7 @@ class PageSuggestApiIntegrationTest {
 		String marker = "prul" + UUID.randomUUID().toString().substring(0, 8);
 		UUID kept = createPage("Blijft " + marker, null);
 		UUID trashed = createPage("Weg " + marker, null);
-		jdbc.update("update page set deleted_at = ? where id = ?", OffsetDateTime.now(), trashed);
+		jdbc.update("update page set deleted_at = ? where id = ?", OffsetDateTime.now(), trashed.toString());
 
 		mvc.perform(get("/api/pages/suggest").param("q", marker))
 			.andExpect(status().isOk())

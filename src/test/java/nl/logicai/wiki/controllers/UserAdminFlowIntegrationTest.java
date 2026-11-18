@@ -275,8 +275,8 @@ class UserAdminFlowIntegrationTest {
 	@Test
 	void adminDeletesUserAndTheyAreLoggedOutImmediately() throws Exception {
 		UUID id = create("weg", "EDITOR", "weg@example.com");
-		jdbc.update("insert into password_reset_token (id, user_id, token_hash, created_at, expires_at) values (?, ?, ?, now(), now() + interval '1 hour')",
-				UUID.randomUUID(), id, "a".repeat(64));
+		jdbc.update("insert into password_reset_token (id, user_id, token_hash, created_at, expires_at) values (?, ?, ?, now(), now() + interval 1 hour)",
+				UUID.randomUUID().toString(), id.toString(), "a".repeat(64));
 
 		// A real form login, so the session carries WebAuthenticationDetails like in the browser.
 		MockHttpSession session = (MockHttpSession) mvc.perform(formLogin().user("weg@example.com").password("geheim123"))
@@ -297,7 +297,7 @@ class UserAdminFlowIntegrationTest {
 		mvc.perform(formLogin().user("weg@example.com").password("geheim123")).andExpect(unauthenticated());
 
 		assertThat(jdbc.queryForObject("select count(*) from app_user where username = 'weg'", Integer.class)).isZero();
-		assertThat(jdbc.queryForObject("select count(*) from password_reset_token where user_id = ?", Integer.class, id)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from password_reset_token where user_id = ?", Integer.class, id.toString())).isZero();
 		assertThat(jdbc.queryForObject("select count(*) from audit_event where action = 'user.delete' and details = 'weg'", Integer.class))
 			.isEqualTo(1);
 

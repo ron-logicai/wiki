@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Search through PostgreSQL (spec F-13, section 7): Dutch, English and technical terms, tag filter,
+ * Search through MySQL full-text (spec F-13, section 7): Dutch, English and technical terms, tag filter,
  * paging, index updated right after saving, deleted pages excluded.
  */
 @SpringBootTest
@@ -56,6 +56,32 @@ class SearchFlowIntegrationTest {
 		assertThat(search("q=spring+boot")).contains("/pages/" + nl);
 		assertThat(search("q=staging")).contains("/pages/" + en).doesNotContain("/pages/" + nl);
 		assertThat(search("q=applicatie")).contains("/pages/" + nl);
+	}
+
+	/** Words the full-text index does not hold (shorter than three characters) still find pages, by substring. */
+	@Test
+	void shortWordsFallBackToSubstringSearchAndOperatorsAreHarmless() throws Exception {
+		String marker = "kort" + UUID.randomUUID().toString().substring(0, 8);
+		UUID id = createPage("Afspraken " + marker);
+		saveText(id, "Afspraken " + marker, "Wij bouwen met Q9 en 100%_zeker aan de wiki.");
+
+		assertThat(search("q=Q9")).contains("/pages/" + id).contains("<mark>Q9</mark>");
+		assertThat(search("q=q9&tag=bestaatniet")).doesNotContain("/pages/" + id);
+		// % and _ are literal characters in the substring search, not wildcards.
+		assertThat(searchFor("%_")).contains("/pages/" + id);
+		assertThat(searchFor("%%")).doesNotContain("/pages/" + id);
+		assertThat(searchFor("0_")).doesNotContain("/pages/" + id);
+
+		assertThat(searchFor("+" + marker + " -wiki @ * \"")).contains("/pages/" + id);
+		assertThat(searchFor(marker + " ontbreekt")).doesNotContain("/pages/" + id);
+	}
+
+	/** Like {@link #search}, for a query with characters that need encoding. */
+	private String searchFor(String query) throws Exception {
+		String html = mvc.perform(get("/search").param("q", query))
+			.andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsString();
+		return html.substring(html.indexOf("<main"));
 	}
 
 	@Test
@@ -101,7 +127,7 @@ class SearchFlowIntegrationTest {
 		saveText(id, "Nieuwe tekst", "Deze alinea bevat " + marker + " en wordt direct gevonden.");
 		assertThat(search("q=" + marker)).contains("/pages/" + id).contains("<mark>" + marker + "</mark>");
 
-		jdbc.update("update page set deleted_at = ? where id = ?", OffsetDateTime.now(), id);
+		jdbc.update("update page set deleted_at = ? where id = ?", OffsetDateTime.now(), id.toString());
 		assertThat(search("q=" + marker)).doesNotContain("/pages/" + id);
 	}
 

@@ -25,6 +25,7 @@ class LocalUsersConfig {
 
 	static final String PASSWORD = "wiki";
 	static final String DOMAIN = "@wiki.nl";
+	private static final String SEEDED_BY = "local-profile";
 
 	@Bean
 	ApplicationRunner localUsers(WikiUserRepository users, PasswordEncoder encoder, Clock clock) {
@@ -35,10 +36,13 @@ class LocalUsersConfig {
 				WikiUser existing = users.findByUsernameIgnoreCase(username).orElse(null);
 				if (existing == null) {
 					users.save(WikiUser.create(username, "Test " + role.getLabel(), email, encoder.encode(PASSWORD),
-							role, "local-profile", clock.instant()));
+							role, SEEDED_BY, clock.instant()));
 				}
-				else if (!email.equalsIgnoreCase(existing.getEmail()) && users.findByEmailIgnoreCase(email).isEmpty()) {
+				else if (SEEDED_BY.equals(existing.getCreatedBy()) && !email.equalsIgnoreCase(existing.getEmail())
+						&& users.findByEmailIgnoreCase(email).isEmpty()) {
 					// Older local databases hold another address (e.g. @wiki.local); move to the documented login.
+					// Only for accounts this class made: a real account that happens to be called "admin" (the
+					// shared MySQL database also serves production) keeps its own address and login.
 					existing.setEmail(email);
 					users.save(existing);
 				}

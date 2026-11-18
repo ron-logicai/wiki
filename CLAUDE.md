@@ -4,17 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 25 / PostgreSQL 18 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional), `A-xx` (acceptance scenario) and `section N`. The spec is in `docs/stageopdracht.md` (converted from the Word original; read the relevant F/N/A rows and section before working on a feature). `docs/backlog.md` tracks which spec items are done and what comes next.
+LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 25 / MySQL 9.1 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional), `A-xx` (acceptance scenario) and `section N`. The spec prescribes PostgreSQL; the project was moved to MySQL in November 2026 on request, so read "PostgreSQL/JSONB" in the spec as "MySQL/JSON". The spec is in `docs/stageopdracht.md` (converted from the Word original; read the relevant F/N/A rows and section before working on a feature). `docs/backlog.md` tracks which spec items are done and what comes next.
 
 UI text, template names, Thymeleaf model attributes and some Java identifiers are **Dutch** (`paginas`, `ouders`, `boom`, `prullenbak`, `verplaatsen`). Java class names, packages and most method names are English. Keep to that split when adding code; user-facing strings and error messages are Dutch.
 
 ## Commands
 
-Prerequisites: Temurin JDK 25, Node 26, Docker Desktop (Postgres via Compose and for Testcontainers).
+Prerequisites: Temurin JDK 25, Node 26, Docker Desktop (for Testcontainers, and for a local MySQL via Compose).
 
 ```bash
-# Database for local runs
-cp .env.example .env            # set WIKI_DB_PASSWORD
+# Database for local runs: WIKI_DB_* in .env point at the shared MySQL server (database.enabl.sh, also used by
+# Fly production); without those three lines the app uses the local MySQL container (wiki/wiki on localhost:3306).
+cp .env.example .env
 docker compose up -d db
 
 # Editor bundle -> src/main/resources/static/editor (gitignored; the app 404s on /editor/* without it)
@@ -23,16 +24,16 @@ cd frontend && npm run dev      # vite build --watch during editor work
 
 # Run the app (profile local = no secure cookies, Thymeleaf cache off, seeded test users, reads .env via spring.config.import)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-# Alternative: src/test/java/.../TestWikiApplication starts it with a Testcontainers Postgres.
+# Alternative: src/test/java/.../TestWikiApplication starts it with a Testcontainers MySQL.
 
-# Backend tests (Testcontainers pulls postgres:18; Docker must be running)
+# Backend tests (Testcontainers pulls mysql:9.1; Docker must be running; tests never touch the shared server)
 ./mvnw verify
 ./mvnw test -Dtest=PageFlowIntegrationTest                     # one class
 ./mvnw test -Dtest=PageFlowIntegrationTest#staleBaseVersionIsRejectedWith409   # one method
 
 # Frontend
 cd frontend && npm run typecheck
-cd frontend && npx playwright test          # needs the app already running on :8080 (or WIKI_BASE_URL)
+cd frontend && npx playwright test          # needs the app already running on :8080 (or WIKI_BASE_URL), on a local MySQL, never the shared one
 
 # Full stack in Docker
 docker compose up -d --build
@@ -58,7 +59,7 @@ The JSON traffic is the editor's: the save `PUT /api/pages/{id}/content` (and `/
 
 ### Document pipeline
 
-Page content is BlockNote block JSON in a JSONB column, the single source of truth. Every write goes through `DocumentValidator`, which whitelists block types, inline types, style keys and link hrefs (`LinkPolicy`), enforces depth/count/byte limits (`WikiLimits`, from `wiki.limits.*` in `application.yaml`), and derives `search_text` for the Postgres full-text index. It rejects unknown content rather than dropping it. `BlockRenderer` turns the same subset into escaped HTML for the read view, so reading never depends on the browser editor. Extending the supported subset means touching validator, renderer, their tests, and probably the editor.
+Page content is BlockNote block JSON in a MySQL JSON column, the single source of truth. Every write goes through `DocumentValidator`, which whitelists block types, inline types, style keys and link hrefs (`LinkPolicy`), enforces depth/count/byte limits (`WikiLimits`, from `wiki.limits.*` in `application.yaml`), and derives `search_text` for the MySQL FULLTEXT index. It rejects unknown content rather than dropping it. `BlockRenderer` turns the same subset into escaped HTML for the read view, so reading never depends on the browser editor. Extending the supported subset means touching validator, renderer, their tests, and probably the editor.
 
 ### Concurrency and history
 
@@ -66,7 +67,7 @@ Page content is BlockNote block JSON in a JSONB column, the single source of tru
 
 ### Tree, trash, audit
 
-Pages form a tree via `parent_id`; the URL never changes on move. `PageService.move` runs SERIALIZABLE and refuses cycles. Delete is a soft delete (`deleted_at`), refused while active subpages exist; `/pages/{id}` of a trashed page returns 410 with a message page. Repository queries filter `deleted_at is null` explicitly; use `getActive` vs `getAny` deliberately. Move, delete and restore write an `AuditEvent`. Per-page properties (spec U-07/U-08: `owner`, `status`, `reviewed_at/by` on `page`, V9) are set from the read view via `POST /pages/{id}/properties` and `/review`; they follow the same `baseVersion` check and also write an `AuditEvent`. Owner and reviewer are usernames (strings), like `updated_by`. Related pages (the "Gerelateerd" block with its plus button on the read view) are explicit, directed rows in `page_relation` (V10): `RelationService` adds/removes them for EDITOR+ via `POST /pages/{id}/related` and `.../related/{relatedId}/remove`, writes `page.relation.add/remove` audit events, and trashed targets drop out of the query. The read view renders content with `BlockRenderer.renderWithOutline`, which gives headings sequential `id="kop-n"` anchors for the "Op deze pagina" list; plain `render` (exports, revisions) stays unchanged.
+Pages form a tree via `parent_id`; the URL never changes on move. `PageService.move` runs SERIALIZABLE and refuses cycles; two moves at once end as a MySQL deadlock for one of them, which `PageController` shows as a conflict. Delete is a soft delete (`deleted_at`), refused while active subpages exist; `/pages/{id}` of a trashed page returns 410 with a message page. Repository queries filter `deleted_at is null` explicitly; use `getActive` vs `getAny` deliberately. Move, delete and restore write an `AuditEvent`. Per-page properties (spec U-07/U-08: `owner`, `status`, `reviewed_at/by` on `page`, V9) are set from the read view via `POST /pages/{id}/properties` and `/review`; they follow the same `baseVersion` check and also write an `AuditEvent`. Owner and reviewer are usernames (strings), like `updated_by`. Related pages (the "Gerelateerd" block with its plus button on the read view) are explicit, directed rows in `page_relation` (V10): `RelationService` adds/removes them for EDITOR+ via `POST /pages/{id}/related` and `.../related/{relatedId}/remove`, writes `page.relation.add/remove` audit events, and trashed targets drop out of the query. The read view renders content with `BlockRenderer.renderWithOutline`, which gives headings sequential `id="kop-n"` anchors for the "Op deze pagina" list; plain `render` (exports, revisions) stays unchanged.
 
 ### Security
 
@@ -74,7 +75,7 @@ Roles ADMIN > EDITOR > VIEWER via `RoleHierarchy`. Route rules live in `Security
 
 ### Persistence
 
-Flyway owns the schema (`src/main/resources/db/migration/V*.sql`); Hibernate runs with `ddl-auto: validate`, so any entity change needs a new migration. Templates (V4) are seeded with fixed UUIDs that tests and docs refer to. Search uses the `'simple'` text-search config on purpose so technical terms match unchanged.
+Flyway owns the schema (`src/main/resources/db/migration/V*.sql`); Hibernate runs with `ddl-auto: validate`, so any entity change needs a new migration. Templates (V4) are seeded with fixed UUIDs that tests and docs refer to. MySQL specifics: UUIDs are `CHAR(36)` (`hibernate.type.preferred_uuid_jdbc_type: CHAR`; pass `uuid.toString()` to `JdbcTemplate`, Connector/J cannot bind a `UUID`), timestamps are UTC `DATETIME(6)` (every JDBC URL carries `connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true`), tables are `utf8mb4_0900_as_cs` like PostgreSQL was (only `page.title` and `page.search_text` are `_as_ci`, for search), case-insensitive uniqueness is a functional index on `lower(...)`, and a foreign key must be a table-level `CONSTRAINT ... FOREIGN KEY` (MySQL ignores inline `REFERENCES`). Search is `MATCH ... AGAINST (:q IN BOOLEAN MODE)` on the FULLTEXT index over title and `search_text`; `SearchService.booleanExpression` turns the user's query into `+word +word` (whole words, no stemming, operators stripped) and leaves out words under three characters and InnoDB stopwords, which the index does not hold; a query with only such words uses the LIKE query `searchSubstring`. The local profile and Fly production share one database, so `LocalUsersConfig` only touches accounts it created itself.
 
 ### Tests
 

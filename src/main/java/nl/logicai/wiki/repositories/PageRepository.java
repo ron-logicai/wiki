@@ -37,27 +37,27 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 	long countByDeletedAtIsNotNull();
 
 	/**
-	 * Full-text search on title and content (spec F-13). The 'simple' configuration matches whole
-	 * words without stemming, so technical terms such as "Spring Boot" and "PostgreSQL" are found
-	 * unchanged; the expression matches the GIN index from V2__pages.sql. Deleted pages are excluded.
+	 * Full-text search on title and content (spec F-13) through the FULLTEXT index from V2__pages.sql.
+	 * {@code q} is a MySQL boolean-mode expression built by {@code SearchService} ("+spring +boot": every
+	 * word required, whole words, no stemming), never raw user input. Deleted pages are excluded.
 	 * The optional tag filter is case-insensitive.
 	 */
 	@Query(value = """
 		select p.* from page p
 		where p.deleted_at is null
-		  and to_tsvector('simple', p.title || ' ' || p.search_text) @@ plainto_tsquery('simple', :q)
-		  and (cast(:tag as text) is null or exists (
+		  and match(p.title, p.search_text) against (:q in boolean mode)
+		  and (:tag is null or exists (
 		        select 1 from page_tag pt join tag t on t.id = pt.tag_id
-		        where pt.page_id = p.id and lower(t.name) = lower(cast(:tag as text))))
-		order by ts_rank(to_tsvector('simple', p.title || ' ' || p.search_text), plainto_tsquery('simple', :q)) desc,
+		        where pt.page_id = p.id and lower(t.name) = lower(:tag)))
+		order by match(p.title, p.search_text) against (:q in boolean mode) desc,
 		         p.updated_at desc
 		""", countQuery = """
 		select count(*) from page p
 		where p.deleted_at is null
-		  and to_tsvector('simple', p.title || ' ' || p.search_text) @@ plainto_tsquery('simple', :q)
-		  and (cast(:tag as text) is null or exists (
+		  and match(p.title, p.search_text) against (:q in boolean mode)
+		  and (:tag is null or exists (
 		        select 1 from page_tag pt join tag t on t.id = pt.tag_id
-		        where pt.page_id = p.id and lower(t.name) = lower(cast(:tag as text))))
+		        where pt.page_id = p.id and lower(t.name) = lower(:tag)))
 		""", nativeQuery = true)
 	org.springframework.data.domain.Page<Page> search(@Param("q") String q, @Param("tag") String tag, Pageable pageable);
 
@@ -67,10 +67,46 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 		join page_tag pt on pt.tag_id = t.id
 		join page p on p.id = pt.page_id
 		where p.deleted_at is null
-		  and to_tsvector('simple', p.title || ' ' || p.search_text) @@ plainto_tsquery('simple', :q)
+		  and match(p.title, p.search_text) against (:q in boolean mode)
 		group by t.name
 		order by count(*) desc, lower(t.name)
 		""", nativeQuery = true)
 	List<Object[]> countTagsInSearch(@Param("q") String q);
+
+	/**
+	 * Substring search for queries the full-text index cannot answer (only words shorter than three
+	 * characters or stopwords, see {@code SearchService}). {@code pattern} is a LIKE pattern with '!' as
+	 * escape character; both columns are case-insensitive.
+	 */
+	@Query(value = """
+		select p.* from page p
+		where p.deleted_at is null
+		  and (p.title like :pattern escape '!' or p.search_text like :pattern escape '!')
+		  and (:tag is null or exists (
+		        select 1 from page_tag pt join tag t on t.id = pt.tag_id
+		        where pt.page_id = p.id and lower(t.name) = lower(:tag)))
+		order by p.updated_at desc
+		""", countQuery = """
+		select count(*) from page p
+		where p.deleted_at is null
+		  and (p.title like :pattern escape '!' or p.search_text like :pattern escape '!')
+		  and (:tag is null or exists (
+		        select 1 from page_tag pt join tag t on t.id = pt.tag_id
+		        where pt.page_id = p.id and lower(t.name) = lower(:tag)))
+		""", nativeQuery = true)
+	org.springframework.data.domain.Page<Page> searchSubstring(@Param("pattern") String pattern, @Param("tag") String tag,
+			Pageable pageable);
+
+	/** The tag counts that go with {@link #searchSubstring}. */
+	@Query(value = """
+		select t.name, count(*) from tag t
+		join page_tag pt on pt.tag_id = t.id
+		join page p on p.id = pt.page_id
+		where p.deleted_at is null
+		  and (p.title like :pattern escape '!' or p.search_text like :pattern escape '!')
+		group by t.name
+		order by count(*) desc, lower(t.name)
+		""", nativeQuery = true)
+	List<Object[]> countTagsInSubstringSearch(@Param("pattern") String pattern);
 
 }

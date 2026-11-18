@@ -3,7 +3,8 @@ spring:
     name: wiki
 
   datasource:
-    url: ${WIKI_DB_URL:jdbc:postgresql://localhost:5432/wiki}
+    # MySQL. Every URL carries the two time zone parameters: timestamps are stored as UTC in DATETIME(6).
+    url: ${WIKI_DB_URL:jdbc:mysql://localhost:3306/wiki?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
     username: ${WIKI_DB_USERNAME:wiki}
     password: ${WIKI_DB_PASSWORD:wiki}
 
@@ -12,6 +13,13 @@ spring:
     hibernate:
       # Flyway owns the schema; Hibernate only validates it (spec section 6).
       ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        type:
+          # UUIDs are readable CHAR(36) columns (MySQL has no UUID type).
+          preferred_uuid_jdbc_type: CHAR
 
   flyway:
     enabled: true

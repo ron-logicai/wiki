@@ -29,7 +29,7 @@ public class PageTemplate {
 	private String description;
 
 	@JdbcTypeCode(SqlTypes.JSON)
-	@Column(nullable = false, columnDefinition = "jsonb")
+	@Column(nullable = false, columnDefinition = "json")
 	private String document;
 
 	@Column(name = "document_schema_version", nullable = false)

@@ -301,6 +301,11 @@ public class PageController {
 				binding.reject("conflict", ex.getMessage() + " Controleer de nieuwe plek en probeer opnieuw.");
 				response.setStatus(HttpServletResponse.SC_CONFLICT);
 			}
+			catch (org.springframework.dao.ConcurrencyFailureException ex) {
+				// Two moves at the same moment: MySQL breaks the tie by rolling one back (see PageService.move).
+				binding.reject("conflict", "Iemand anders verplaatste tegelijk een pagina. Controleer de nieuwe plek en probeer opnieuw.");
+				response.setStatus(HttpServletResponse.SC_CONFLICT);
+			}
 		}
 		Page page = pageService.getActive(id);
 		form.setBaseVersion(page.getLockVersion());
