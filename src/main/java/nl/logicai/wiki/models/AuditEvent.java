@@ -21,6 +21,12 @@ public class AuditEvent {
 	public static final String REVIEW = "page.review";
 	public static final String RELATION_ADD = "page.relation.add";
 	public static final String RELATION_REMOVE = "page.relation.remove";
+	/** A page created or changed by an AI agent through the MCP server (docs/mcp.md), on behalf of the actor. */
+	public static final String MCP_CREATE = "page.mcp.create";
+	public static final String MCP_UPDATE = "page.mcp.update";
+	/** A user connected an AI agent to their account, or a connection was revoked. */
+	public static final String MCP_CONNECT = "mcp.connect";
+	public static final String MCP_REVOKE = "mcp.revoke";
 
 	@Id
 	private UUID id;

@@ -46,10 +46,12 @@ public class PasswordResetService {
 	private final String baseUrl;
 	private final Clock clock;
 	private final SecureRandom random = new SecureRandom();
+	private final McpConnectionService connections;
 
 	public PasswordResetService(WikiUserRepository users, PasswordResetTokenRepository tokens, AuditEventRepository audit,
 			UserService userService, WikiMailSender mail, PasswordResetProperties settings,
-			@Value("${wiki.base-url}") String baseUrl, Clock clock) {
+			@Value("${wiki.base-url}") String baseUrl, Clock clock, McpConnectionService connections) {
+		this.connections = connections;
 		this.users = users;
 		this.tokens = tokens;
 		this.audit = audit;
@@ -111,6 +113,8 @@ public class PasswordResetService {
 		user.changePassword(userService.hashPassword(password, passwordRepeat));
 		resetToken.markUsed(now);
 		tokens.deleteByUserId(user.getId());
+		// A reset usually means the password leaked or was lost: AI agents connected to the account go too.
+		connections.revokeAllFor(user.getUsername(), user.getUsername());
 		audit.save(AuditEvent.of(UserService.USER_PASSWORD_RESET, null, user.getUsername(), now, user.getUsername()));
 		return user;
 	}

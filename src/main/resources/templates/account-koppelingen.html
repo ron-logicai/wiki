@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Gekoppelde apps · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('account')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <nav aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li aria-current="page">Gekoppelde apps</li>
+                </ol>
+            </nav>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <div class="kop kop--met-tabs">
+                    <div>
+                        <p class="eyebrow">Account</p>
+                        <h1>Gekoppelde apps</h1>
+                        <p class="intro">
+                            AI-agents zoals Claude en ChatGPT die namens jou met de wiki werken. Een gekoppelde app kan
+                            lezen wat jij kunt lezen en, als jouw rol dat toelaat, pagina's aanmaken en wijzigen.
+                        </p>
+                    </div>
+                    <nav th:replace="~{fragments :: accounttabs('koppelingen')}"></nav>
+                </div>
+
+                <p class="melding melding--info" role="status" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <div class="kaart kaart--tabel">
+                    <p class="leeg" th:if="${koppelingen.isEmpty()}">Er is geen app aan je account gekoppeld.</p>
+                    <table class="tabel" th:unless="${koppelingen.isEmpty()}">
+                        <thead>
+                            <tr><th>App</th><th>Gekoppeld op</th><th>Laatst actief</th><th>Verloopt</th><th><span class="verborgen">Acties</span></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="k : ${koppelingen}">
+                                <td>
+                                    <strong th:text="${k.appNaam}">App</strong>
+                                    <div class="gedempt klein" th:text="${#strings.listJoin(k.hosts, ', ')}">claude.ai</div>
+                                </td>
+                                <td class="klein"><time th:datetime="${k.gekoppeldOp}" th:text="${@datums.relatief(k.gekoppeldOp)}">datum</time></td>
+                                <td class="klein"><time th:datetime="${k.laatstVernieuwd}" th:text="${@datums.relatief(k.laatstVernieuwd)}">datum</time></td>
+                                <td class="klein"><time th:datetime="${k.verlooptOp}" th:text="${@datums.relatief(k.verlooptOp)}">datum</time></td>
+                                <td>
+                                    <form th:action="@{/account/koppelingen/{id}/intrekken(id=${k.id})}" method="post">
+                                        <button type="submit" class="knop knop--gevaar">Intrekken</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Een koppeling begint in de app zelf; hier staat alleen het adres dat de app daarvoor vraagt. -->
+                <div class="kaart">
+                    <h2>Een app koppelen</h2>
+                    <p>
+                        Voeg in Claude of ChatGPT een eigen connector toe met dit adres. Je logt daarna in met je
+                        wiki-account en geeft toestemming.
+                    </p>
+                    <p><code th:text="${mcpUrl}">https://wiki.example/mcp</code></p>
+                    <p class="gedempt klein">
+                        De naam van een app komt van de app zelf; het adres eronder is waar de app je na het inloggen
+                        naartoe stuurt. Een koppeling verloopt vanzelf als de app haar 30 dagen niet gebruikt, en
+                        vervalt direct als je je wachtwoord wijzigt.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

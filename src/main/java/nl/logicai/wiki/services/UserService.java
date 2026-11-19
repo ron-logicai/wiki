@@ -62,9 +62,11 @@ public class UserService {
 	private final PasswordResetTokenRepository tokens;
 	private final PasswordEncoder encoder;
 	private final Clock clock;
+	private final McpConnectionService connections;
 
 	public UserService(WikiUserRepository users, AuditEventRepository audit, PasswordResetTokenRepository tokens,
-			PasswordEncoder encoder, Clock clock) {
+			PasswordEncoder encoder, Clock clock, McpConnectionService connections) {
+		this.connections = connections;
 		this.users = users;
 		this.audit = audit;
 		this.tokens = tokens;
@@ -115,6 +117,10 @@ public class UserService {
 			}
 		}
 		user.setActive(active);
+		if (!active) {
+			// The MCP endpoint refuses an inactive user anyway; removing the connections means reactivating does not revive them.
+			connections.revokeAllFor(user.getUsername(), actor);
+		}
 		audit.save(AuditEvent.of(active ? USER_ACTIVATE : USER_DEACTIVATE, null, actor, clock.instant(), user.getUsername()));
 		return user;
 	}
@@ -134,6 +140,7 @@ public class UserService {
 			refuseIfLastActiveAdmin(user);
 		}
 		tokens.deleteByUserId(user.getId());
+		connections.revokeAllFor(user.getUsername(), actor);
 		users.delete(user);
 		audit.save(AuditEvent.of(USER_DELETE, null, actor, clock.instant(), user.getUsername()));
 		return user;
@@ -171,6 +178,8 @@ public class UserService {
 			throw new InvalidUserException("Geef een nieuw wachtwoord.");
 		}
 		user.changePassword(hashPassword(password, passwordRepeat));
+		// Whoever knew the old password may have connected an AI agent with it (docs/mcp.md).
+		connections.revokeAllFor(user.getUsername(), actor);
 		audit.save(AuditEvent.of(USER_PASSWORD, null, actor, clock.instant(), user.getUsername()));
 		return user;
 	}
@@ -193,6 +202,7 @@ public class UserService {
 			throw new InvalidUserException("Geef een nieuw wachtwoord.");
 		}
 		user.changePassword(hashPassword(password, passwordRepeat));
+		connections.revokeAllFor(user.getUsername(), user.getUsername());
 		audit.save(AuditEvent.of(USER_PASSWORD_CHANGE, null, user.getUsername(), clock.instant(), user.getUsername()));
 		return user;
 	}

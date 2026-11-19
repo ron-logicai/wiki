@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>Koppelingen · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('beheer')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <nav aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li><a th:href="@{/admin}">Beheer</a></li>
+                    <li aria-current="page">Koppelingen</li>
+                </ol>
+            </nav>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <div class="kop kop--met-tabs">
+                    <div>
+                        <p class="eyebrow">Beheer</p>
+                        <h1>Koppelingen</h1>
+                        <p class="intro">
+                            AI-agents (Claude, ChatGPT) die namens een gebruiker met de wiki werken, via
+                            <code th:text="${mcpUrl}">https://wiki.example/mcp</code>. Een agent heeft de rechten van de
+                            gebruiker. Intrekken werkt direct; de gebruiker kan de app daarna opnieuw koppelen.
+                        </p>
+                    </div>
+                    <nav th:replace="~{fragments :: beheertabs('koppelingen')}"></nav>
+                </div>
+
+                <p class="melding melding--info" role="status" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <div class="kaart kaart--tabel">
+                    <p class="leeg" th:if="${koppelingen.isEmpty()}">Er zijn geen gekoppelde apps.</p>
+                    <table class="tabel" th:unless="${koppelingen.isEmpty()}">
+                        <thead>
+                            <tr><th>Gebruiker</th><th>App</th><th>Gekoppeld op</th><th>Laatst actief</th><th>Verloopt</th><th><span class="verborgen">Acties</span></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="k : ${koppelingen}">
+                                <td>
+                                    <div class="persoon">
+                                        <span class="avatar avatar--groot" aria-hidden="true" th:text="${@namen.initiaal(k.username)}">a</span>
+                                        <div class="persoon__tekst">
+                                            <div class="persoon__naam" th:text="${@namen.weergave(k.username)}">iemand</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong th:text="${k.appNaam}">App</strong>
+                                    <div class="gedempt klein" th:text="${#strings.listJoin(k.hosts, ', ')}">claude.ai</div>
+                                </td>
+                                <td class="klein"><time th:datetime="${k.gekoppeldOp}" th:text="${@datums.relatief(k.gekoppeldOp)}">datum</time></td>
+                                <td class="klein"><time th:datetime="${k.laatstVernieuwd}" th:text="${@datums.relatief(k.laatstVernieuwd)}">datum</time></td>
+                                <td class="klein"><time th:datetime="${k.verlooptOp}" th:text="${@datums.relatief(k.verlooptOp)}">datum</time></td>
+                                <td>
+                                    <form th:action="@{/admin/koppelingen/{id}/intrekken(id=${k.id})}" method="post">
+                                        <button type="submit" class="knop knop--gevaar">Intrekken</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

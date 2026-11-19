@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 29 oktober 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 18 november 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -59,6 +59,8 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 
 ( F-01 )   Inloggen met e-mailadres in plaats van gebruikersnaam: de loginpagina vraagt e-mailadres en wachtwoord (`WikiUserDetailsService` zoekt op `email`, de principal blijft de interne `username`), het accountformulier achter de uitnodigingslink vraagt alleen naam, nieuw wachtwoord en wachtwoord herhalen en de interne gebruikersnaam wordt afgeleid van het deel vóór de `@` (`UserService.usernameFor`, `ron2` als die bezet is); overal in de wiki (zijbalk, bewerkt door, geschiedenis, prullenbak, audit, gebruikerslijst, meldingen, herstelmail) staat de weergavenaam via de `namen`-bean (`${@namen.weergave(...)}`), de gebruikersnaam is alleen nog de sleutel op pagina's, favorieten en in de audit; lokale testgebruikers loggen in als `viewer@wiki.nl`/`editor@wiki.nl`/`admin@wiki.nl` (bestaande lokale databases krijgen het nieuwe adres bij het opstarten); `WIKI_BOOTSTRAP_ADMIN_EMAIL` vervangt `_USERNAME` (optioneel `_NAME`); een account zonder e-mailadres van vóór deze wijziging logt in met de gebruikersnaam tot een beheerder op `/admin/users` een adres instelt (`POST /admin/users/{id}/email`, audit `user.email`) ( op verzoek 30-10-2026, F-01, N-02 )
+
+( extra, buiten MVP, op verzoek )   MCP-server voor AI-agents (Claude, ChatGPT): `/mcp` met tools om te zoeken, lezen, pagina's aan te maken, bij te werken en te taggen (verplaatsen en verwijderen bewust niet); de agent werkt met de rol van de gebruiker via OAuth 2.1 (de wiki is zelf autorisatieserver: dynamische registratie met toegestane terugkeeradressen, PKCE, toestemmingspagina, tabellen in V14), gebruiker en koppeling worden per verzoek gecontroleerd; koppelingen intrekken op `/account/koppelingen` en `/admin/koppelingen`; inhoud gaat als Markdown (`MarkdownImporter`, ongewijzigde blokken blijven behouden, opmaakverlies wordt geweigerd); staat uit zonder `WIKI_MCP_ENABLED=true`; zie `docs/mcp.md` ( de spec vraagt geen AI-functionaliteit: de wiki roept zelf geen AI-dienst aan en werkt zonder; F-02, F-10, F-11, N-01, N-02, N-04 blijven gelden )
 
 ## Volgende stappen
 

@@ -31,6 +31,7 @@
                     <p class="intro" th:unless="${heeftWachtwoord}">
                         Je logt in met Microsoft en hebt geen wiki-wachtwoord; je wachtwoord beheer je bij Microsoft.
                     </p>
+                    <nav th:replace="~{fragments :: accounttabs('wachtwoord')}"></nav>
                 </div>
 
                 <p class="melding melding--info" role="status" th:if="${melding != null}" th:text="${melding}">Melding</p>

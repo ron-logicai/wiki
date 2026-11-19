@@ -193,6 +193,16 @@
     <a class="tab" th:classappend="${actief == 'gebruikers'} ? 'tab--aan'" th:href="@{/admin/users}">Gebruikers</a>
     <a class="tab" th:classappend="${actief == 'tags'} ? 'tab--aan'" th:href="@{/admin/tags}">Tags</a>
     <a class="tab" th:classappend="${actief == 'templates'} ? 'tab--aan'" th:href="@{/admin/templates}">Templates</a>
+    <!-- Alleen als de MCP-server voor AI-agents aan staat (wiki.mcp.enabled, docs/mcp.md). -->
+    <a class="tab" th:if="${@environment.getProperty('wiki.mcp.enabled', 'false') == 'true'}"
+       th:classappend="${actief == 'koppelingen'} ? 'tab--aan'" th:href="@{/admin/koppelingen}">Koppelingen</a>
+</nav>
+
+<!-- Tab-pillen op de accountpagina's: wachtwoord en, als de MCP-server aan staat, de gekoppelde AI-agents. -->
+<nav th:fragment="accounttabs(actief)" class="tabs" aria-label="Account"
+     th:if="${@environment.getProperty('wiki.mcp.enabled', 'false') == 'true'}">
+    <a class="tab" th:classappend="${actief == 'wachtwoord'} ? 'tab--aan'" th:href="@{/account/wachtwoord}">Wachtwoord</a>
+    <a class="tab" th:classappend="${actief == 'koppelingen'} ? 'tab--aan'" th:href="@{/account/koppelingen}">Gekoppelde apps</a>
 </nav>
 
 <!-- Pijlknop onder een lijst of tabel: toont de rijen met class "uitklap__rij" (verborgen bij laden) en klapt ze weer in. -->

@@ -2,6 +2,13 @@ spring:
   application:
     name: wiki
 
+  autoconfigure:
+    # The OAuth authorization server for MCP is configured by hand in McpSecurityConfig and only when
+    # wiki.mcp.enabled is true; Boot's own defaults would otherwise generate a signing key at every start.
+    exclude:
+      - org.springframework.boot.security.oauth2.server.authorization.autoconfigure.servlet.OAuth2AuthorizationServerAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.authorization.autoconfigure.servlet.OAuth2AuthorizationServerJwtAutoConfiguration
+
   datasource:
     # MySQL. Every URL carries the two time zone parameters: timestamps are stored as UTC in DATETIME(6).
     url: ${WIKI_DB_URL:jdbc:mysql://localhost:3306/wiki?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true}
@@ -35,6 +42,23 @@ spring:
       max-request-size: ${WIKI_UPLOAD_MAX_REQUEST_SIZE:101MB}
       # Parse on first access, so a too-large upload reaches the JSON error handler of the API.
       resolve-lazily: true
+
+  ai:
+    mcp:
+      server:
+        # The MCP endpoint for AI agents (/mcp) only exists when wiki.mcp.enabled is true; see docs/mcp.md.
+        enabled: ${wiki.mcp.enabled}
+        # Stateless: no server-side MCP session, so a deploy or restart never breaks a connected agent.
+        protocol: STATELESS
+        type: SYNC
+        name: logicai-wiki
+        version: 1.0.0
+        instructions: >-
+          LogicAI Wiki, the internal knowledge wiki of LogicAI. Pages form a tree and are written in Dutch.
+          Find pages with search or search_pages, read them with fetch or get_page. Page content is exchanged
+          as Markdown. Before changing a page call get_page and pass its 'version' as baseVersion; prefer
+          append_to_page when you only add content. Every change is saved as a revision under the name of the
+          connected user and can be restored in the wiki.
 
 server:
   servlet:
@@ -113,6 +137,29 @@ wiki:
     max-size: ${WIKI_UPLOAD_MAX_FILE_SIZE:10MB}
     # MP4/WebM video (extension); keep at or below spring.servlet.multipart.max-file-size.
     max-video-size: ${WIKI_UPLOAD_MAX_VIDEO_SIZE:100MB}
+  mcp:
+    # MCP server for AI agents (Claude, ChatGPT): an extra outside the MVP, off unless switched on.
+    # With it come /mcp and the OAuth endpoints with which a user connects an agent to their own account.
+    enabled: ${WIKI_MCP_ENABLED:false}
+    # OAuth issuer; empty means wiki.base-url. Never taken from request headers.
+    issuer: ${WIKI_MCP_ISSUER:}
+    # RSA private key (PKCS8 PEM) that signs the access tokens. Never in Git (spec N-04); on Fly a secret.
+    # Empty means a key that lives as long as the process: every restart then disconnects all agents.
+    signing-key: ${WIKI_MCP_SIGNING_KEY:}
+    access-token-ttl: 30m
+    refresh-token-ttl: 30d
+    # Where a connected app may send the user back to after login. Loopback addresses match on any port
+    # (Claude Code, MCP Inspector); an entry that ends in /* matches every path below it (ChatGPT uses an
+    # address with its own id per connector); everything else must match exactly.
+    allowed-redirect-uris:
+      - https://claude.ai/api/mcp/auth_callback
+      - https://chatgpt.com/connector_platform_oauth_redirect
+      - https://chatgpt.com/connector/oauth/*
+      - http://localhost
+      - http://127.0.0.1
+    max-clients: 200
+    # How many apps one address may register per hour (registration is open to the internet).
+    max-registrations-per-hour: 10
 
 ---
 # Local development: no HTTPS, template hot reload.

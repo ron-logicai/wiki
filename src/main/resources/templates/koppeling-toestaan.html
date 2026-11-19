@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>App koppelen · LogicAI Wiki</title>
+</head>
+<body class="inlog">
+
+<!-- Zelfde opzet als de inlogpagina: de gebruiker komt hier vanuit Claude of ChatGPT, zonder zijbalk. -->
+<header class="inlog__kop">
+    <a class="inlog__merk" th:href="@{/}" title="LogicAI Wiki">
+        <img class="inlog__logo" th:src="@{/img/logo.png}" alt="LogicAI Wiki">
+    </a>
+    <span class="inlog__ondertitel">Interne kenniswiki</span>
+</header>
+
+<main class="inlog__vlak">
+    <div class="inlog__kaart">
+        <p class="eyebrow">AI-agent koppelen</p>
+        <h1>Toegang geven aan <span th:text="${appNaam}">de app</span>?</h1>
+        <p class="intro">
+            <strong th:text="${appNaam}">De app</strong> wil namens jou
+            (<span th:text="${@namen.weergave(#authentication.name)}">naam</span>) met de wiki werken.
+        </p>
+
+        <ul class="lijst">
+            <li>Pagina's zoeken en lezen: alles wat jij in de wiki kunt lezen.</li>
+            <li sec:authorize="hasRole('EDITOR')">
+                Pagina's aanmaken, wijzigen en taggen. Elke wijziging komt op jouw naam in de geschiedenis en is terug te zetten.
+            </li>
+            <li sec:authorize="!hasRole('EDITOR')">Wijzigen kan niet: jouw rol mag alleen lezen.</li>
+            <li>Verplaatsen, verwijderen en gebruikers beheren kan de app niet.</li>
+        </ul>
+
+        <p class="gedempt klein">
+            De naam komt van de app zelf. Na je keuze ga je terug naar
+            <strong th:each="host, stat : ${terugNaar}" th:text="${host} + (${stat.last} ? '' : ', ')">claude.ai</strong>.
+            Ken je dat adres niet, of ben je hier niet zelf aan begonnen, kies dan Weigeren.
+        </p>
+
+        <!-- POST naar het autorisatie-endpoint van Spring Security: met scope is het toestaan, zonder is het weigeren. -->
+        <form class="formulier" th:action="@{/oauth2/authorize}" method="post">
+            <input type="hidden" name="client_id" th:value="${clientId}">
+            <input type="hidden" name="state" th:value="${state}">
+            <div class="acties">
+                <button type="submit" name="scope" value="wiki" class="knop knop--primair">Toestaan</button>
+                <button type="submit" class="knop">Weigeren</button>
+            </div>
+        </form>
+
+        <p class="inlog__voet gedempt klein">
+            Een koppeling trek je later in via je account, onder Gekoppelde apps.
+        </p>
+    </div>
+</main>
+
+</body>
+</html>

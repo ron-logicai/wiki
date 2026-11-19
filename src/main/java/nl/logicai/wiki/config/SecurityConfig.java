@@ -1,5 +1,7 @@
 package nl.logicai.wiki.config;
 
+import java.net.URI;
+
 import nl.logicai.wiki.repositories.WikiUserRepository;
 import nl.logicai.wiki.security.ActiveUserFilter;
 import nl.logicai.wiki.security.ApiAccessDeniedHandler;
@@ -7,6 +9,8 @@ import nl.logicai.wiki.security.WikiOidcUserService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
@@ -20,8 +24,13 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -54,7 +63,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+	/** The chain for everything; the MCP chains of {@link McpSecurityConfig}, when enabled, go first for their own paths. */
 	@Bean
+	@Order(Ordered.LOWEST_PRECEDENCE)
 	SecurityFilterChain securityFilterChain(HttpSecurity http, WikiUserRepository users,
 			ObjectProvider<ClientRegistrationRepository> clientRegistrations) throws Exception {
 		http
@@ -71,7 +82,7 @@ public class SecurityConfig {
 				.requestMatchers("/admin/**", "/dev/**").hasRole("ADMIN")
 				.requestMatchers("/trash/**", "/trash").hasRole("EDITOR")
 				.anyRequest().authenticated())
-			.formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true))
+			.formLogin(form -> form.loginPage("/login").successHandler(loginSuccessHandler()))
 			.logout(logout -> logout.logoutSuccessUrl("/login?logout"))
 			.exceptionHandling(ex -> {
 				RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
@@ -89,6 +100,37 @@ public class SecurityConfig {
 			http.oauth2Login(oauth -> oauth.loginPage("/login").userInfoEndpoint(info -> info.oidcUserService(new WikiOidcUserService(users))));
 		}
 		return http.build();
+	}
+
+	/**
+	 * After a password login the user lands on the home page, whatever page they asked for before. The one
+	 * exception is a user who was connecting an AI agent (docs/mcp.md): that flow starts at
+	 * {@code /oauth2/authorize}, sends the user here to log in and must continue there afterwards.
+	 */
+	private static AuthenticationSuccessHandler loginSuccessHandler() {
+		var requests = new HttpSessionRequestCache();
+		var backToAuthorization = new SavedRequestAwareAuthenticationSuccessHandler();
+		var home = new SimpleUrlAuthenticationSuccessHandler("/");
+		home.setAlwaysUseDefaultTargetUrl(true);
+		return (request, response, authentication) -> {
+			SavedRequest saved = requests.getRequest(request, response);
+			if (saved != null && isAuthorizationRequest(saved.getRedirectUrl())) {
+				backToAuthorization.onAuthenticationSuccess(request, response, authentication);
+			}
+			else {
+				requests.removeRequest(request, response);
+				home.onAuthenticationSuccess(request, response, authentication);
+			}
+		};
+	}
+
+	private static boolean isAuthorizationRequest(String url) {
+		try {
+			return "/oauth2/authorize".equals(URI.create(url).getPath());
+		}
+		catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 
 	/** Admin implies Editor, Editor implies Viewer (spec section 1). */

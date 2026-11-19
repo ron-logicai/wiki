@@ -43,6 +43,10 @@ public class AdminService {
 				case AuditEvent.RESTORE_REVISION -> "Revisie teruggezet";
 				case AuditEvent.RELATION_ADD -> "Gerelateerde pagina toegevoegd";
 				case AuditEvent.RELATION_REMOVE -> "Gerelateerde pagina verwijderd";
+				case AuditEvent.MCP_CREATE -> "Aangemaakt door AI-agent";
+				case AuditEvent.MCP_UPDATE -> "Gewijzigd door AI-agent";
+				case AuditEvent.MCP_CONNECT -> "AI-agent gekoppeld";
+				case AuditEvent.MCP_REVOKE -> "Koppeling ingetrokken";
 				case UserService.USER_INVITE -> "Gebruiker uitgenodigd";
 				case UserService.USER_CREATE -> "Gebruiker aangemaakt";
 				case UserService.USER_ROLE -> "Rol gewijzigd";

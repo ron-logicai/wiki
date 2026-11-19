@@ -144,6 +144,7 @@ Alle instellingen komen uit omgevingsvariabelen; zie `.env.example`. Er staan ge
 | `WIKI_UPLOAD_MAX_VIDEO_SIZE` | Maximale grootte per video (MP4, WebM; standaard `100MB`) |
 | `WIKI_BASE_URL` | Publieke URL van de wiki, voor de links in e-mail (standaard `http://localhost:8080`) |
 | `WIKI_INVITATION_TTL` | Geldigheid van een uitnodigingslink (standaard `1h`) |
+| `WIKI_MCP_ENABLED`, `WIKI_MCP_SIGNING_KEY` | MCP-server voor AI-agents (Claude, ChatGPT) op `/mcp`, met OAuth-login op het eigen wiki-account; standaard uit. Zie `docs/mcp.md` |
 | `WIKI_MAIL_GRAPH_SENDER` | Mail via Microsoft Graph: de mailbox waaruit de wiki "wachtwoord vergeten" en uitnodigingen verstuurt, als applicatie met de Entra-appregistratie (`WIKI_ENTRA_*`); geen mailboxwachtwoord nodig en gaat vóór SMTP |
 | `WIKI_MAIL_HOST`, `WIKI_MAIL_PORT`, `WIKI_MAIL_STARTTLS`, `WIKI_MAIL_USERNAME`, `WIKI_MAIL_PASSWORD`, `WIKI_MAIL_FROM` | SMTP als alternatief (Gmail of een andere server, voorbeelden in `.env.example`); zonder `WIKI_MAIL_GRAPH_SENDER` én zonder `WIKI_MAIL_HOST` wordt de link in de log geschreven in plaats van gemaild |
 

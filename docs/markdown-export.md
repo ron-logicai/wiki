@@ -86,4 +86,6 @@ ge-escaped, zodat een pagina met de letterlijke tekst `*niet vet*` ook in de exp
 
 - Nesting van niet-lijstblokken (een alinea onder een alinea) heeft geen Markdown-vorm: de kinderen volgen het blok op hetzelfde niveau.
 - Kleuren vervallen (zie boven).
-- Er is geen Markdown-import (U-02, buiten de MVP); een roundtrip is niet beloofd.
+- Er is geen Markdown-import in de webinterface (U-02, buiten de MVP). Wel bestaat `MarkdownImporter` voor de
+  MCP-server (`docs/mcp.md`): die leest terug wat deze export schrijft, en `update_page` laat ongewijzigde blokken
+  staan zodat kleuren en dergelijke niet verloren gaan. Een bestemming met een spatie komt terug met `%20`.
