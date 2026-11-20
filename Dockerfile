@@ -23,6 +23,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 1001 wiki && mkdir -p /app/data && chown wiki /app/data
 COPY --from=backend /build/target/*.jar app.jar
+# CVE-2026-114938 (Java4Shell): schakelt de kwetsbare Base64-decoder uit tot de image op Temurin 25.0.5.1 of
+# hoger draait. fly.toml overschrijft JAVA_TOOL_OPTIONS en zet de vlag daarom zelf ook. Zie docs/beveiliging.md.
+ENV JAVA_TOOL_OPTIONS="-XX:-UseBASE64Intrinsics"
 USER wiki
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \

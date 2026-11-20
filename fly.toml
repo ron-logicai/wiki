@@ -10,7 +10,8 @@ primary_region = 'ams'
   dockerfile = 'Dockerfile'
 
 [env]
-  JAVA_TOOL_OPTIONS = '-XX:MaxRAMPercentage=75'
+  # -XX:-UseBASE64Intrinsics: CVE-2026-114938 (Java4Shell), zie docs/beveiliging.md
+  JAVA_TOOL_OPTIONS = '-XX:MaxRAMPercentage=75 -XX:-UseBASE64Intrinsics'
   WIKI_ATTACHMENTS_DIR = '/app/data/attachments'
   WIKI_BASE_URL = 'https://logicai-wiki.fly.dev'
   WIKI_DB_URL = 'jdbc:mysql://database.enabl.sh:3306/wiki?sslMode=REQUIRED&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true'

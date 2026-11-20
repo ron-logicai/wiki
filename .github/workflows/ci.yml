@@ -45,6 +45,30 @@ jobs:
       # Testcontainers starts mysql:9.1 through the runner's Docker daemon.
       - run: ./mvnw -B verify
 
+  image-scan:
+    name: Image scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t wiki:ci .
+      - name: Java-versie in de image
+        run: docker run --rm --entrypoint java wiki:ci -version
+      # CVE-2026-114938 (Java4Shell): de vlag uit de Dockerfile moet aan blijven staan. Deze stap mag weg zodra
+      # de image op Temurin 25.0.5.1 of hoger draait en de vlag uit Dockerfile en fly.toml is gehaald.
+      - name: Base64-intrinsic staat uit
+        run: |
+          docker run --rm --entrypoint java wiki:ci -XX:+PrintFlagsFinal -version \
+            | grep -E 'UseBASE64Intrinsics += false'
+      # Besturingssysteempakketten en jars in de image. Trivy herkent de Java-runtime zelf niet betrouwbaar,
+      # die wordt hierboven apart gecontroleerd.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: wiki:ci
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
   browser:
     name: Browser tests (Playwright)
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
   # Backlog LogicAI Wiki
 
-Bijgewerkt: 18 november 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
+Bijgewerkt: 20 november 2026. Volgorde volgt de mijlpalen uit de stageopdracht.
 De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct in de MVP.
 
 ## Klaar
@@ -51,7 +51,7 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( F-01 )   HTML-mails in huisstijl (ontwerp 28-10-2026): de uitnodiging en de "wachtwoord vergeten"-mail zijn Thymeleaf-templates in `templates/mail/` (`MailTemplates`, tabellen en inline CSS zodat Outlook en Gmail ze tonen; navy kop, oranje knop, kader met de geldigheid en de volledige link als tekst, platte tekst als fallback); SMTP stuurt `multipart/alternative`, Graph stuurt HTML; de beheerder wordt met weergavenaam genoemd; preview op `/dev/mail/uitnodiging` en `/dev/mail/wachtwoord-herstellen` onder profiel `local` (admin); tot de Graph-inrichting klaar is verstuurt `info@logicai.nl` via SMTP ( F-01, N-02 )
 
-( extra )   Uitrol op Fly.io: twee apps in regio `ams` (de wiki uit de Dockerfile, remote gebouwd door Fly, dus lokaal geen Docker nodig; de database als los `postgres:18`-image, alleen privé bereikbaar), volumes voor uploads en databasebestanden, geheimen via `fly secrets`, handmatige deploy met flyctl; `fly.toml` en `deploy/fly/db/fly.toml`, stappen en back-up in de README ( N-04, sectie 6 )
+( extra )   Uitrol op Fly.io: twee apps in regio `ams` (de wiki uit de Dockerfile, remote gebouwd door Fly, dus lokaal geen Docker nodig; de database toen als los `postgres:18`-image, alleen privé bereikbaar; sinds november 2026 de gedeelde MySQL, zie hieronder), volumes voor uploads en databasebestanden, geheimen via `fly secrets`, handmatige deploy met flyctl; `fly.toml` en `deploy/fly/db/fly.toml`, stappen en back-up in de README ( N-04, sectie 6 )
 
 ( op verzoek, wijkt af van sectie 6 )   Database van PostgreSQL 18 naar MySQL 9.1 (november 2026): migraties V1 t/m V13 herschreven in MySQL-dialect (UUID als `CHAR(36)`, `JSON` in plaats van JSONB, `DATETIME(6)` in UTC, functionele unieke indexen op `lower(...)`), zoeken via een `FULLTEXT`-index met boolean mode (`SearchService.booleanExpression`; woorden korter dan drie tekens en stopwoorden vallen terug op een substring-zoekvraag, beperkingen in de README), Testcontainers en CI op `mysql:9.1`, Compose met een lokale MySQL-container. De gegevens uit de lokale Postgres en de Fly-Postgres zijn samengevoegd in de gedeelde database op `database.enabl.sh`, die lokaal en Fly-productie delen; de Postgres-app op Fly (`logicai-wiki-db`) en het lokale volume blijven voorlopig als back-up bestaan ( F-13, N-04, sectie 6 en 7 )
 
@@ -62,7 +62,11 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( extra, buiten MVP, op verzoek )   MCP-server voor AI-agents (Claude, ChatGPT): `/mcp` met tools om te zoeken, lezen, pagina's aan te maken, bij te werken en te taggen (verplaatsen en verwijderen bewust niet); de agent werkt met de rol van de gebruiker via OAuth 2.1 (de wiki is zelf autorisatieserver: dynamische registratie met toegestane terugkeeradressen, PKCE, toestemmingspagina, tabellen in V14), gebruiker en koppeling worden per verzoek gecontroleerd; koppelingen intrekken op `/account/koppelingen` en `/admin/koppelingen`; inhoud gaat als Markdown (`MarkdownImporter`, ongewijzigde blokken blijven behouden, opmaakverlies wordt geweigerd); staat uit zonder `WIKI_MCP_ENABLED=true`; zie `docs/mcp.md` ( de spec vraagt geen AI-functionaliteit: de wiki roept zelf geen AI-dienst aan en werkt zonder; F-02, F-10, F-11, N-01, N-02, N-04 blijven gelden )
 
+( N-04, N-08 )   Java4Shell (CVE-2026-114938) en afhankelijkheden bewaken: noodmaatregel `-XX:-UseBASE64Intrinsics` in `Dockerfile` en `fly.toml` tot de image op Temurin 25.0.5.1 of hoger draait; Dependabot voor Maven, npm, Docker en GitHub Actions (`.github/dependabot.yml`); CI-job `image-scan` (Trivy op de gebouwde image, plus controle van de Java-versie en de vlag); stand en stappen in `docs/beveiliging.md` ( N-04, N-08 )
+
 ## Volgende stappen
+
+- Java4Shell afronden: deployen naar Fly, daarna de Temurin-image bijwerken zodra 25.0.5.1 op Docker Hub staat en de vlag weghalen (`docs/beveiliging.md`).
 
 - Backlinks: op een pagina tonen welke pagina's ernaar verwijzen (tweede helft van U-06).
 

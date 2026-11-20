@@ -41,7 +41,7 @@ docker compose up -d --build
 
 Local test users (profile `local` only): log in with `viewer@wiki.nl`, `editor@wiki.nl`, `admin@wiki.nl`, all with password `wiki` (internal usernames `viewer`/`editor`/`admin`).
 
-CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B verify`, then Playwright against a packaged jar. There is no linter beyond `tsc` and the Java compiler.
+CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B verify`, then Playwright against a packaged jar, and an `image-scan` job (Docker build, Java version and JVM flag check, Trivy). There is no linter beyond `tsc` and the Java compiler. `docs/beveiliging.md` tracks CVE status; the `-XX:-UseBASE64Intrinsics` flag in `Dockerfile` and `fly.toml` (CVE-2026-114938) stays until the image runs Temurin 25.0.5.1+.
 
 ## Architecture
 
