@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 27
           cache: maven
       - uses: actions/download-artifact@v4
         with:
@@ -55,7 +55,7 @@ jobs:
       - name: Java-versie in de image
         run: docker run --rm --entrypoint java wiki:ci -version
       # CVE-2026-114938 (Java4Shell): de vlag uit de Dockerfile moet aan blijven staan. Deze stap mag weg zodra
-      # de image op Temurin 25.0.5.1 of hoger draait en de vlag uit Dockerfile en fly.toml is gehaald.
+      # de image op Temurin 27.0.1.1 of hoger draait en de vlag uit Dockerfile en fly.toml is gehaald.
       - name: Base64-intrinsic staat uit
         run: |
           docker run --rm --entrypoint java wiki:ci -XX:+PrintFlagsFinal -version \
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 25
+          java-version: 27
           cache: maven
       - uses: actions/setup-node@v4
         with:

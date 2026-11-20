@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- Stage 2: build the Spring Boot jar --------------------------------------
-FROM eclipse-temurin:25-jdk AS backend
+FROM eclipse-temurin:27-jdk AS backend
 WORKDIR /build
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -18,12 +18,12 @@ COPY --from=frontend /build/src/main/resources/static/editor src/main/resources/
 RUN ./mvnw -q -DskipTests package
 
 # --- Stage 3: runtime --------------------------------------------------------
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:27-jre
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 1001 wiki && mkdir -p /app/data && chown wiki /app/data
 COPY --from=backend /build/target/*.jar app.jar
-# CVE-2026-114938 (Java4Shell): schakelt de kwetsbare Base64-decoder uit tot de image op Temurin 25.0.5.1 of
+# CVE-2026-114938 (Java4Shell): schakelt de kwetsbare Base64-decoder uit tot de image op Temurin 27.0.1.1 of
 # hoger draait. fly.toml overschrijft JAVA_TOOL_OPTIONS en zet de vlag daarom zelf ook. Zie docs/beveiliging.md.
 ENV JAVA_TOOL_OPTIONS="-XX:-UseBASE64Intrinsics"
 USER wiki

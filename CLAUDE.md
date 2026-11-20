@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 25 / MySQL 9.1 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional), `A-xx` (acceptance scenario) and `section N`. The spec prescribes PostgreSQL; the project was moved to MySQL in November 2026 on request, so read "PostgreSQL/JSONB" in the spec as "MySQL/JSON". The spec is in `docs/stageopdracht.md` (converted from the Word original; read the relevant F/N/A rows and section before working on a feature). `docs/backlog.md` tracks which spec items are done and what comes next.
+LogicAI Wiki: an internal knowledge wiki (Spring Boot 4.1 / Java 27 / MySQL 9.1 / Thymeleaf) with a BlockNote editor built as a local React island. Built as an internship assignment against a numbered spec; code comments cite it as `spec F-xx` (feature), `N-xx` (non-functional), `A-xx` (acceptance scenario) and `section N`. The spec prescribes PostgreSQL; the project was moved to MySQL in November 2026 on request, so read "PostgreSQL/JSONB" in the spec as "MySQL/JSON". The spec is in `docs/stageopdracht.md` (converted from the Word original; read the relevant F/N/A rows and section before working on a feature). `docs/backlog.md` tracks which spec items are done and what comes next.
 
 UI text, template names, Thymeleaf model attributes and some Java identifiers are **Dutch** (`paginas`, `ouders`, `boom`, `prullenbak`, `verplaatsen`). Java class names, packages and most method names are English. Keep to that split when adding code; user-facing strings and error messages are Dutch.
 
 ## Commands
 
-Prerequisites: Temurin JDK 25, Node 26, Docker Desktop (for Testcontainers, and for a local MySQL via Compose).
+Prerequisites: Temurin JDK 27 (moved from the spec's Java 25 LTS in November 2026 on request; Java 27 is not an LTS and Boot 4.1.1 documents support up to Java 26), Node 26, Docker Desktop (for Testcontainers, and for a local MySQL via Compose).
 
 ```bash
 # Database for local runs: WIKI_DB_* in .env point at the shared MySQL server (database.enabl.sh, also used by
@@ -41,7 +41,7 @@ docker compose up -d --build
 
 Local test users (profile `local` only): log in with `viewer@wiki.nl`, `editor@wiki.nl`, `admin@wiki.nl`, all with password `wiki` (internal usernames `viewer`/`editor`/`admin`).
 
-CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B verify`, then Playwright against a packaged jar, and an `image-scan` job (Docker build, Java version and JVM flag check, Trivy). There is no linter beyond `tsc` and the Java compiler. `docs/beveiliging.md` tracks CVE status; the `-XX:-UseBASE64Intrinsics` flag in `Dockerfile` and `fly.toml` (CVE-2026-114938) stays until the image runs Temurin 25.0.5.1+.
+CI (`.github/workflows/ci.yml`) runs frontend typecheck+build, then `./mvnw -B verify`, then Playwright against a packaged jar, and an `image-scan` job (Docker build, Java version and JVM flag check, Trivy). There is no linter beyond `tsc` and the Java compiler. `docs/beveiliging.md` tracks CVE status; the `-XX:-UseBASE64Intrinsics` flag in `Dockerfile` and `fly.toml` (CVE-2026-114938) stays until the image runs Temurin 27.0.1.1+.
 
 ## Architecture
 

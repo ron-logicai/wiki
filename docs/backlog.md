@@ -62,12 +62,11 @@ De begeleider bepaalt de prioriteit; nieuwe wensen komen eerst hier, niet direct
 
 ( extra, buiten MVP, op verzoek )   MCP-server voor AI-agents (Claude, ChatGPT): `/mcp` met tools om te zoeken, lezen, pagina's aan te maken, bij te werken en te taggen (verplaatsen en verwijderen bewust niet); de agent werkt met de rol van de gebruiker via OAuth 2.1 (de wiki is zelf autorisatieserver: dynamische registratie met toegestane terugkeeradressen, PKCE, toestemmingspagina, tabellen in V14), gebruiker en koppeling worden per verzoek gecontroleerd; koppelingen intrekken op `/account/koppelingen` en `/admin/koppelingen`; inhoud gaat als Markdown (`MarkdownImporter`, ongewijzigde blokken blijven behouden, opmaakverlies wordt geweigerd); staat uit zonder `WIKI_MCP_ENABLED=true`; zie `docs/mcp.md` ( de spec vraagt geen AI-functionaliteit: de wiki roept zelf geen AI-dienst aan en werkt zonder; F-02, F-10, F-11, N-01, N-02, N-04 blijven gelden )
 
-( N-04, N-08 )   Java4Shell (CVE-2026-114938) en afhankelijkheden bewaken: noodmaatregel `-XX:-UseBASE64Intrinsics` in `Dockerfile` en `fly.toml` tot de image op Temurin 25.0.5.1 of hoger draait; Dependabot voor Maven, npm, Docker en GitHub Actions (`.github/dependabot.yml`); CI-job `image-scan` (Trivy op de gebouwde image, plus controle van de Java-versie en de vlag); stand en stappen in `docs/beveiliging.md` ( N-04, N-08 )
+( N-04, N-08 )   Java4Shell (CVE-2026-114938) en afhankelijkheden bewaken: noodmaatregel `-XX:-UseBASE64Intrinsics` in `Dockerfile` en `fly.toml` tot de image op Temurin 27.0.1.1 of hoger draait; op verzoek van Java 25 LTS naar Java 27 (`pom.xml`, `Dockerfile`, CI; wijkt af van sectie 6, Java 27 is geen LTS en heeft hetzelfde lek); Dependabot voor Maven, npm, Docker en GitHub Actions (`.github/dependabot.yml`); CI-job `image-scan` (Trivy op de gebouwde image, plus controle van de Java-versie en de vlag); stand en stappen in `docs/beveiliging.md` ( N-04, N-08 )
 
 ## Volgende stappen
 
-- Java4Shell afronden: deployen naar Fly, daarna de Temurin-image bijwerken zodra 25.0.5.1 op Docker Hub staat en de vlag weghalen (`docs/beveiliging.md`).
-
+- Java4Shell afronden: deployen naar Fly, daarna de Temurin-image bijwerken zodra 27.0.1.1 op Docker Hub staat en de vlag weghalen (`docs/beveiliging.md`).
 - Backlinks: op een pagina tonen welke pagina's ernaar verwijzen (tweede helft van U-06).
 
 

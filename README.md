@@ -7,7 +7,7 @@ Gebouwd als stageopdracht softwareontwikkeling (opdracht v1.0, 15 september 2026
 
 | Onderdeel | Keuze |
 |---|---|
-| Runtime | Java 25 LTS (Eclipse Temurin) |
+| Runtime | Java 27 (Eclipse Temurin; geen LTS, de spec noemt Java 25 LTS) |
 | Backend | Spring Boot 4.1.x: Spring MVC, Data JPA, Security (OIDC), Validation |
 | HTML | Thymeleaf, server-side gerenderd; vaste URL's per pagina |
 | Database | MySQL 9.1, JSON-kolom voor documentinhoud, FULLTEXT-index voor zoeken, Flyway-migraties |
@@ -17,7 +17,7 @@ Gebouwd als stageopdracht softwareontwikkeling (opdracht v1.0, 15 september 2026
 
 ## Vereisten voor ontwikkelen
 
-- Eclipse Temurin JDK 25: <https://adoptium.net/temurin/releases/?version=25>
+- Eclipse Temurin JDK 27: <https://adoptium.net/temurin/releases/?version=27>
 - Node.js 26 en npm (alleen buildhulpmiddel voor de editor)
 - Docker Desktop (voor Testcontainers, en voor een lokale MySQL via Compose)
 

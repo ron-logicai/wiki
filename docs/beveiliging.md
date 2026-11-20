@@ -9,15 +9,16 @@ Een fout in de Java-runtime zelf, niet in een library. De versnelde Base64-decod
 schrijft buiten zijn buffer. Een aanvaller zonder account kan de JVM laten crashen, geheugen uitlezen of code
 uitvoeren. De fout speelt alleen op x86-64-processors met AVX-512 VBMI.
 
-De wiki draait op Java 25 en decodeert Base64 al vóór het inloggen (onder meer het CSRF-token), dus de wiki
-geldt als bereikbaar voor deze aanval.
+De wiki decodeert Base64 al vóór het inloggen (onder meer het CSRF-token), dus de wiki geldt als bereikbaar
+voor deze aanval. Op 20 november 2026 is de wiki op verzoek van Java 25 naar Java 27 gegaan. Dat lost het lek
+niet op: Java 27 is ook getroffen.
 
 **Stand op 20 november 2026**
 
 | Onderdeel | Stand |
 |---|---|
-| Gecorrigeerde runtime | Temurin 25.0.5.1+2 (bevestigd door Adoptium) |
-| Docker Hub | `eclipse-temurin:25-jre` is nog 25.0.5+8, er bestaat nog geen 25.0.5.1-tag |
+| Gecorrigeerde runtime | Temurin 27.0.1.1+4 (bevestigd door Adoptium) |
+| Docker Hub | `eclipse-temurin:27-jre` is nog 27.0.1.0, er bestaat nog geen 27.0.1.1-tag |
 | Noodmaatregel | `-XX:-UseBASE64Intrinsics` in `Dockerfile` en `fly.toml` |
 | Productie (Fly) | pas beschermd na een deploy; de vlag werkt alleen na een herstart |
 
@@ -25,11 +26,14 @@ geldt als bereikbaar voor deze aanval.
 
 1. Deployen naar Fly, zodat de vlag in productie actief is.
 2. Controleren in productie: `fly ssh console -C "jcmd 1 VM.flags -all"` toont `-XX:-UseBASE64Intrinsics`.
-3. Zodra Docker Hub een 25.0.5.1-tag heeft: opnieuw bouwen en deployen, en nagaan dat `java -version` in de
-   container 25.0.5.1 of hoger meldt. De CI-job "Image scan" drukt die versie bij elke run af.
+3. Zodra Docker Hub een 27.0.1.1-tag heeft: opnieuw bouwen en deployen, en nagaan dat `java -version` in de
+   container 27.0.1.1 of hoger meldt. De CI-job "Image scan" drukt die versie bij elke run af.
 4. Daarna mag de vlag weg uit `Dockerfile` en `fly.toml`, samen met de stap "Base64-intrinsic staat uit" in
    `.github/workflows/ci.yml`.
-5. De JDK op ontwikkelmachines bijwerken naar 25.0.5.1 of hoger.
+5. Op ontwikkelmachines Temurin JDK 27.0.1.1 of hoger installeren.
+
+Let op bij Java 27: het is geen LTS (de spec noemt Java 25 LTS) en de ondersteuning stopt in maart 2027. Dan
+moet de wiki naar Java 28 of terug naar een LTS. Spring Boot 4.1.1 noemt Java 26 als hoogste ondersteunde versie.
 
 Niet van toepassing op de wiki: aanvallen zoals Log4Shell. De wiki gebruikt logback, geen `log4j-core`, en
 bevat geen JNDI-lookups of Java-deserialisatie.
@@ -38,10 +42,10 @@ bevat geen JNDI-lookups of Java-deserialisatie.
 
 | Plek | Runtime | Hoe bijwerken |
 |---|---|---|
-| Productie op Fly | `eclipse-temurin:25-jre` uit de `Dockerfile` | opnieuw bouwen en deployen |
+| Productie op Fly | `eclipse-temurin:27-jre` uit de `Dockerfile` | opnieuw bouwen en deployen |
 | `docker compose up` | dezelfde image | `docker compose build --pull` |
-| CI | `actions/setup-java`, Temurin 25 | haalt bij elke run de nieuwste 25 op |
-| Ontwikkelmachine | lokaal geïnstalleerde Temurin JDK 25 | handmatig, via adoptium.net |
+| CI | `actions/setup-java`, Temurin 27 | haalt bij elke run de nieuwste 27 op |
+| Ontwikkelmachine | lokaal geïnstalleerde Temurin JDK 27 | handmatig, via adoptium.net |
 
 Versie controleren: `java -version`, of in een container `docker run --rm --entrypoint java <image> -version`.
 

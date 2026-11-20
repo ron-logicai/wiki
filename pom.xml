@@ -14,7 +14,7 @@
 	<name>LogicAI Wiki</name>
 	<description>Interne kenniswiki voor LogicAI: pagina's, blokken en blijvende links</description>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>27</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<spring-ai.version>2.0.2</spring-ai.version>
 		<mcp-security.version>0.1.14</mcp-security.version>
