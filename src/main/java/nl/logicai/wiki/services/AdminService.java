@@ -50,6 +50,7 @@ public class AdminService {
 				case UserService.USER_INVITE -> "Gebruiker uitgenodigd";
 				case UserService.USER_CREATE -> "Gebruiker aangemaakt";
 				case UserService.USER_ROLE -> "Rol gewijzigd";
+				case UserService.USER_NAME -> "Naam gewijzigd";
 				case UserService.USER_PASSWORD -> "Wachtwoord ingesteld";
 				case UserService.USER_PASSWORD_CHANGE -> "Wachtwoord gewijzigd";
 				case UserService.USER_PASSWORD_RESET_REQUEST -> "Wachtwoordreset aangevraagd";

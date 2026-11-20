@@ -153,6 +153,49 @@ class UserAdminFlowIntegrationTest {
 				Integer.class)).isEqualTo(1);
 	}
 
+	/** The display name is the invitee's choice; an admin can correct it, the username stays the key. */
+	@Test
+	void adminChangesDisplayNameAndUsernameStays() throws Exception {
+		UUID id = create("typfout", "EDITOR");
+
+		mvc.perform(get("/admin/users").with(ADMIN))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("name=\"displayName\"")));
+
+		mvc.perform(post("/admin/users/{id}/name", id).with(csrf()).with(ADMIN).param("displayName", "   "))
+			.andExpect(flash().attribute("fout", containsString("Naam:")));
+		mvc.perform(post("/admin/users/{id}/name", id).with(csrf()).with(ADMIN).param("displayName", "x".repeat(WikiUser.DISPLAY_NAME_MAX + 1)))
+			.andExpect(flash().attribute("fout", containsString("Naam:")));
+		assertThat(users.findById(id).orElseThrow().getDisplayName()).isEqualTo("typfout");
+
+		mvc.perform(post("/admin/users/{id}/name", id).with(csrf()).with(ADMIN).param("displayName", "  Ellen de Vries "))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(header().string("Location", "/admin/users"))
+			.andExpect(flash().attribute("melding", "Naam is gewijzigd in “Ellen de Vries”."));
+		// The same name again changes nothing and writes no second audit entry.
+		mvc.perform(post("/admin/users/{id}/name", id).with(csrf()).with(ADMIN).param("displayName", "Ellen de Vries"))
+			.andExpect(flash().attributeExists("melding"));
+
+		WikiUser user = users.findById(id).orElseThrow();
+		assertThat(user.getDisplayName()).isEqualTo("Ellen de Vries");
+		assertThat(user.getUsername()).isEqualTo("typfout");
+		assertThat(jdbc.queryForObject("select count(*) from audit_event where action = 'user.name' and details = 'typfout: typfout naar Ellen de Vries'",
+				Integer.class)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("select count(*) from audit_event where action = 'user.name' and details like 'typfout:%'",
+				Integer.class)).isEqualTo(1);
+
+		mvc.perform(get("/admin").with(ADMIN))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Naam gewijzigd")));
+	}
+
+	@Test
+	@WithMockUser(username = "editor", roles = "EDITOR")
+	void editorCannotChangeNames() throws Exception {
+		mvc.perform(post("/admin/users/{id}/name", UUID.randomUUID()).with(csrf()).param("displayName", "Sluiper"))
+			.andExpect(status().isForbidden());
+	}
+
 	@Test
 	void adminSetsNewPasswordAndUserLogsInWithIt() throws Exception {
 		UUID id = create("vergeten", "EDITOR");

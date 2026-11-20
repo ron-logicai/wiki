@@ -91,6 +91,11 @@ public class WikiUser {
 		this.email = email;
 	}
 
+	/** Replaces the display name (validated and trimmed by the caller): admins on /admin/users. The username stays. */
+	public void changeDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
 	public void recordLogin(Instant now) {
 		this.lastLoginAt = now;
 	}

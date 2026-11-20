@@ -97,12 +97,20 @@
                                         <span class="gedempt" th:if="${u.lastLoginAt == null}">nog nooit</span>
                                     </td>
                                     <td class="tabel__acties">
-                                        <!-- Acties per gebruiker in een uitklapmenu (details/summary): rol, wachtwoord, verwijderen -->
+                                        <!-- Acties per gebruiker in een uitklapmenu (details/summary): naam, rol, e-mailadres, wachtwoord, verwijderen -->
                                         <details class="menu">
                                             <summary class="knop knop--icoon" th:title="'Acties voor ' + ${u.displayName}" th:attr="aria-label='Acties voor ' + ${u.displayName}" aria-haspopup="menu">
                                                 <span class="icoon" th:insert="~{fragments :: icoon('meer')}"></span>
                                             </summary>
                                             <div class="menu__lijst menu__acties">
+                                                <!-- Weergavenaam corrigeren; de interne gebruikersnaam blijft gelijk. -->
+                                                <form class="naamformulier" th:action="@{/admin/users/{id}/name(id=${u.id})}" method="post" autocomplete="off">
+                                                    <label th:for="'naam-' + ${u.id}">Naam</label>
+                                                    <div class="menu__regel">
+                                                        <input th:id="'naam-' + ${u.id}" type="text" name="displayName" maxlength="200" required placeholder="Voor- en achternaam" th:value="${u.displayName}">
+                                                        <button type="submit" class="knop">Opslaan</button>
+                                                    </div>
+                                                </form>
                                                 <form class="rolformulier" th:action="@{/admin/users/{id}/role(id=${u.id})}" method="post">
                                                     <label th:for="'rol-' + ${u.id}">Rol</label>
                                                     <div class="menu__regel">

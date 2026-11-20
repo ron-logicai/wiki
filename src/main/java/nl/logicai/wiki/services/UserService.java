@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * User and role management for admins (spec section 1: activate/deactivate, manage roles; route
  * /admin/users). New users come in through {@link InvitationService}, never directly. Users log in
  * with their e-mail address; the username is an internal key derived from it ({@link #usernameFor})
- * that nobody types or sees. {@link #delete} removes the app_user row (and its reset tokens);
+ * that nobody types or sees; an admin can correct the display name ({@link #setDisplayName}). {@link #delete} removes the app_user row (and its reset tokens);
  * usernames on pages and audit entries are plain strings and stay as they are. Guards keep the acting admin from locking themselves out and keep at
  * least one active admin. Every change is an AuditEvent without a page.
  */
@@ -40,6 +40,8 @@ public class UserService {
 	public static final String USER_PASSWORD = "user.password";
 	/** An admin set or changed the e-mail address (the login) on /admin/users. */
 	public static final String USER_EMAIL = "user.email";
+	/** An admin changed the display name on /admin/users. */
+	public static final String USER_NAME = "user.name";
 	public static final String USER_ACTIVATE = "user.activate";
 	public static final String USER_DEACTIVATE = "user.deactivate";
 	/** An admin removed the account on /admin/users. */
@@ -168,6 +170,24 @@ public class UserService {
 	}
 
 	/**
+	 * Replaces the display name of a user, the name everyone sees; the invitee chose it on
+	 * /accountaanmaken. The internal username stays, so pages, owners and audit entries keep pointing
+	 * at the same account.
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	public WikiUser setDisplayName(UUID id, String rawName, String actor) {
+		WikiUser user = get(id);
+		String name = validDisplayName(rawName);
+		if (name.equals(user.getDisplayName())) {
+			return user;
+		}
+		String was = user.getDisplayName();
+		user.changeDisplayName(name);
+		audit.save(AuditEvent.of(USER_NAME, null, actor, clock.instant(), user.getUsername() + ": " + was + " naar " + name));
+		return user;
+	}
+
+	/**
 	 * Sets or replaces the password of a user, so an admin can repair a mistyped password or give an
 	 * Entra-only account form login. The new password works on the next login (spec F-01).
 	 */
@@ -249,13 +269,13 @@ public class UserService {
 	}
 
 	/**
-	 * Trimmed display name as the invitee typed it (case kept), or {@link InvalidUserException} when empty
-	 * or longer than the {@code display_name} column. Package-private for {@link InvitationService}.
+	 * Trimmed display name as the invitee or the admin typed it (case kept), or {@link InvalidUserException}
+	 * when empty or longer than the {@code display_name} column. Package-private for {@link InvitationService}.
 	 */
 	static String validDisplayName(String raw) {
 		String name = raw == null ? "" : raw.trim();
 		if (name.isEmpty() || name.length() > WikiUser.DISPLAY_NAME_MAX) {
-			throw new InvalidUserException("Naam: vul je voor- en achternaam in (maximaal " + WikiUser.DISPLAY_NAME_MAX + " tekens).");
+			throw new InvalidUserException("Naam: vul een voor- en achternaam in (maximaal " + WikiUser.DISPLAY_NAME_MAX + " tekens).");
 		}
 		return name;
 	}

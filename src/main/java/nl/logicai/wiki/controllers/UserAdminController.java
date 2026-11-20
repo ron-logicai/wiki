@@ -84,6 +84,19 @@ public class UserAdminController {
 		return "redirect:/admin/users";
 	}
 
+	@PostMapping("/admin/users/{id}/name")
+	public String naam(@PathVariable UUID id, @RequestParam(defaultValue = "") String displayName, Authentication auth,
+			RedirectAttributes redirect) {
+		try {
+			var user = userService.setDisplayName(id, displayName, auth.getName());
+			redirect.addFlashAttribute("melding", "Naam is gewijzigd in “" + user.getDisplayName() + "”.");
+		}
+		catch (InvalidUserException ex) {
+			redirect.addFlashAttribute("fout", ex.getMessage());
+		}
+		return "redirect:/admin/users";
+	}
+
 	@PostMapping("/admin/users/{id}/email")
 	public String email(@PathVariable UUID id, @RequestParam(defaultValue = "") String email, Authentication auth,
 			RedirectAttributes redirect) {

@@ -2410,6 +2410,7 @@ a.zij__wie:focus-visible .zij__naam {
 
 .menu__formulier select,
 .menu__acties select,
+.menu__acties input[type="text"],
 .menu__acties input[type="password"] {
     width: 100%;
     min-height: 36px;
@@ -2424,6 +2425,7 @@ a.zij__wie:focus-visible .zij__naam {
 
 .menu__formulier select:focus,
 .menu__acties select:focus,
+.menu__acties input[type="text"]:focus,
 .menu__acties input[type="password"]:focus {
     border-color: var(--teal);
     outline: none;
@@ -2750,8 +2752,10 @@ a.zij__wie:focus-visible .zij__naam {
     gap: 6px;
 }
 
-.menu__regel select {
+.menu__regel select,
+.menu__regel input[type="text"] {
     flex: 1;
+    min-width: 0;
 }
 
 .menu__acties .knop {
