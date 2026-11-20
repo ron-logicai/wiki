@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: editor-bundle
           path: src/main/resources/static/editor
@@ -115,7 +115,7 @@ jobs:
           done
       - run: npx playwright test
         working-directory: frontend
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
