@@ -80,7 +80,7 @@
 		<dependency>
 			<groupId>io.github.openhtmltopdf</groupId>
 			<artifactId>openhtmltopdf-pdfbox</artifactId>
-			<version>1.1.94</version>
+			<version>1.1.114</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
