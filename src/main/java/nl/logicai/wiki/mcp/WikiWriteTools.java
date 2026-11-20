@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import nl.logicai.wiki.mcp.McpPageWriter.Written;
+import nl.logicai.wiki.services.MarkdownPageWriter.Written;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpTool.McpAnnotations;
 import org.springframework.ai.mcp.annotation.McpToolParam;

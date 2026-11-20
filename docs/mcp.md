@@ -95,7 +95,8 @@ blijvend maken. Daarom:
 
 ## Beveiliging
 
-De wiki is zelf OAuth 2.1-autorisatieserver; er is geen losse identiteitsdienst en er zijn geen vaste API-sleutels.
+De wiki is zelf OAuth 2.1-autorisatieserver; er is geen losse identiteitsdienst. De MCP-server accepteert geen
+API keys; die zijn er alleen voor de REST API op `/api/v1` (zie `api.md`).
 
 - **De agent is de gebruiker.** Een token staat op naam van één wiki-gebruiker. Bij elk verzoek aan `/mcp` wordt
   die gebruiker opnieuw uit `app_user` gelezen (F-02, N-01): een gedeactiveerde of verwijderde gebruiker wordt

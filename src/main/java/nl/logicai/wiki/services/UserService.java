@@ -63,10 +63,12 @@ public class UserService {
 	private final PasswordEncoder encoder;
 	private final Clock clock;
 	private final McpConnectionService connections;
+	private final ApiKeyService apiKeys;
 
 	public UserService(WikiUserRepository users, AuditEventRepository audit, PasswordResetTokenRepository tokens,
-			PasswordEncoder encoder, Clock clock, McpConnectionService connections) {
+			PasswordEncoder encoder, Clock clock, McpConnectionService connections, ApiKeyService apiKeys) {
 		this.connections = connections;
+		this.apiKeys = apiKeys;
 		this.users = users;
 		this.audit = audit;
 		this.tokens = tokens;
@@ -120,13 +122,14 @@ public class UserService {
 		if (!active) {
 			// The MCP endpoint refuses an inactive user anyway; removing the connections means reactivating does not revive them.
 			connections.revokeAllFor(user.getUsername(), actor);
+			apiKeys.revokeAllFor(user, actor);
 		}
 		audit.save(AuditEvent.of(active ? USER_ACTIVATE : USER_DEACTIVATE, null, actor, clock.instant(), user.getUsername()));
 		return user;
 	}
 
 	/**
-	 * Removes the account for good: the app_user row and its reset tokens (the only foreign key). The
+	 * Removes the account for good: the app_user row with its reset tokens and API keys (the foreign keys). The
 	 * username stays as a string on pages, favorites and audit entries. An open session of the user is
 	 * ended on their next request by ActiveUserFilter. Same guards as deactivating.
 	 */
@@ -141,6 +144,7 @@ public class UserService {
 		}
 		tokens.deleteByUserId(user.getId());
 		connections.revokeAllFor(user.getUsername(), actor);
+		apiKeys.revokeAllFor(user, actor);
 		users.delete(user);
 		audit.save(AuditEvent.of(USER_DELETE, null, actor, clock.instant(), user.getUsername()));
 		return user;
@@ -180,6 +184,7 @@ public class UserService {
 		user.changePassword(hashPassword(password, passwordRepeat));
 		// Whoever knew the old password may have connected an AI agent with it (docs/mcp.md).
 		connections.revokeAllFor(user.getUsername(), actor);
+		apiKeys.revokeAllFor(user, actor);
 		audit.save(AuditEvent.of(USER_PASSWORD, null, actor, clock.instant(), user.getUsername()));
 		return user;
 	}
@@ -203,6 +208,7 @@ public class UserService {
 		}
 		user.changePassword(hashPassword(password, passwordRepeat));
 		connections.revokeAllFor(user.getUsername(), user.getUsername());
+		apiKeys.revokeAllFor(user, user.getUsername());
 		audit.save(AuditEvent.of(USER_PASSWORD_CHANGE, null, user.getUsername(), clock.instant(), user.getUsername()));
 		return user;
 	}

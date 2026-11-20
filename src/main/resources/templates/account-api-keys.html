@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="nl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments :: head}"></th:block>
+    <title>API keys · LogicAI Wiki</title>
+</head>
+<body>
+
+<div class="app">
+    <nav th:replace="~{fragments :: zijbalk('account')}"></nav>
+
+    <div class="hoofd">
+        <div class="top">
+            <nav aria-label="Locatie">
+                <ol class="kruimels">
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li aria-current="page">API keys</li>
+                </ol>
+            </nav>
+            <span class="top__ruimte"></span>
+        </div>
+
+        <main class="pagina">
+            <div class="kolom">
+                <div class="kop kop--met-tabs">
+                    <div>
+                        <p class="eyebrow">Account</p>
+                        <h1>API keys</h1>
+                        <p class="intro">
+                            Met een API key maakt een script of integratie namens jou pagina's aan, wijzigt ze of
+                            verwijdert ze, via <code th:text="${apiUrl}">https://wiki.example/api/v1</code>. Een key
+                            heeft jouw rechten; wijzigingen staan op jouw naam in de geschiedenis.
+                        </p>
+                    </div>
+                    <nav th:replace="~{fragments :: accounttabs('api-keys')}"></nav>
+                </div>
+
+                <p class="melding melding--info" role="status" th:if="${melding != null}" th:text="${melding}">Melding</p>
+                <p class="melding" role="alert" th:if="${fout != null}" th:text="${fout}">Fout</p>
+
+                <!-- De key zelf staat alleen hier, direct na het aanmaken; de wiki bewaart alleen de hash. -->
+                <div class="kaart" role="status" th:if="${nieuweKey != null}">
+                    <h2>Je nieuwe API key “<span th:text="${nieuweKeyNaam}">naam</span>”</h2>
+                    <p><code th:text="${nieuweKey}">wiki_...</code></p>
+                    <p class="gedempt klein">
+                        Kopieer de key nu en bewaar hem op een veilige plek. Na het verlaten van deze pagina is hij
+                        niet meer op te vragen; maak dan een nieuwe aan.
+                    </p>
+                </div>
+
+                <div class="kaart kaart--tabel">
+                    <p class="leeg" th:if="${sleutels.isEmpty()}">Je hebt geen API keys.</p>
+                    <table class="tabel" th:unless="${sleutels.isEmpty()}">
+                        <thead>
+                            <tr><th>Naam</th><th>Aangemaakt</th><th>Laatst gebruikt</th><th><span class="verborgen">Acties</span></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="s : ${sleutels}">
+                                <td>
+                                    <strong th:text="${s.naam}">Naam</strong>
+                                    <div class="gedempt klein"><code th:text="${s.prefix + '…'}">wiki_abc…</code></div>
+                                </td>
+                                <td class="klein"><time th:datetime="${s.aangemaaktOp}" th:text="${@datums.relatief(s.aangemaaktOp)}">datum</time></td>
+                                <td class="klein">
+                                    <time th:if="${s.laatstGebruikt != null}" th:datetime="${s.laatstGebruikt}" th:text="${@datums.relatief(s.laatstGebruikt)}">datum</time>
+                                    <span class="gedempt" th:if="${s.laatstGebruikt == null}">nog niet</span>
+                                </td>
+                                <td>
+                                    <form th:action="@{/account/api-keys/{id}/intrekken(id=${s.id})}" method="post">
+                                        <button type="submit" class="knop knop--gevaar">Intrekken</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <form class="formulier kaart" th:if="${rolLabel != 'Lezer'}" th:action="@{/account/api-keys}" method="post">
+                    <h2>Nieuwe API key</h2>
+                    <div class="veld">
+                        <label for="naam">Naam</label>
+                        <input id="naam" name="naam" type="text" maxlength="100" required placeholder="Waar gebruik je de key voor?">
+                    </div>
+                    <div class="acties">
+                        <button type="submit" class="knop knop--primair">Key aanmaken</button>
+                    </div>
+                    <p class="gedempt klein">
+                        Stuur de key mee als <code>Authorization: Bearer &lt;key&gt;</code>. Al je keys vervallen
+                        direct als je je wachtwoord wijzigt.
+                    </p>
+                </form>
+                <p class="gedempt" th:if="${rolLabel == 'Lezer'}">
+                    Een API key aanmaken vraagt de rol Editor.
+                </p>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+</html>

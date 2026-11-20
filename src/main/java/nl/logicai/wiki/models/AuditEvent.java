@@ -27,6 +27,12 @@ public class AuditEvent {
 	/** A user connected an AI agent to their account, or a connection was revoked. */
 	public static final String MCP_CONNECT = "mcp.connect";
 	public static final String MCP_REVOKE = "mcp.revoke";
+	/** A page created or changed through the REST API with an API key (docs/api.md), on behalf of the actor. */
+	public static final String API_CREATE = "page.api.create";
+	public static final String API_UPDATE = "page.api.update";
+	/** A user created an API key, or a key was revoked. */
+	public static final String API_KEY_CREATE = "api.key.create";
+	public static final String API_KEY_REVOKE = "api.key.revoke";
 
 	@Id
 	private UUID id;
