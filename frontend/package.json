@@ -11,7 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@blocknote/core": "^0.54.2",
+    "@blocknote/core": "^0.57.0",
     "@blocknote/mantine": "^0.54.2",
     "@blocknote/react": "^0.54.2",
     "react": "^19.3.0",
